@@ -1,0 +1,117 @@
+@import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/source-sans-3";
+
+/*
+  Identidade visual inspirada no brasão de Tijucas (mesma do infográfico e dos slides).
+  Os tons "-700" existem para garantir contraste de texto branco (WCAG AA).
+*/
+@theme {
+  --font-sans: "Source Sans 3 Variable", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Source Sans 3 Variable", sans-serif;
+
+  --color-mar: #0093c9;       /* azul da rede de pesca: marca, faixas */
+  --color-mar-700: #00658c;   /* botões e links (texto branco legível) */
+  --color-mar-50: #e5f4fa;
+
+  --color-campo: #00a651;     /* verde dos campos: resolvido */
+  --color-campo-700: #006b34;
+  --color-campo-50: #e3f5ea;
+
+  --color-sol: #ffe600;       /* amarelo da caravela: a senha da fila */
+  --color-sol-50: #fffbd6;
+
+  --color-brasa: #e8302f;     /* vermelho das estrelas: só para urgência */
+  --color-brasa-700: #b4201f;
+  --color-brasa-50: #fdeceb;
+
+  --color-tinta: #113227;     /* verde-escuro: texto */
+  --color-tinta-2: #47605a;   /* texto secundário */
+  --color-linha: #d5e0dc;     /* divisórias */
+  --color-fundo: #f4f7f6;     /* fundo da página */
+}
+
+@layer base {
+  html {
+    font-size: 17px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-fundo font-sans text-tinta antialiased;
+    min-height: 100dvh;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-mar);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility btn {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@layer components {
+  .btn-primario { @apply btn bg-mar-700 text-white hover:bg-tinta; }
+  .btn-sucesso { @apply btn bg-campo-700 text-white hover:bg-tinta; }
+  .btn-secundario { @apply btn border-2 border-linha bg-white text-tinta hover:border-mar-700; }
+  .btn-perigo { @apply btn border-2 border-brasa-700 bg-white text-brasa-700 hover:bg-brasa-50; }
+
+  .campo {
+    @apply block w-full rounded-xl border-2 border-linha bg-white px-4 py-3 text-base text-tinta placeholder:text-tinta-2/70 focus:border-mar-700 focus:outline-none;
+  }
+  .rotulo { @apply mb-2 block font-semibold; }
+  .ajuda { @apply mt-1 text-sm text-tinta-2; }
+
+  /* opção grande e tocável (categorias, impacto, origem) */
+  .opcao {
+    @apply flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border-2 border-linha bg-white px-4 py-3 text-left font-semibold transition-colors hover:border-mar-700;
+  }
+  .opcao:has(input:checked) {
+    @apply border-mar-700 bg-mar-50;
+  }
+  .opcao:has(input:focus-visible) {
+    outline: 3px solid var(--color-mar);
+    outline-offset: 2px;
+  }
+
+  /* A senha da fila: o elemento marcante do sistema.
+     Lembra a senha de atendimento de banco/padaria, com picote lateral. */
+  .senha {
+    position: relative;
+    background: var(--color-sol);
+    border-radius: 18px;
+    -webkit-mask:
+      radial-gradient(circle 14px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 14px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+            mask:
+      radial-gradient(circle 14px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 14px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+  }
+  .senha-picote {
+    border-left: 3px dashed color-mix(in srgb, var(--color-tinta) 35%, transparent);
+  }
+}
+
+@keyframes chegou {
+  from { transform: translateY(12px) rotate(-1.5deg); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.animar-chegada { animation: chegou 420ms cubic-bezier(.2,.8,.2,1) both; }
+
+@media print {
+  body {
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

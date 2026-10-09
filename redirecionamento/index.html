@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dino Desk | Prefeitura de Tijucas</title>
+  <!--
+    Página de redirecionamento para colocar no site da Prefeitura (ex.: /chamados).
+    O QR code e o link divulgado apontam para cá; esta página manda a pessoa para
+    o PC servidor na rede interna. Se o IP do servidor mudar, só esta linha muda:
+  -->
+  <script>window.DESTINO = "http://192.168.0.10";</script>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box;
+           background: #00658c; color: #113227; font: 17px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { background: #fff; border-radius: 20px; padding: 28px; max-width: 420px; width: 100%; box-sizing: border-box; }
+    h1 { margin: 0 0 8px; font-size: 1.6rem; line-height: 1.2; }
+    p { margin: 0 0 14px; }
+    .aviso { background: #fffbd6; border-left: 6px solid #ffe600; padding: 12px 14px; border-radius: 10px; }
+    a.botao { display: block; text-align: center; background: #00658c; color: #fff; font-weight: 700; text-decoration: none;
+              padding: 14px; border-radius: 12px; margin-top: 18px; }
+    a.botao:focus-visible { outline: 3px solid #0093c9; outline-offset: 2px; }
+    small { display: block; margin-top: 14px; color: #47605a; }
+  </style>
+</head>
+<body>
+  <main>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="72" height="72" aria-hidden="true" style="display:block;margin-bottom:14px">
+      <rect width="200" height="200" rx="44" fill="#00658C"/>
+      <g fill="#FFE600">
+        <path d="M70 66 L48 58 L60 82 Z"/><path d="M57 95 L34 94 L52 114 Z"/>
+        <path d="M53 128 L30 132 L52 148 Z"/><path d="M53 161 L31 168 L53 180 Z"/>
+      </g>
+      <path d="M52 200 L52 120 C52 72 86 44 126 46 C163 48 184 70 184 97 C184 121 168 134 144 134 L122 134 C114 134 110 140 110 148 L110 200 Z" fill="#00A651"/>
+      <path d="M110 148 C110 140 114 134 122 134 L126 134 C121 152 121 178 124 200 L110 200 Z" fill="#FFFFFF" fill-opacity="0.55"/>
+      <path d="M184 104 C176 118 160 122 140 120" fill="none" stroke="#113227" stroke-width="5" stroke-linecap="round"/>
+      <ellipse cx="170" cy="80" rx="3.5" ry="2.5" fill="#113227"/>
+      <circle cx="132" cy="80" r="12" fill="#FFFFFF"/><circle cx="135" cy="81" r="6.5" fill="#113227"/><circle cx="137.5" cy="78.5" r="2" fill="#FFFFFF"/>
+      <path d="M84 100 C78 70 88 50 110 44" fill="none" stroke="#113227" stroke-width="9" stroke-linecap="round"/>
+      <rect x="72" y="94" width="26" height="34" rx="11" fill="#113227"/><rect x="78" y="101" width="14" height="20" rx="6" fill="#FFE600"/>
+      <path d="M90 124 C98 142 118 146 136 140" fill="none" stroke="#113227" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="139" cy="139" r="7" fill="#113227"/>
+    </svg>
+    <h1>Dino Desk</h1>
+    <p>Chamados do Departamento de TI da Prefeitura de Tijucas. Abrindo o sistema...</p>
+    <p class="aviso">Funciona somente conectado ao <strong>Wi-Fi ou à rede da Prefeitura</strong>. Se a página não abrir, confira a conexão e tente de novo.</p>
+    <a class="botao" id="abrir" href="#">Abrir o sistema</a>
+    <small>Prefeitura Municipal de Tijucas</small>
+  </main>
+  <script>
+    (function () {
+      var local = new URLSearchParams(window.location.search).get("local");
+      var alvo = window.DESTINO.replace(/\/$/, "") + (local ? "/novo?local=" + encodeURIComponent(local) : "/");
+      document.getElementById("abrir").href = alvo;
+      setTimeout(function () { window.location.href = alvo; }, 1500);
+    })();
+  </script>
+</body>
+</html>

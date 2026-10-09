@@ -1,0 +1,10 @@
+{
+  "name": "Dino Desk - Chamados do TI da Prefeitura de Tijucas",
+  "short_name": "Dino Desk",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#00658C",
+  "lang": "pt-BR",
+  "icons": [{ "src": "/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

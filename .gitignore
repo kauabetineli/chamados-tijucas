@@ -1,0 +1,21 @@
+# PocketBase
+backend/pocketbase
+backend/pocketbase.exe
+backend/pb_data/
+backend/pb_public/
+backend/LICENSE.md
+backend/CHANGELOG.md
+
+# front
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# pacotes gerados
+dinodesk-*.zip
+
+# sistema
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
