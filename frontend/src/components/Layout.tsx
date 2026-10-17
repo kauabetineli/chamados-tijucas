@@ -30,7 +30,7 @@ export function Layout() {
   const focado = caminho === "/novo";
   // "Todos os chamados" é a outra visão da Fila: o item Fila continua marcado, e a página fica mais larga (tabela)
   const ativo = (i: Item, isActive: boolean) => isActive || (i.para === "/ti" && caminho === "/ti/chamados");
-  const largura = caminho === "/ti/chamados" ? "max-w-7xl" : focado ? "max-w-6xl" : "max-w-5xl";
+  const largura = caminho === "/ti/chamados" ? "max-w-7xl" : focado ? "max-w-7xl" : "max-w-5xl";
 
   return (
     // PC: barra lateral à esquerda + conteúdo. Celular: topo + barra de baixo (a lateral não aparece).

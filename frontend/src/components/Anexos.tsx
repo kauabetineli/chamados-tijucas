@@ -72,6 +72,7 @@ export function SeletorAnexos({
   aoPreparar,
   modo,
   controle,
+  compacto,
 }: {
   arquivos: File[];
   onChange: Dispatch<SetStateAction<File[]>>;
@@ -80,6 +81,8 @@ export function SeletorAnexos({
   modo?: "celular" | "computador";
   /** passe quando outro componente também adiciona anexos (ex.: colar na caixa de texto) */
   controle?: ControleAnexos;
+  /** computador: faixa baixa com as miniaturas na mesma linha (economiza altura) */
+  compacto?: boolean;
 }) {
   const proprio = useAnexos(onChange, controle ? undefined : aoPreparar);
   const { adicionar, aviso, preparando } = controle ?? proprio;
@@ -92,7 +95,50 @@ export function SeletorAnexos({
   const botao = "btn-secundario flex-1 cursor-pointer min-w-[9.5rem]";
   return (
     <div>
-      {celular ? (
+      {!celular && compacto ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <label
+            onDragEnter={(e) => { if (arrastandoArquivo(e)) { e.preventDefault(); setSobre(true); } }}
+            onDragOver={(e) => { if (arrastandoArquivo(e)) e.preventDefault(); }}
+            onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setSobre(false); }}
+            onDrop={(e) => { e.preventDefault(); setSobre(false); adicionar(e.dataTransfer.files); }}
+            className={`flex h-16 min-w-0 flex-1 basis-64 cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed px-4 ${
+              sobre ? "border-acento bg-mar-50" : "border-linha bg-superficie hover:border-acento hover:bg-mar-50/50"
+            }`}
+          >
+            <Upload className={`size-6 shrink-0 ${sobre ? "text-acento" : "text-tinta-2"}`} aria-hidden="true" />
+            <span className="min-w-0 text-sm leading-tight">
+              <span className="block font-semibold">{sobre ? "Solte para anexar" : "Arraste a foto ou o vídeo aqui"}</span>
+              <span className="block text-tinta-2">ou <span className="font-semibold text-acento underline underline-offset-4">escolha um arquivo</span></span>
+            </span>
+            <input type="file" accept="image/*,video/*" multiple className="sr-only" onChange={(e) => { adicionar(e.target.files); e.target.value = ""; }} />
+          </label>
+          {previas.length > 0 && (
+            <ul className="flex flex-wrap gap-2">
+              {previas.map(({ f, url }, i) => (
+                <li key={url} className="relative size-16 overflow-hidden rounded-lg border border-linha bg-superficie">
+                  {f.type.startsWith("video/") ? (
+                    <>
+                      <video src={url} className="size-full bg-noite object-cover" muted playsInline preload="metadata" />
+                      <Video className="absolute bottom-1 left-1 size-4 text-white drop-shadow" aria-hidden="true" />
+                    </>
+                  ) : (
+                    <img src={url} alt={`Anexo ${i + 1}`} className="size-full object-cover" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onChange((atual) => atual.filter((x) => x !== f))}
+                    className="absolute top-0.5 right-0.5 rounded-full bg-noite/80 p-0.5 text-white"
+                    aria-label={`Remover anexo ${i + 1}`}
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : celular ? (
         <div className="flex flex-wrap gap-2">
           <label className={botao}>
             <Camera className="size-5" aria-hidden="true" /> Tirar foto
@@ -133,7 +179,7 @@ export function SeletorAnexos({
       )}
       {preparando && <p className="mt-2 text-sm font-semibold text-tinta-2" role="status">Preparando anexo...</p>}
       {aviso && <p className="mt-2 text-sm font-semibold text-alerta">{aviso}</p>}
-      {previas.length > 0 && (
+      {previas.length > 0 && !(compacto && !celular) && (
         <ul className="mt-3 flex flex-wrap gap-2">
           {previas.map(({ f, url }, i) => (
             <li key={url} className="relative size-24 overflow-hidden rounded-lg border border-linha bg-superficie">

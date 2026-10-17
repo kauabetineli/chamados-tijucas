@@ -1,5 +1,5 @@
 import { Pencil } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { arrastandoArquivo, GaleriaArquivos, SeletorAnexos, useAnexos } from "../../components/Anexos";
 import { EscolhaCategoria, EscolhaImpacto } from "../../components/CamposChamado";
@@ -47,6 +47,7 @@ function EtapaCategoria({ f, modo, avancar }: PropsEtapa) {
         aoTocar={modo === "passo" ? () => setTimeout(avancar, 120) : undefined}
         grande={modo === "passo"}
         classeGrade={modo === "painel" ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4"}
+        horizontal={modo === "painel"}
       />
       {modo === "painel" && <AvisoSemelhantes categoria={f.categoria} />}
     </div>
@@ -60,9 +61,17 @@ function EtapaDescricao({ f, modo, avancar }: PropsEtapa) {
   const anexos = useAnexos(f.setArquivos, f.setPreparandoAnexo);
   const painel = modo === "painel";
   const [sobre, setSobre] = useState(false);
+  // computador: a caixa começa baixa e cresce com o texto (até ~320 px; depois rola por dentro)
+  const caixa = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = caixa.current;
+    if (!el || !painel) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(320, Math.max(150, el.scrollHeight + 4))}px`;
+  }, [f.descricao, painel]);
 
   return (
-    <div className={modo === "painel" ? "space-y-8" : "space-y-5"}>
+    <div className={modo === "painel" ? "space-y-6" : "space-y-5"}>
       {modo === "passo" && <AvisoSemelhantes categoria={f.categoria} />}
       <div>
         <label htmlFor="descricao" className={modo === "passo" ? "mb-4 block font-display text-2xl font-bold" : "rotulo text-lg"}>
@@ -84,10 +93,11 @@ function EtapaDescricao({ f, modo, avancar }: PropsEtapa) {
         )}
         <div className="relative">
           <textarea
+            ref={caixa}
             id="descricao"
             required
-            rows={painel ? 14 : 5}
-            className={`campo resize-y ${painel ? "min-h-[max(22rem,45vh)] leading-relaxed" : "min-h-36"}`}
+            rows={5}
+            className={`campo ${painel ? "resize-none leading-relaxed" : "resize-y min-h-36"}`}
             placeholder={
               painel
                 ? "Ex.: a impressora da recepção mostra uma luz laranja e não imprime desde hoje cedo.\n\nO que você já tentou? Aparece alguma mensagem de erro?"
@@ -121,13 +131,14 @@ function EtapaDescricao({ f, modo, avancar }: PropsEtapa) {
         )}
       </div>
       <div>
-        <p className="rotulo">Foto ou vídeo (opcional)</p>
-        <p className="ajuda mt-0 mb-3">Uma foto da tela ou da mensagem de erro ajuda o TI a chegar com a solução.</p>
+        <p className="rotulo">Foto ou vídeo <span className="font-normal text-tinta-2">(opcional)</span></p>
+        <p className={`ajuda mt-0 mb-3 ${painel ? "hidden" : ""}`}>Uma foto da tela ou da mensagem de erro ajuda o TI a chegar com a solução.</p>
         <SeletorAnexos
           arquivos={f.arquivos}
           onChange={f.setArquivos}
           modo={modo === "passo" ? "celular" : "computador"}
           controle={anexos}
+          compacto={painel}
         />
       </div>
       {modo === "passo" && (
@@ -149,6 +160,7 @@ function EtapaImpacto({ f, modo, avancar }: PropsEtapa) {
       aoTocar={modo === "passo" ? () => setTimeout(avancar, 120) : undefined}
       titulo="Isso está atrapalhando quem?"
       grande={modo === "passo"}
+      lado={modo === "painel"}
     />
   );
 }
@@ -204,7 +216,7 @@ export const ETAPAS: Etapa[] = [
     pronta: (f) => !!f.descricao.trim() && !f.preparandoAnexo, falta: "Conte o que está acontecendo.",
   },
   {
-    id: "impacto", rotulo: "Impacto", Componente: EtapaImpacto, coluna: "esquerda",
+    id: "impacto", rotulo: "Impacto", Componente: EtapaImpacto, coluna: "direita",
     pronta: (f) => !!f.impacto, falta: "Diga quem está sendo afetado.",
   },
   {

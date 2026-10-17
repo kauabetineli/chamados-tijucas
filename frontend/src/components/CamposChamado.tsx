@@ -28,21 +28,21 @@ interface PropsEscolha<T> {
 const CLASSE_TITULO_GRANDE = "mb-5 font-display text-2xl font-bold";
 
 export function EscolhaCategoria({
-  valor, onChange, aoTocar, titulo = "O que está com problema?", grande, classeGrade = "grid-cols-2 sm:grid-cols-4",
-}: PropsEscolha<string>) {
+  valor, onChange, aoTocar, titulo = "O que está com problema?", grande, classeGrade = "grid-cols-2 sm:grid-cols-4", horizontal,
+}: PropsEscolha<string> & { horizontal?: boolean }) {
   const categorias = useCategorias();
   return (
     <fieldset>
       <legend className={grande ? CLASSE_TITULO_GRANDE : "rotulo text-lg"}>{titulo}</legend>
       <div className={`grid gap-2 ${classeGrade}`}>
         {categorias.map((c) => (
-          <label key={c.id} className="opcao flex-col items-start gap-2 sm:min-h-24">
+          <label key={c.id} className={horizontal ? "opcao min-h-13 gap-3 py-2.5" : "opcao flex-col items-start gap-2 sm:min-h-24"}>
             <input
               type="radio" name="categoria" value={c.id} checked={valor === c.id} className="sr-only" required
               onChange={() => onChange(c.id)}
               onClick={() => aoTocar?.(c.id)}
             />
-            <IconeCategoria nome={c.icone} className="size-7 text-acento" />
+            <IconeCategoria nome={c.icone} className={`${horizontal ? "size-6" : "size-7"} shrink-0 text-acento`} />
             <span className="leading-tight">{c.nome}</span>
           </label>
         ))}
@@ -58,14 +58,15 @@ const DETALHE_IMPACTO: Record<Impacto, string> = {
 };
 
 export function EscolhaImpacto({
-  valor, onChange, aoTocar, titulo = "Quem está sendo afetado?", grande,
-}: PropsEscolha<Impacto>) {
+  valor, onChange, aoTocar, titulo = "Quem está sendo afetado?", grande, lado,
+}: PropsEscolha<Impacto> & { lado?: boolean }) {
   return (
     <fieldset>
       <legend className={grande ? CLASSE_TITULO_GRANDE : "rotulo text-lg"}>{titulo}</legend>
-      <div className="space-y-2">
+      {/* lado: as 3 opções lado a lado (tela dividida do computador), para economizar altura */}
+      <div className={lado ? "grid gap-2 xl:grid-cols-3" : "space-y-2"}>
         {(Object.keys(ROTULO_IMPACTO) as Impacto[]).map((k) => (
-          <label key={k} className="opcao">
+          <label key={k} className={lado ? "opcao items-start py-2.5" : "opcao"}>
             <input
               type="radio" name="impacto" value={k} checked={valor === k} className="size-5 shrink-0 accent-acento" required
               onChange={() => onChange(k)}
@@ -73,7 +74,7 @@ export function EscolhaImpacto({
             />
             <span>
               <span className="block">{ROTULO_IMPACTO[k]}</span>
-              <span className="block text-sm font-normal text-tinta-2">{DETALHE_IMPACTO[k]}</span>
+              <span className={`block font-normal text-tinta-2 ${lado ? "text-xs" : "text-sm"}`}>{DETALHE_IMPACTO[k]}</span>
             </span>
           </label>
         ))}
