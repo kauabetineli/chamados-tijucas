@@ -1,6 +1,7 @@
 import { Download, QrCode } from "lucide-react";
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
+import { Bloco } from "../../components/Esqueleto";
 import { duracaoHoras, ROTULO_ORIGEM } from "../../lib/formato";
 import { baixarCsvChamados } from "../../lib/planilha";
 import { EXPAND_CHAMADO, pb, type Chamado, type Origem } from "../../lib/pb";
@@ -74,7 +75,13 @@ export function Painel() {
 
       {erro && <p className="font-semibold text-alerta">Não foi possível carregar os indicadores.</p>}
       {!r ? (
-        !erro && <p className="text-tinta-2">Carregando...</p>
+        !erro && (
+          <div aria-busy="true" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <span className="sr-only" role="status">Carregando os indicadores...</span>
+            {[0, 1, 2, 3].map((i) => <Bloco key={i} className="h-28 rounded-2xl" />)}
+            <Bloco className="h-64 rounded-2xl sm:col-span-2 lg:col-span-4" />
+          </div>
+        )
       ) : (
         <>
           <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-linha ring-1 ring-linha lg:grid-cols-4">

@@ -2,6 +2,7 @@ import { AlertTriangle, ChevronDown, Clock, GripVertical, MoreVertical, User, Wr
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { Avatar, SeloLivre } from "../../components/Avatar";
+import { Bloco, EsqueletoCartoes } from "../../components/Esqueleto";
 import { IconeCategoria } from "../../components/Icone";
 import { MenuAcoes } from "../../components/MenuAcoes";
 import { MenuAtribuir } from "../../components/MenuAtribuir";
@@ -460,18 +461,18 @@ export function Fila() {
       <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="text-3xl font-bold">Fila</h1>
-        <p className="mt-1 flex flex-wrap gap-x-4 text-tinta-2">
+        {chamados === null ? <Bloco className="mt-2 h-6 w-64" /> : <p className="mt-1 flex flex-wrap gap-x-4 text-tinta-2">
           <span><b className="font-display text-xl text-tinta">{fila.length}</b> aguardando</span>
           {atrasados > 0 && (
             <span className="font-semibold text-alerta"><b className="font-display text-xl">{atrasados}</b> {atrasados === 1 ? "atrasado" : "atrasados"}</span>
           )}
           <span><b className="font-display text-xl text-tinta">{atendendo.length + comOutros.length}</b> em atendimento</span>
-        </p>
+        </p>}
       </div>
       <VisaoTI />
       </div>
 
-      {tecnicos.length > 0 && (
+      {tecnicos.length > 0 && chamados !== null && (
         <FaixaEquipe
           tecnicos={tecnicos}
           eu={eu}
@@ -486,7 +487,7 @@ export function Fila() {
 
 
       {chamados === null ? (
-        <p className="text-tinta-2">Carregando a fila...</p>
+        <EsqueletoCartoes quantos={5} rotulo="Carregando a fila..." />
       ) : filtro ? (
         <>
           <Secao titulo={nomeFiltro} total={filtrados.length}>

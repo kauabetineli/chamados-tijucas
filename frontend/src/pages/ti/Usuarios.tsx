@@ -4,6 +4,7 @@ import {
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { Avatar } from "../../components/Avatar";
+import { EsqueletoLinhas } from "../../components/Esqueleto";
 import { PainelRapido, RodapeRascunho, RotuloSecao } from "../../components/PainelRapido";
 import { Paginacao, usePaginacao } from "../../components/Paginacao";
 import { SeloTeste } from "../../components/Selos";
@@ -492,7 +493,7 @@ function AbaPessoas({ setores, admin, setorFiltro, aoFiltrarSetor, recarregarTud
       </label>
 
       {lista === null ? (
-        <p className="text-tinta-2">Carregando...</p>
+        <EsqueletoLinhas quantos={6} rotulo="Carregando pessoas..." />
       ) : lista.length === 0 ? (
         <div className="rounded-2xl bg-superficie p-8 text-center ring-1 ring-linha">
           <p className="font-semibold">Ninguém encontrado.</p>
@@ -668,7 +669,7 @@ export function Usuarios() {
 
 
       {setores === null ? (
-        <p className="text-tinta-2">Carregando...</p>
+        <EsqueletoLinhas quantos={6} rotulo="Carregando..." />
       ) : aba === "pessoas" ? (
         <AbaPessoas
           setores={setores}

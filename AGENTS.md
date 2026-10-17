@@ -97,6 +97,9 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 12. **Confirmação de ação = aviso rápido**: `avisar("2026-00012 agora está com Hugo.")` (`frontend/src/lib/avisos.ts`).
     Some sozinho no canto da tela, sem botão para fechar obrigatório. Não crie faixas de aviso fixas na página.
     Erro de formulário continua perto do campo (`role="alert"`); erro de ação rápida: `avisar(msg, { tipo: "erro" })`.
+13. **Carregando = esqueleto**, nunca só o texto "Carregando...": use `components/Esqueleto.tsx` (`EsqueletoCartoes`,
+    `EsqueletoLinhas`, `EsqueletoTabela`, `EsqueletoChamado`, `EsqueletoConversa` ou `Bloco` para montar um novo)
+    no formato do que vai aparecer. Números que ainda não chegaram não aparecem como "0".
 
 ## Modelo de dados (resumo)
 

@@ -2,6 +2,7 @@ import { ArrowLeft, Check, CheckCircle2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { GaleriaAnexos } from "../components/Anexos";
+import { EsqueletoChamado } from "../components/Esqueleto";
 import { IconeCategoria } from "../components/Icone";
 import { LinhaDoTempo } from "../components/LinhaDoTempo";
 import { PainelTecnico } from "../components/PainelTecnico";
@@ -59,7 +60,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
       </div>
     );
   }
-  if (!c) return <p className="text-tinta-2">Carregando chamado...</p>;
+  if (!c) return <EsqueletoChamado tecnico={tecnico} />;
 
   const doSolicitante = c.solicitante === usuario?.id;
   const etapa = ETAPAS.indexOf(c.status);

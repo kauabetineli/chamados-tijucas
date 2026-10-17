@@ -1,3 +1,4 @@
+import { EsqueletoConversa } from "./Esqueleto";
 import { ImagePlus, Lock, Send, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
@@ -46,6 +47,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId }: { chamadoId: string; 
   const tecnico = ehTecnico(usuario);
   const [params, setParams] = useSearchParams();
   const [itens, setItens] = useState<Interacao[]>([]);
+  const [carregou, setCarregou] = useState(false);
   const [texto, setTexto] = useState("");
   const [imagens, setImagens] = useState<File[]>([]);
   const [preparando, setPreparando] = useState(false);
@@ -61,6 +63,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId }: { chamadoId: string; 
       expand: "autor",
     });
     setItens(lista);
+    setCarregou(true);
     marcarVisto(chamadoId); // a conversa está na tela: some o "Nova resposta"
   }, [chamadoId]);
 
@@ -133,6 +136,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId }: { chamadoId: string; 
   return (
     <section aria-labelledby="titulo-conversa">
       <h2 id="titulo-conversa" className="mb-3 text-xl font-bold">Conversa e andamento</h2>
+      {!carregou && <EsqueletoConversa />}
       <ol className="space-y-3">
         {itens.map((i) => {
           if (i.tipo !== "comentario") {

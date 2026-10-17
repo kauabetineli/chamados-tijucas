@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { LinkChamado, useVerChamado } from "../../lib/verChamado";
 import { Avatar } from "../../components/Avatar";
+import { EsqueletoCartoes, EsqueletoTabela } from "../../components/Esqueleto";
 import { useCategorias } from "../../components/CamposChamado";
 import { IconeCategoria } from "../../components/Icone";
 import { PilulaPrioridade, SeloStatus, SeloTeste } from "../../components/Selos";
@@ -273,6 +274,13 @@ export function TodosChamados() {
           </button>
         </div>
       </div>
+
+      {itens === null && (
+        <>
+          <div className="hidden md:block"><EsqueletoTabela /></div>
+          <div className="md:hidden"><EsqueletoCartoes quantos={5} rotulo="Carregando chamados..." /></div>
+        </>
+      )}
 
       {itens && itens.length === 0 && (
         <p className="rounded-2xl bg-superficie p-8 text-center text-tinta-2 ring-1 ring-linha">Nenhum chamado com esses filtros.</p>

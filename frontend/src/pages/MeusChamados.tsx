@@ -1,6 +1,7 @@
 import { History, Inbox, Plus, Search, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
+import { EsqueletoLinhas } from "../components/Esqueleto";
 import { LinhaChamado } from "../components/LinhaChamado";
 import { Paginacao, usePaginacao } from "../components/Paginacao";
 import { SenhaFila } from "../components/SenhaFila";
@@ -86,7 +87,14 @@ export function MeusChamados() {
   // novidade = o TI escreveu ou mudou o status depois da última vez que a pessoa abriu o chamado
   const novidade = (c: Chamado) => (ultimaDoTI[c.id] ?? 0) > ultimaVisita(c.id);
 
-  if (chamados === null) return <p className="text-tinta-2">Carregando seus chamados...</p>;
+  if (chamados === null) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-7">
+        <h1 className="text-3xl font-bold">Meus chamados</h1>
+        <EsqueletoLinhas quantos={3} rotulo="Carregando seus chamados..." />
+      </div>
+    );
+  }
 
   const naFila = chamados
     .filter((c) => c.status === "aberto")
@@ -205,7 +213,7 @@ export function MeusChamados() {
             <input type="search" className="campo pl-12" placeholder="Protocolo ou palavra do problema" value={busca} onChange={(e) => { setBusca(e.target.value); pag.voltarAoInicio(); }} />
           </label>
           {historico === null ? (
-            <p className="text-tinta-2">Carregando...</p>
+            <EsqueletoLinhas quantos={4} />
           ) : historico.length === 0 ? (
             <p className="py-6 text-center text-tinta-2">{busca ? "Nada encontrado com essa busca." : "Nenhum chamado resolvido ainda."}</p>
           ) : (

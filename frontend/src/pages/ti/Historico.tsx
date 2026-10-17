@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LinkChamado, useVerChamado } from "../../lib/verChamado";
 import { IconeCategoria } from "../../components/Icone";
+import { EsqueletoCartoes } from "../../components/Esqueleto";
 import { useCategorias } from "../../components/CamposChamado";
 import { Paginacao, usePaginacao } from "../../components/Paginacao";
 import { SeloTeste } from "../../components/Selos";
@@ -74,7 +75,7 @@ export function Historico() {
       </div>
 
       {itens === null ? (
-        <p className="text-tinta-2">Carregando...</p>
+        <EsqueletoCartoes quantos={4} rotulo="Carregando o histórico..." />
       ) : itens.length === 0 ? (
         <p className="rounded-2xl bg-superficie p-6 text-center ring-1 ring-linha">
           {q || categoria ? "Nada encontrado com esse filtro." : "Os chamados resolvidos aparecem aqui, com a causa e a solução."}
