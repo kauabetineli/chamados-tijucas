@@ -179,6 +179,9 @@
 @keyframes aviso-sai { to { opacity: 0; transform: translateY(-6px) scale(0.98); } }
 .aviso-entrando { animation: aviso-entra 180ms ease-out both; }
 .aviso-saindo { animation: aviso-sai 180ms ease-in both; }
+/* painel do chamado que sobe de baixo (components/PainelChamado.tsx) */
+@keyframes painel-sobe { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.painel-sobe { animation: painel-sobe 200ms cubic-bezier(.2,.8,.2,1) both; }
 .animar-chegada { animation: chegou 420ms cubic-bezier(.2,.8,.2,1) both; }
 
 @media print {

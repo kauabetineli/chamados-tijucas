@@ -14,6 +14,7 @@ import { atrasado, cargaDaEquipe, esperaCurta, horasEsperando, organizarFila } f
 import { resumo, ROTULO_ORIGEM } from "../../lib/formato";
 import { EXPAND_CHAMADO, mensagemErro, nomeSolicitante, pb, type Chamado, type Usuario } from "../../lib/pb";
 import { useRealtime } from "../../lib/useRealtime";
+import { LinkChamado, useVerChamado } from "../../lib/verChamado";
 import { avisar } from "../../lib/avisos";
 
 const TIPO_ARRASTE = "application/x-dinodesk-chamado";
@@ -199,9 +200,11 @@ function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastand
 }
 
 /** Cartão de chamado na fila. No PC dá para arrastar (alça à esquerda) até alguém da equipe. */
-function Cartao({ c, eu, posicao, destaque, realcado, aoAtribuir, aoAcoes, arrastavel, aoArrastar }: {
+function Cartao({ c, eu, posicao, destaque, realcado, selecionado, aoAtribuir, aoAcoes, arrastavel, aoArrastar }: {
   c: Chamado;
   realcado?: boolean;
+  /** aberto no painel de baixo */
+  selecionado?: boolean;
   eu: string;
   posicao?: number;
   destaque?: boolean;
@@ -218,7 +221,7 @@ function Cartao({ c, eu, posicao, destaque, realcado, aoAtribuir, aoAcoes, arras
       draggable={arrastavel}
       onDragStart={(e) => { e.dataTransfer.setData(TIPO_ARRASTE, c.id); e.dataTransfer.effectAllowed = "move"; aoArrastar(c.id); }}
       onDragEnd={() => aoArrastar("")}
-      className={`group flex items-stretch overflow-hidden rounded-xl ring-1 hover:ring-acento ${destaque ? "bg-sol-50 ring-sol" : "bg-superficie ring-linha"} ${realcado ? "animar-realce" : ""}`}
+      className={`group flex items-stretch overflow-hidden rounded-xl ring-1 hover:ring-acento ${destaque ? "bg-sol-50 ring-sol" : "bg-superficie ring-linha"} ${selecionado ? "ring-2 ring-acento" : ""} ${realcado ? "animar-realce" : ""}`}
     >
       <span className={`w-1.5 shrink-0 ${COR_PRIORIDADE[c.prioridade]}`} aria-hidden="true" />
       {arrastavel && (
@@ -231,7 +234,7 @@ function Cartao({ c, eu, posicao, destaque, realcado, aoAtribuir, aoAcoes, arras
           {posicao}º
         </span>
       )}
-      <Link to={`/ti/chamado/${c.id}`} draggable={false} className={`min-w-0 flex-1 py-3 ${posicao === undefined ? "pl-3" : ""}`}>
+      <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} draggable={false} className={`min-w-0 flex-1 py-3 ${posicao === undefined ? "pl-3" : ""}`}>
         {/* 1: identidade (nunca quebra) · 2: o problema · 3: detalhes */}
         <div className="flex items-center gap-2 whitespace-nowrap">
           <span className="font-display text-base font-bold">{c.protocolo}</span>
@@ -239,7 +242,7 @@ function Cartao({ c, eu, posicao, destaque, realcado, aoAtribuir, aoAcoes, arras
         </div>
         <p className="mt-1 truncate font-semibold">{resumo(c.descricao, 140)}</p>
         <Detalhes c={c} />
-      </Link>
+      </LinkChamado>
       <div className="flex items-center pr-1.5 pl-1">
         <BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} compacto />
         <BotaoMais c={c} aoAbrir={aoAcoes} />
@@ -288,7 +291,7 @@ function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, real
           <button type="button" className="btn-secundario" onClick={aoAtribuir}>
             Passar para alguém <ChevronDown className="size-4" aria-hidden="true" />
           </button>
-          <Link to={`/ti/chamado/${c.id}`} className="btn px-3 text-tinta-2 hover:text-tinta">Ver detalhes</Link>
+          <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className="btn px-3 text-tinta-2 hover:text-tinta">Ver detalhes</LinkChamado>
         </div>
       </div>
     </section>
@@ -326,6 +329,7 @@ export function Fila() {
   const [arrastando, setArrastando] = useState("");
   // cartão que acabou de mudar: a tela rola até ele e ele pisca (prioridade nova = lugar novo na fila)
   const [realce, setRealce] = useState("");
+  const { aberto: verId } = useVerChamado();
   // a fila precisa de todos os chamados em aberto (posição, contagem da equipe);
   // a lista "Depois na fila" é mostrada em páginas para a tela não ficar enorme
   const pag = usePaginacao("fila", 10);
@@ -418,6 +422,7 @@ export function Fila() {
       posicao={posicao(c)}
       destaque={destaque}
       realcado={realce === c.id}
+      selecionado={verId === c.id}
       aoAtribuir={() => setMenu(c)}
       aoAcoes={() => setAcoes(c)}
       arrastavel={podeArrastar}

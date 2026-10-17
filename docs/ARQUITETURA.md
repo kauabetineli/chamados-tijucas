@@ -93,6 +93,21 @@ Não existe "criar conta" público: se o sistema for para a internet, ninguém d
   no histórico. Setor também é desativado, não apagado.
 - A própria pessoa só troca a senha: nome, setor, matrícula, papel e ramal são do admin (hook em `usuarios.pb.js`).
 
+## Ver o chamado sem sair da lista
+
+Clicar num chamado (Fila, Todos os chamados, Histórico, Meus chamados) abre um **painel que sobe de baixo**
+(`components/PainelChamado.tsx`) em vez de trocar de página, como no SoftDesk: dá para ir de um chamado a outro
+com um clique. O chamado aberto fica no endereço (`?ver=<id>`, `lib/verChamado.tsx`), então o "voltar" do celular
+fecha o painel. No PC a alça muda a altura (lembrada no aparelho) e a lista rola acima do painel; no celular é
+uma folha quase da altura da tela que fecha arrastando para baixo. Ctrl+clique abre a página inteira.
+Use `<LinkChamado id para>` em toda lista nova de chamados.
+
+## Perfil
+
+Clicar no próprio nome (topo) abre `/perfil`: dados que o TI cadastrou (matrícula, setor, ramal, e-mail),
+números rápidos (do servidor: em aberto/resolvidos; do técnico: atendendo/resolvidos) e trocar a senha.
+O servidor tem também a aba **Histórico** em Meus chamados, com busca, quem atendeu e a solução.
+
 ## O lugar do chamado é o setor
 
 Não existe campo "local" na abertura: o lugar é o setor da conta de quem abre (e, no registro pelo TI, o setor

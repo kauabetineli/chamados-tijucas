@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown, Download, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
+import { LinkChamado, useVerChamado } from "../../lib/verChamado";
 import { Avatar } from "../../components/Avatar";
 import { useCategorias } from "../../components/CamposChamado";
 import { IconeCategoria } from "../../components/Icone";
@@ -68,7 +69,7 @@ function Responsavel({ c }: { c: Chamado }) {
  * Os filtros ficam no endereço (?situacao=...&categoria=...), então dá para voltar e compartilhar a mesma visão.
  */
 export function TodosChamados() {
-  const navegar = useNavigate();
+  const { aberto: verId, abrir } = useVerChamado();
   const [params, setParams] = useSearchParams();
   const categorias = useCategorias();
   const tecnicos = useTecnicos();
@@ -297,13 +298,16 @@ export function TodosChamados() {
                 {itens.map((c) => (
                   <tr
                     key={c.id}
-                    onClick={() => navegar(`/ti/chamado/${c.id}`)}
-                    className="cursor-pointer align-top text-sm hover:bg-mar-50"
+                    onClick={(e) => abrir(c.id, e.currentTarget)}
+                    aria-selected={verId === c.id}
+                    className={`cursor-pointer align-top text-sm hover:bg-mar-50 ${verId === c.id ? "bg-mar-50 outline-2 -outline-offset-2 outline-acento" : ""}`}
                   >
                     <td className="px-3 py-3 whitespace-nowrap">
-                      <Link to={`/ti/chamado/${c.id}`} onClick={(e) => e.stopPropagation()} className="font-display text-base font-bold hover:underline">
-                        {c.protocolo}
-                      </Link>
+                      <span onClick={(e) => e.stopPropagation()}>
+                        <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className="font-display text-base font-bold hover:underline">
+                          {c.protocolo}
+                        </LinkChamado>
+                      </span>
                       {c.ficticio && <span className="ml-2 align-middle"><SeloTeste ficticio compacto /></span>}
                     </td>
                     <td className="px-3 py-3"><PilulaPrioridade prioridade={c.prioridade} /></td>
@@ -334,7 +338,7 @@ export function TodosChamados() {
           <ul aria-busy={carregando} className={`space-y-2 md:hidden ${carregando ? "opacity-60" : ""}`}>
             {itens.map((c) => (
               <li key={c.id}>
-                <Link to={`/ti/chamado/${c.id}`} className="block rounded-xl bg-superficie p-3 ring-1 ring-linha">
+                <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className={`block rounded-xl bg-superficie p-3 ring-1 ${verId === c.id ? "ring-2 ring-acento" : "ring-linha"}`}>
                   <span className="flex items-center gap-2 whitespace-nowrap">
                     <span className="font-display font-bold">{c.protocolo}</span>
                     <PilulaPrioridade prioridade={c.prioridade} />
@@ -346,7 +350,7 @@ export function TodosChamados() {
                     <span className="min-w-0 truncate">{nomeSolicitante(c)} · {c.expand?.setor?.nome ?? "—"}</span>
                     <span className="ml-auto shrink-0 text-xs"><Tempo c={c} /></span>
                   </span>
-                </Link>
+                </LinkChamado>
               </li>
             ))}
           </ul>

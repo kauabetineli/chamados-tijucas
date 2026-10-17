@@ -1,6 +1,6 @@
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { LinkChamado, useVerChamado } from "../../lib/verChamado";
 import { IconeCategoria } from "../../components/Icone";
 import { useCategorias } from "../../components/CamposChamado";
 import { Paginacao, usePaginacao } from "../../components/Paginacao";
@@ -11,6 +11,7 @@ import { EXPAND_CHAMADO, nomeSolicitante, pb, type Chamado } from "../../lib/pb"
 
 /** Base de soluções: o que já foi resolvido, pesquisável pelo problema, causa ou solução. */
 export function Historico() {
+  const { aberto: verId } = useVerChamado();
   const categorias = useCategorias();
   const [q, setQ] = useState("");
   const [categoria, setCategoria] = useState("");
@@ -84,7 +85,7 @@ export function Historico() {
           <ul className="space-y-3">
             {itens.map((c) => (
               <li key={c.id}>
-                <Link to={`/ti/chamado/${c.id}`} className="block rounded-xl bg-superficie p-4 ring-1 ring-linha hover:ring-acento">
+                <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className={`block rounded-xl bg-superficie p-4 ring-1 hover:ring-acento ${verId === c.id ? "ring-2 ring-acento" : "ring-linha"}`}>
                   {/* mesmo desenho do cartão da fila: 1 identidade · 2 problema · 3 detalhes */}
                   <div className="flex items-center gap-2 whitespace-nowrap">
                     <span className="font-display text-base font-bold">{c.protocolo}</span>
@@ -105,7 +106,7 @@ export function Historico() {
                     <p><span className="block text-sm text-tinta-2">Causa</span>{c.diagnostico || "—"}</p>
                     <p><span className="block text-sm text-tinta-2">Solução</span>{c.solucao || "—"}</p>
                   </div>
-                </Link>
+                </LinkChamado>
               </li>
             ))}
           </ul>

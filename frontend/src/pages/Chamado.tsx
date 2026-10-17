@@ -14,11 +14,21 @@ import { useRealtime } from "../lib/useRealtime";
 
 const ETAPAS: Status[] = ["aberto", "em_andamento", "resolvido"];
 
+/** Página inteira do chamado (/chamado/:id e /ti/chamado/:id). */
 export function Chamado() {
   const { id = "" } = useParams();
+  return <DetalheChamado id={id} />;
+}
+
+/**
+ * Conteúdo do chamado. Usado na página inteira e, com `embutido`, no painel que sobe de baixo
+ * (components/PainelChamado.tsx): sem o "voltar" e sem a faixa de "chamado aberto".
+ */
+export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolean }) {
   const { usuario } = useAuth();
   const tecnico = ehTecnico(usuario);
-  const novo = (useLocation().state as { novo?: boolean } | null)?.novo;
+  const estado = useLocation().state as { novo?: boolean } | null;
+  const novo = !embutido && estado?.novo;
   const [c, setC] = useState<TChamado | null>(null);
   const [aFrente, setAFrente] = useState<number | null>(null);
   const [erro, setErro] = useState("");
@@ -45,7 +55,7 @@ export function Chamado() {
     return (
       <div className="mx-auto max-w-2xl">
         <p className="font-semibold text-alerta">Não foi possível abrir este chamado. {erro}</p>
-        <Link to={voltar} className="btn-secundario mt-4">Voltar</Link>
+        {!embutido && <Link to={voltar} className="btn-secundario mt-4">Voltar</Link>}
       </div>
     );
   }
@@ -56,9 +66,11 @@ export function Chamado() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <Link to={voltar} className="mb-4 inline-flex items-center gap-1.5 font-semibold text-acento">
-        <ArrowLeft className="size-5" aria-hidden="true" /> {tecnico ? "Fila" : "Meus chamados"}
-      </Link>
+      {!embutido && (
+        <Link to={voltar} className="mb-4 inline-flex items-center gap-1.5 font-semibold text-acento">
+          <ArrowLeft className="size-5" aria-hidden="true" /> {tecnico ? "Fila" : "Meus chamados"}
+        </Link>
+      )}
 
       {novo && (
         <div role="status" className="mb-5 flex items-start gap-3 rounded-2xl bg-campo-50 p-4 text-ok">
@@ -128,7 +140,7 @@ export function Chamado() {
 
         {tecnico && (
           <aside className="md:col-start-2 md:row-span-2 md:row-start-1">
-            <div className="md:sticky md:top-24">
+            <div className={embutido ? "" : "md:sticky md:top-24"}>
               <PainelTecnico chamado={c} aoMudar={carregar} />
             </div>
           </aside>

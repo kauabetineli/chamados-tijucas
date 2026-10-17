@@ -2,6 +2,8 @@ import { BarChart3, ClipboardList, History, ListOrdered, LogOut, Plus, SquarePen
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useAuth } from "../lib/auth";
 import { Avisos } from "./Avisos";
+import { Avatar } from "./Avatar";
+import { PainelChamado } from "./PainelChamado";
 import { BotaoTema } from "./BotaoTema";
 import { ehTecnico } from "../lib/pb";
 
@@ -58,7 +60,15 @@ export function Layout() {
 
           <div className="flex items-center gap-1">
             <BotaoTema />
-            <span className="hidden max-w-40 truncate text-sm text-tinta-2 sm:block">{usuario?.name}</span>
+            {/* o próprio nome leva ao perfil */}
+            <NavLink
+              to="/perfil"
+              className={({ isActive }) => `flex min-h-10 items-center gap-2 rounded-full py-1 pr-1 pl-1 sm:pr-3 ${isActive ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
+              aria-label="Meu perfil"
+            >
+              {usuario && <Avatar id={usuario.id} nome={usuario.name} tamanho="sm" />}
+              <span className="hidden max-w-40 truncate text-sm font-semibold sm:block">{usuario?.name}</span>
+            </NavLink>
             <button onClick={sair} className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-semibold text-tinta-2 hover:text-tinta">
               <LogOut className="size-5" aria-hidden="true" />
               Sair
@@ -67,9 +77,11 @@ export function Layout() {
         </div>
       </header>
 
-      <main className={`mx-auto w-full flex-1 px-4 pt-5 pb-8 ${largura}`}>
+      {/* com o painel do chamado aberto no PC, sobra espaço embaixo para a lista rolar inteira acima dele */}
+      <main className={`mx-auto w-full flex-1 px-4 pt-5 pb-8 ${largura}`} style={{ paddingBottom: "calc(2rem + var(--altura-painel, 0px))" }}>
         <Outlet />
         <Avisos />
+        <PainelChamado />
       </main>
 
       {/* barra inferior no celular */}
