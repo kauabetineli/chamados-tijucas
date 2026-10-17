@@ -38,7 +38,7 @@ QR code / link  →  site da Prefeitura (/dinodesk, página estática)  →  htt
 | `users` (auth) | name, matricula (login, única), email (opcional), setor, papel (`solicitante`/`tecnico`), admin, ramal (próprio, opcional), trocar_senha, bloqueado | cada um vê a si; técnicos veem todos. Só o admin do TI cria e edita (rotas `/api/ti/usuarios`); a pessoa só troca a própria senha |
 | `setores` | nome, predio, ramal, ativo | leitura pública; criação e edição pelo admin do TI (`/api/ti/setores`) |
 | `categorias` | nome, icone, ordem, ativa | leitura para logados; edição só no painel admin |
-| `chamados` | protocolo, descricao, categoria, solicitante / solicitante_nome, setor (é o lugar do chamado; `local` ficou só como legado), impacto, prioridade, peso, status, origem, responsavel, registrado_por, anexos, diagnostico, solucao, confirmado, iniciado_em, resolvido_em | solicitante vê os seus; técnicos veem e alteram todos |
+| `chamados` | protocolo, descricao, categoria, solicitante / solicitante_nome, setor (é o lugar do chamado; `local` ficou só como legado), impacto, prioridade, peso, status (aberto/em_andamento/aguardando/resolvido), aguardando_motivo, aguardando_desde, origem, responsavel, registrado_por, anexos, diagnostico, solucao, confirmado, avaliacao (bom/ruim), avaliacao_comentario, iniciado_em, resolvido_em | solicitante vê os seus; técnicos veem e alteram todos |
 | `interacoes` | chamado, autor, tipo (comentario/status/prioridade/atribuicao/sistema), texto, interno | solicitante vê a linha do tempo dos seus chamados, sem as notas internas |
 
 ## Regras de negócio (backend/pb_hooks)
@@ -114,6 +114,25 @@ Na lateral fica o mural **Avisos do TI** (coleção `avisos`, migration `1760000
 estamos vendo". Serve para o servidor não abrir 10 chamados do mesmo problema (problema 1 do diagnóstico). O técnico
 publica com prazo (1 h, 4 h, fim do dia, 3 dias ou até encerrar); o aviso some sozinho e fica registrado.
 No celular o mural aparece no topo de Meus chamados e da Fila.
+
+## Em espera, avaliação, respostas prontas e números (piloto)
+
+- **Em espera** (`status = "aguardando"`, migration 0009): o técnico não consegue avançar porque falta uma **peça**, uma
+  **resposta de quem pediu** ou um **terceiro/fornecedor**. O chamado continua com ele (seção "Seus em espera" da Fila),
+  mas sai da fila e da carga, para a equipe não achar que ele está ocupado. Para quem pediu, aparece como atendimento
+  ("aguardando peça..."); quando o motivo é a resposta dele, a tela destaca "O TI precisa de uma resposta sua" e, ao
+  responder, o chamado volta sozinho para "Em andamento". Evita o "fechar e abrir outro" que apagaria o histórico.
+- **Avaliação**: ao confirmar que deu certo, a pessoa marca "Bom" ou "Poderia ser melhor" e pode comentar (opcional;
+  "Só confirmar" pula). Vira o indicador de satisfação do Painel.
+- **Respostas prontas** (coleção `respostas_prontas`): a equipe cria, corrige, reordena e apaga as frases pelo próprio
+  sistema ("Editar" ao lado das respostas, nas ações rápidas e na conversa). Uma lista só para todos os técnicos.
+- **Soluções parecidas**: no chamado aberto, o técnico vê como chamados resolvidos da mesma categoria foram resolvidos,
+  os de descrição mais parecida primeiro (palavras em comum). É o histórico trabalhando para quem atende agora.
+- **Painel**: aba "Equipe" com o bloco **Piloto** (% aberto pelo próprio servidor e satisfação) e "Resolvidos por técnico";
+  aba "Meus números" com hoje, 7 dias, mês e o ano mês a mês (meses sem nada aparecem com zero). O admin do TI pode
+  escolher outro técnico.
+- **Registrar pedido** usa o mesmo desenho do Novo chamado no PC (uma coluna numerada, anexo no rodapé da caixa de texto,
+  botão que gruda embaixo; peças em `components/FormularioPassos.tsx`) e mostra à direita o que o técnico registrou hoje.
 
 ## Perfil
 

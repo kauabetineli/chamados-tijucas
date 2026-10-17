@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, Clock, GripVertical, MoreVertical, User, Wrench } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock, GripVertical, Hourglass, MoreVertical, User, Wrench } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { Avatar, SeloLivre } from "../../components/Avatar";
@@ -13,13 +13,14 @@ import { COR_PRIORIDADE, PilulaPrioridade, SeloTeste } from "../../components/Se
 import { useAuth } from "../../lib/auth";
 import { atribuir, useTecnicos } from "../../lib/equipe";
 import { atrasado, cargaDaEquipe, esperaCurta, horasEsperando, organizarFila } from "../../lib/fila";
-import { resumo, ROTULO_ORIGEM } from "../../lib/formato";
+import { paraData, resumo, ROTULO_AGUARDANDO, ROTULO_ORIGEM } from "../../lib/formato";
 import { EXPAND_CHAMADO, mensagemErro, nomeSolicitante, pb, type Chamado, type Usuario } from "../../lib/pb";
 import { useRealtime } from "../../lib/useRealtime";
 import { LinkChamado, useVerChamado } from "../../lib/verChamado";
 import { avisar } from "../../lib/avisos";
 
 const TIPO_ARRASTE = "application/x-dinodesk-chamado";
+const horasDesde = (s: string) => (Date.now() - (paraData(s)?.getTime() ?? Date.now())) / 3_600_000;
 const primeiroNome = (n?: string) => (n || "").trim().split(/\s+/)[0] || "Técnico";
 
 /**
@@ -51,6 +52,16 @@ function Detalhes({ c }: { c: Chamado }) {
       {c.status === "em_andamento" && (
         <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-sol-50 px-2 py-0.5 text-xs font-semibold text-tinta ring-1 ring-sol">
           <Wrench className="size-3.5" aria-hidden="true" /> atendendo
+        </span>
+      )}
+      {c.status === "aguardando" && (
+        <span
+          className="inline-flex shrink-0 items-center gap-1 rounded-full bg-fundo px-2 py-0.5 text-xs font-semibold text-tinta ring-1 ring-linha"
+          title={c.aguardando_motivo ? `Aguardando ${ROTULO_AGUARDANDO[c.aguardando_motivo]}` : "Em espera"}
+        >
+          <Hourglass className="size-3.5" aria-hidden="true" />
+          {c.aguardando_motivo === "peca" ? "peça" : c.aguardando_motivo === "solicitante" ? "resposta" : c.aguardando_motivo === "terceiro" ? "terceiro" : "em espera"}
+          {paraData(c.aguardando_desde || "") && <span className="font-normal text-tinta-2">· {esperaCurta(horasDesde(c.aguardando_desde!))}</span>}
         </span>
       )}
       {c.ficticio && <span className="ml-auto shrink-0"><SeloTeste ficticio compacto /></span>}
@@ -355,11 +366,12 @@ export function Fila() {
   }, []);
 
   const lista = chamados ?? [];
-  const { atendendo, comOutros, fila, proximo, depois: depoisTodos } = organizarFila(lista, eu);
+  const { atendendo, comOutros, esperando, fila, proximo, depois: depoisTodos } = organizarFila(lista, eu);
   // sem filtro, a fila mostra só o que é meu ou está livre: o que já está com um colega fica na fila DELE
   // (para ver, toque no nome dele na faixa da Equipe). A posição (1º, 2º...) continua a da fila geral.
   const depois = depoisTodos.filter((c) => !c.responsavel || c.responsavel === eu);
-  const comColegas = depoisTodos.length - depois.length + comOutros.length;
+  const comColegas = depoisTodos.length - depois.length + comOutros.length
+    + lista.filter((c) => c.status === "aguardando" && c.responsavel && c.responsavel !== eu).length;
   const { carga, livres } = cargaDaEquipe(lista);
   const atrasados = fila.filter((c) => atrasado(c)).length;
   const posicao = (c: Chamado) => (c.status === "aberto" ? fila.indexOf(c) + 1 : undefined);
@@ -436,7 +448,11 @@ export function Fila() {
   const filtrados = filtro === "livres"
     ? fila.filter((c) => !c.responsavel)
     : filtro
-      ? [...lista.filter((c) => c.status === "em_andamento" && c.responsavel === filtro), ...fila.filter((c) => c.responsavel === filtro)]
+      ? [
+          ...lista.filter((c) => c.status === "em_andamento" && c.responsavel === filtro),
+          ...fila.filter((c) => c.responsavel === filtro),
+          ...lista.filter((c) => c.status === "aguardando" && c.responsavel === filtro),
+        ]
       : [];
   // se a lista encolheu (chamado saiu da fila), fica na última página que existe
   const fatia = <T,>(l: T[]) => {
@@ -468,6 +484,7 @@ export function Fila() {
             <span className="font-semibold text-alerta"><b className="font-display text-xl">{atrasados}</b> {atrasados === 1 ? "atrasado" : "atrasados"}</span>
           )}
           <span><b className="font-display text-xl text-tinta">{atendendo.length + comOutros.length}</b> em atendimento</span>
+          {esperando.length > 0 && <span><b className="font-display text-xl text-tinta">{esperando.length}</b> seus em espera</span>}
         </p>}
       </div>
       <VisaoTI />
@@ -517,10 +534,16 @@ export function Fila() {
 
           {depois.length > 0 && <Secao titulo="Depois na fila" total={depois.length}>{fatia(depois).map((c) => cartao(c, c.responsavel === eu))}</Secao>}
           {!filtro && rodape}
+          {esperando.length > 0 && (
+            <Secao titulo="Seus em espera" total={esperando.length}>
+              <li className="-mt-1 text-sm text-tinta-2">Fora da fila e da sua carga. Retome quando chegar o que falta.</li>
+              {esperando.map((c) => cartao(c))}
+            </Secao>
+          )}
           {comColegas > 0 && (
             <p className="rounded-xl border-2 border-dashed border-linha px-4 py-3 text-sm text-tinta-2">
               <b className="font-display text-base text-tinta">{comColegas}</b> {comColegas === 1 ? "chamado está" : "chamados estão"} com colegas
-              (aguardando ou em atendimento) e não aparecem aqui. Para ver, toque no nome da pessoa em <b>Equipe</b>, lá em cima.
+              (na fila, em atendimento ou em espera) e não aparecem aqui. Para ver, toque no nome da pessoa em <b>Equipe</b>, lá em cima.
             </p>
           )}
         </>

@@ -28,6 +28,7 @@ Padrão: `GET /api/collections/{c}/records?filter=...&sort=...&expand=...&page=1
 | `chamados` | o próprio solicitante; técnicos veem todos | qualquer logado | técnicos | superusuário |
 | `interacoes` | solicitante vê as não internas do seu chamado; técnicos veem todas | logado (hook confere se pode) | ninguém | ninguém |
 | `users` | a própria conta; técnicos veem todas (sem e-mail: use `/api/ti/usuarios`) | **ninguém** (só admin do TI pela rota `/api/ti/usuarios`) | só a própria senha | superusuário |
+| `respostas_prontas` | técnicos (`sort=ordem,created`) | técnicos | técnicos | técnicos |
 | `avisos` | qualquer logado (o front filtra `ate = "" \|\| ate > agora`) | técnico, com `autor` = ele mesmo | técnico (encerrar = `ate` vira agora) | ninguém |
 | `setores`, `categorias` | todos | superusuário (setor: admin do TI por `/api/ti/setores`) | idem | superusuário |
 
@@ -48,6 +49,11 @@ O hook (`pb_hooks/chamados.pb.js`) completa o resto:
 `{ "status": "resolvido", "diagnostico": "...", "solucao": "..." }` (os dois são obrigatórios para resolver).
 O hook marca horários, define o responsável e registra a mudança na linha do tempo.
 
+**Em espera:** `{ "status": "aguardando", "aguardando_motivo": "peca" | "solicitante" | "terceiro" }` (motivo obrigatório; 400 sem ele).
+O hook grava `aguardando_desde`; o chamado continua com o responsável, mas sai da fila e da carga dele.
+Com motivo `solicitante`, quem pediu é avisado e, quando ele comenta, o chamado volta sozinho para `em_andamento`.
+Qualquer outro status limpa o motivo. De `aguardando` dá para retomar (`em_andamento`) ou resolver direto.
+
 ### Comentar
 
 `POST /api/collections/interacoes/records` com `{ chamado, texto, interno }` (JSON) ou multipart com até 4 imagens em `anexos`
@@ -58,10 +64,12 @@ O hook marca horários, define o responsável e registra a mudança na linha do 
 | Método | Rota | Quem | Faz |
 |---|---|---|---|
 | GET | `/api/fila/minhas-posicoes` | usuário | posição na fila de cada chamado aberto do usuário |
-| POST | `/api/chamados/{id}/confirmar` | solicitante do chamado | confirma que o problema foi resolvido |
+| POST | `/api/chamados/{id}/confirmar` | solicitante do chamado | confirma que o problema foi resolvido; opcional `{ avaliacao: "bom"\|"ruim", comentario }` (avaliação do atendimento, vai para a linha do tempo) |
 | POST | `/api/chamados/{id}/reabrir` | solicitante do chamado | `{ motivo }` volta o chamado para a fila |
 | GET | `/api/chamados/semelhantes?categoria=ID` | usuário | chamados em aberto da mesma categoria no setor (evita duplicado) |
-| GET | `/api/painel/resumo?dias=30` | técnico | indicadores do painel |
+| GET | `/api/painel/resumo?dias=30` | técnico | indicadores do painel: totais, tempos, por origem/categoria/setor/dia/técnico, `agora` (aberto, em_andamento, aguardando) e `avaliacao` (bom, ruim, confirmados) |
+| GET | `/api/painel/tecnico?ano=2026&tecnico=ID` | técnico (outro técnico: só **admin do TI**) | "Meus números": `hoje`, `semana` (7 dias), `mes` (cada um `{ resolvidos, horas_media, iniciados, bom, ruim }`), `agora`, `anos` e `por_mes` com os 12 meses (zerados inclusive). Datas no fuso de Brasília |
+| GET | `/api/chamados/{id}/solucoes-parecidas` | técnico | até 5 resolvidos da mesma categoria com solução, os de descrição mais parecida primeiro → `{ total, itens: [{ id, protocolo, descricao, diagnostico, solucao, resolvido_em }] }` |
 | GET | `/api/sistema/info` | qualquer logado | `ambiente` (teste/producao), ntfy/SMTP ligados e totais, inclusive fictícios |
 | GET | `/api/ti/usuarios?q=&papel=&setor=&ocultar_teste=1&pagina=1&por_pagina=25` | técnico | lista pessoas (matrícula, e-mail, setor e ramal do setor), paginada no banco (`por_pagina=0` = todos) → `{ itens, total, pagina, por_pagina }` |
 | POST | `/api/ti/usuarios` | **admin do TI** | `{ nome, matricula, setor?, papel?, admin?, email?, ramal? }` → `{ usuario, senha_provisoria }` (a pessoa troca no 1º acesso) |

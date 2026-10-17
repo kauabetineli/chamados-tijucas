@@ -110,8 +110,19 @@ onRecordUpdateRequest((e) => {
     throw new BadRequestError("Para resolver, preencha o diagnóstico e a solução. Eles formam o histórico do TI.");
   }
 
+  // aguardando: precisa dizer o quê; fora dele, o motivo some
+  if (para === "aguardando") {
+    if (!R.ROTULO_AGUARDANDO[rec.getString("aguardando_motivo")]) {
+      throw new BadRequestError("Diga o que o chamado está aguardando: peça, resposta do solicitante ou terceiro.");
+    }
+    if (de !== "aguardando") rec.set("aguardando_desde", R.agora());
+  } else {
+    rec.set("aguardando_motivo", "");
+    rec.set("aguardando_desde", "");
+  }
+
   if (de !== para) {
-    if (para === "em_andamento") {
+    if (para === "em_andamento" || para === "aguardando") {
       if (rec.getDateTime("iniciado_em").isZero()) rec.set("iniciado_em", R.agora());
       rec.set("resolvido_em", "");
     }
@@ -132,9 +143,14 @@ onRecordUpdateRequest((e) => {
   e.next();
 
   const autor = superuser ? "" : auth.id;
-  if (de !== para) {
-    R.registrar(e.app, rec.id, autor, "status", `Status: ${R.ROTULO_STATUS[de]} → ${R.ROTULO_STATUS[para]}`, false);
-    if (para === "em_andamento") {
+  const motivoAntes = antes.getString("aguardando_motivo"), motivo = rec.getString("aguardando_motivo");
+  if (de !== para || (para === "aguardando" && motivoAntes !== motivo)) {
+    const extra = para === "aguardando" ? ` (${R.ROTULO_AGUARDANDO[motivo]})` : "";
+    R.registrar(e.app, rec.id, autor, "status", `Status: ${R.ROTULO_STATUS[de]} → ${R.ROTULO_STATUS[para]}${extra}`, false);
+    if (para === "aguardando" && motivo === "solicitante") {
+      R.notificarSolicitante(e.app, rec, "O TI precisa de uma resposta sua",
+        "O atendimento do seu chamado está esperando uma resposta sua. Abra o chamado e responda por lá.");
+    } else if (para === "em_andamento" && de !== "aguardando") {
       R.notificarSolicitante(e.app, rec, "Seu chamado está em atendimento", "Um técnico do TI começou a atender o seu chamado.");
     } else if (para === "resolvido") {
       R.notificarSolicitante(e.app, rec, "Seu chamado foi resolvido",
@@ -188,6 +204,14 @@ onRecordCreateRequest((e) => {
       texto ? `Mensagem do TI: “${texto}”${temImagem ? " (com imagem)" : ""}` : "O TI mandou uma imagem no seu chamado.");
   }
   if (!tecnico) {
+    // estava esperando a resposta dele: volta sozinho para atendimento
+    if (chamado.getString("status") === "aguardando" && chamado.getString("aguardando_motivo") === "solicitante") {
+      chamado.set("status", "em_andamento");
+      chamado.set("aguardando_motivo", "");
+      chamado.set("aguardando_desde", "");
+      e.app.save(chamado);
+      R.registrar(e.app, chamado.id, "", "status", "Status: Em espera → Em andamento (o solicitante respondeu)", false);
+    }
     require(`${__hooks}/lib/avisos.js`).avisarTecnicos(e.app, chamado, "Nova mensagem no chamado", "O solicitante respondeu.");
   }
 }, "interacoes");

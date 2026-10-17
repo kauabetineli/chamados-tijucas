@@ -8,6 +8,7 @@ import { prepararArquivo } from "../lib/imagem";
 import { ehTecnico, mensagemErro, pb, type Interacao } from "../lib/pb";
 import { useRealtime } from "../lib/useRealtime";
 import { marcarVisto } from "../lib/visto";
+import { RespostasProntas } from "./RespostasProntas";
 import { Visualizador, type ItemVisualizador } from "./Visualizador";
 
 const MAX_IMAGENS = 4;
@@ -203,6 +204,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId }: { chamadoId: string; 
         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setSobre(false); }}
         onDrop={(e) => { if (!arrastando(e)) return; e.preventDefault(); setSobre(false); adicionar(e.dataTransfer.files); }}
       >
+        {tecnico && !interno && <RespostasProntas selecionada={texto} aoEscolher={setTexto} />}
         <label htmlFor="mensagem" className="sr-only">Mensagem</label>
         <div className="relative">
           <textarea

@@ -15,7 +15,8 @@ export function Historico() {
   const { aberto: verId } = useVerChamado();
   const categorias = useCategorias();
   const [q, setQ] = useState("");
-  const [categoria, setCategoria] = useState("");
+  // vindo de "Ver todos no histórico" (soluções parecidas): já abre filtrado pela categoria
+  const [categoria, setCategoria] = useState(() => new URLSearchParams(window.location.search).get("categoria") ?? "");
   const [itens, setItens] = useState<Chamado[] | null>(null);
   const [total, setTotal] = useState(0);
   const pag = usePaginacao("historico", 10);

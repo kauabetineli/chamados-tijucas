@@ -22,15 +22,23 @@ routerAdd("GET", "/api/fila/minhas-posicoes", (e) => {
   return e.json(200, { total_aberto: totalAberto, itens });
 }, $apis.requireAuth("users"));
 
-// Solicitante confirma que o problema foi resolvido.
+// Solicitante confirma que o problema foi resolvido e avalia o atendimento.
+// Corpo (opcional): { avaliacao: "bom" | "ruim", comentario }. A avaliação é evidência de satisfação (Painel).
 routerAdd("POST", "/api/chamados/{id}/confirmar", (e) => {
   const R = require(`${__hooks}/lib/regras.js`);
+  const b = e.requestInfo().body || {};
   const c = e.app.findRecordById("chamados", e.request.pathValue("id"));
   if (c.getString("solicitante") !== e.auth.id) throw new ForbiddenError("Este chamado não é seu.");
   if (c.getString("status") !== "resolvido") throw new BadRequestError("O chamado ainda não foi resolvido.");
+  const avaliacao = b.avaliacao === "bom" || b.avaliacao === "ruim" ? b.avaliacao : "";
+  const comentario = String(b.comentario || "").trim().slice(0, 500);
   c.set("confirmado", true);
+  if (avaliacao) c.set("avaliacao", avaliacao);
+  if (comentario) c.set("avaliacao_comentario", comentario);
   e.app.save(c);
-  R.registrar(e.app, c.id, e.auth.id, "sistema", "Solicitante confirmou que o problema foi resolvido.", false);
+  const nota = avaliacao === "bom" ? " Avaliou o atendimento: 👍 bom." : avaliacao === "ruim" ? " Avaliou o atendimento: 👎 ruim." : "";
+  R.registrar(e.app, c.id, e.auth.id, "sistema", `Solicitante confirmou que o problema foi resolvido.${nota}`, false);
+  if (comentario) R.registrar(e.app, c.id, e.auth.id, "comentario", comentario, false);
   return e.json(200, { ok: true });
 }, $apis.requireAuth("users"));
 
@@ -89,13 +97,31 @@ routerAdd("GET", "/api/painel/resumo", (e) => {
 
   const total = e.app.countRecords("chamados", $dbx.exp("created >= {:desde}", { desde }));
 
+  // avaliação dos solicitantes (chamados confirmados no período)
+  const aval = new DynamicModel({ bom: 0, ruim: 0, confirmados: 0 });
+  db.newQuery(
+    `SELECT COALESCE(SUM(avaliacao = 'bom'), 0) AS bom, COALESCE(SUM(avaliacao = 'ruim'), 0) AS ruim, COUNT(*) AS confirmados
+     FROM chamados WHERE status = 'resolvido' AND confirmado = 1 AND resolvido_em >= {:desde}`,
+  ).bind({ desde }).one(aval);
+
+  // quem resolveu (período)
+  const porTecnico = arrayOf(new DynamicModel({ chave: "", total: 0 }));
+  db.newQuery(
+    `SELECT COALESCE(u.name, 'Sem responsável') AS chave, COUNT(*) AS total FROM chamados c
+     LEFT JOIN users u ON u.id = c.responsavel
+     WHERE c.status = 'resolvido' AND c.resolvido_em >= {:desde} GROUP BY chave ORDER BY total DESC`,
+  ).bind({ desde }).all(porTecnico);
+
   return e.json(200, {
     dias,
     total,
     agora: {
       aberto: e.app.countRecords("chamados", $dbx.hashExp({ status: "aberto" })),
       em_andamento: e.app.countRecords("chamados", $dbx.hashExp({ status: "em_andamento" })),
+      aguardando: e.app.countRecords("chamados", $dbx.hashExp({ status: "aguardando" })),
     },
+    avaliacao: { bom: aval.bom, ruim: aval.ruim, confirmados: aval.confirmados },
+    por_tecnico: porTecnico.map((r) => ({ chave: r.chave, total: r.total })),
     resolvidos: tempos.resolvidos,
     horas_media_resolucao: Math.round(tempos.horas_resolucao * 1000) / 1000,
     horas_media_inicio: Math.round(tempos.horas_inicio * 1000) / 1000,
@@ -128,3 +154,121 @@ routerAdd("GET", "/api/chamados/semelhantes", (e) => {
     })),
   });
 }, $apis.requireAuth("users"));
+
+// Números de UM técnico: hoje, últimos 7 dias, mês atual e os 12 meses de um ano (meses sem nada aparecem com 0).
+// ?ano=2026  &tecnico=id (só o admin do TI vê os de outro técnico; padrão = quem está logado)
+routerAdd("GET", "/api/painel/tecnico", (e) => {
+  const R = require(`${__hooks}/lib/regras.js`);
+  if (!e.hasSuperuserAuth() && !R.ehTecnico(e.auth)) throw new ForbiddenError("Somente o TI.");
+  const q = e.request.url.query();
+  let tecnico = q.get("tecnico") || (e.auth ? e.auth.id : "");
+  if (tecnico !== (e.auth && e.auth.id) && !e.hasSuperuserAuth() && !R.ehAdmin(e.auth)) {
+    throw new ForbiddenError("Só o administrador do TI vê os números de outro técnico.");
+  }
+  const agoraAno = new Date().getFullYear();
+  let ano = parseInt(q.get("ano"), 10);
+  if (!(ano >= 2020 && ano <= agoraAno + 1)) ano = agoraAno;
+  const db = e.app.db();
+
+  // datas no fuso de Brasília (UTC-3) para "hoje" e "mês"
+  const local = (col) => `datetime(${col}, '-3 hours')`;
+  const periodo = (onde) => {
+    const m = new DynamicModel({ resolvidos: 0, horas: -0, iniciados: 0, bom: 0, ruim: 0 });
+    db.newQuery(
+      `SELECT
+         COALESCE(SUM(status = 'resolvido' AND ${onde("resolvido_em")}), 0) AS resolvidos,
+         COALESCE(AVG(CASE WHEN status = 'resolvido' AND ${onde("resolvido_em")}
+                   THEN (julianday(resolvido_em) - julianday(created)) * 24 END), 0) AS horas,
+         COALESCE(SUM(iniciado_em != '' AND ${onde("iniciado_em")}), 0) AS iniciados,
+         COALESCE(SUM(avaliacao = 'bom' AND ${onde("resolvido_em")}), 0) AS bom,
+         COALESCE(SUM(avaliacao = 'ruim' AND ${onde("resolvido_em")}), 0) AS ruim
+       FROM chamados WHERE responsavel = {:t}`,
+    ).bind({ t: tecnico }).one(m);
+    return { resolvidos: m.resolvidos, horas_media: Math.round(m.horas * 100) / 100, iniciados: m.iniciados, bom: m.bom, ruim: m.ruim };
+  };
+  const hoje = periodo((c) => `date(${local(c)}) = date('now', '-3 hours')`);
+  const semana = periodo((c) => `${local(c)} >= datetime('now', '-3 hours', '-6 days', 'start of day')`);
+  const mes = periodo((c) => `strftime('%Y-%m', ${local(c)}) = strftime('%Y-%m', 'now', '-3 hours')`);
+
+  // mês a mês do ano escolhido: resolvidos (com tempo médio e avaliações) e atendimentos iniciados
+  const meses = arrayOf(new DynamicModel({ mes: "", resolvidos: 0, horas: -0, bom: 0, ruim: 0 }));
+  db.newQuery(
+    `SELECT strftime('%m', ${local("resolvido_em")}) AS mes, COUNT(*) AS resolvidos,
+       COALESCE(AVG((julianday(resolvido_em) - julianday(created)) * 24), 0) AS horas,
+       COALESCE(SUM(avaliacao = 'bom'), 0) AS bom, COALESCE(SUM(avaliacao = 'ruim'), 0) AS ruim
+     FROM chamados WHERE responsavel = {:t} AND status = 'resolvido' AND strftime('%Y', ${local("resolvido_em")}) = {:ano}
+     GROUP BY mes`,
+  ).bind({ t: tecnico, ano: String(ano) }).all(meses);
+  const iniciadosMes = arrayOf(new DynamicModel({ mes: "", total: 0 }));
+  db.newQuery(
+    `SELECT strftime('%m', ${local("iniciado_em")}) AS mes, COUNT(*) AS total
+     FROM chamados WHERE responsavel = {:t} AND iniciado_em != '' AND strftime('%Y', ${local("iniciado_em")}) = {:ano}
+     GROUP BY mes`,
+  ).bind({ t: tecnico, ano: String(ano) }).all(iniciadosMes);
+  const porMes = Array.from({ length: 12 }, (_, i) => {
+    const m = meses.find((x) => parseInt(x.mes, 10) === i + 1);
+    const ini = iniciadosMes.find((x) => parseInt(x.mes, 10) === i + 1);
+    return {
+      mes: i + 1,
+      resolvidos: m ? m.resolvidos : 0,
+      horas_media: m ? Math.round(m.horas * 100) / 100 : 0,
+      bom: m ? m.bom : 0,
+      ruim: m ? m.ruim : 0,
+      iniciados: ini ? ini.total : 0,
+    };
+  });
+
+  // anos com algum chamado resolvido por ele (para o seletor), sempre com o ano atual
+  const anosRows = arrayOf(new DynamicModel({ ano: "" }));
+  db.newQuery(
+    `SELECT DISTINCT strftime('%Y', ${local("resolvido_em")}) AS ano FROM chamados
+     WHERE responsavel = {:t} AND resolvido_em != '' ORDER BY ano DESC`,
+  ).bind({ t: tecnico }).all(anosRows);
+  const anos = Array.from(new Set([agoraAno, ...anosRows.map((r) => parseInt(r.ano, 10)).filter((n) => n > 2000)])).sort((a, b) => b - a);
+
+  return e.json(200, {
+    tecnico,
+    ano,
+    anos,
+    hoje, semana, mes,
+    agora: {
+      atendendo: e.app.countRecords("chamados", $dbx.hashExp({ responsavel: tecnico, status: "em_andamento" })),
+      aguardando: e.app.countRecords("chamados", $dbx.hashExp({ responsavel: tecnico, status: "aguardando" })),
+      na_fila: e.app.countRecords("chamados", $dbx.hashExp({ responsavel: tecnico, status: "aberto" })),
+    },
+    por_mes: porMes,
+  });
+}, $apis.requireAuth());
+
+// "Como chamados assim já foram resolvidos": resolvidos da mesma categoria, os mais parecidos primeiro
+// (palavras em comum na descrição) e, empatando, os mais recentes. Só para o TI.
+routerAdd("GET", "/api/chamados/{id}/solucoes-parecidas", (e) => {
+  const R = require(`${__hooks}/lib/regras.js`);
+  if (!e.hasSuperuserAuth() && !R.ehTecnico(e.auth)) throw new ForbiddenError("Somente o TI.");
+  const c = e.app.findRecordById("chamados", e.request.pathValue("id"));
+  const candidatos = e.app.findRecordsByFilter(
+    "chamados", "status = 'resolvido' && categoria = {:cat} && id != {:id} && solucao != ''", "-resolvido_em", 60, 0,
+    { cat: c.getString("categoria"), id: c.id },
+  ).filter((r) => !!r);
+  const palavras = (t) => new Set(String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z0-9]+/).filter((w) => w.length > 3));
+  const base = palavras(c.getString("descricao"));
+  const total = candidatos.length;
+  const itens = candidatos
+    .map((r, i) => {
+      let comum = 0;
+      for (const w of palavras(r.getString("descricao"))) if (base.has(w)) comum++;
+      return { r, nota: comum * 100 - i };
+    })
+    .sort((a, b) => b.nota - a.nota)
+    .slice(0, 5)
+    .map(({ r }) => ({
+      id: r.id,
+      protocolo: r.getString("protocolo"),
+      descricao: r.getString("descricao"),
+      diagnostico: r.getString("diagnostico"),
+      solucao: r.getString("solucao"),
+      resolvido_em: r.getString("resolvido_em"),
+    }));
+  return e.json(200, { total, itens });
+}, $apis.requireAuth());

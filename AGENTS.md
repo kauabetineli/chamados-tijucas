@@ -17,7 +17,7 @@ backend/                     PocketBase 0.40.4 (um executável + SQLite)
   pb_migrations/             esquema do banco, em ordem numérica. NUNCA edite uma que já foi para a main: crie outra.
   pb_hooks/
     chamados.pb.js           abrir/atualizar chamado, comentários (protocolo, prioridade, histórico, avisos)
-    rotas.pb.js              /api/fila, /api/chamados/{id}/confirmar|reabrir, /api/painel/resumo, /api/chamados/semelhantes
+    rotas.pb.js              /api/fila, /api/chamados/{id}/confirmar|reabrir|solucoes-parecidas, /api/painel/resumo|tecnico, /api/chamados/semelhantes
     usuarios.pb.js           /api/sistema/info, /api/ti/usuarios, /api/ti/setores; protege o campo "ficticio"
     videos.pb.js             cron que comprime vídeos com ffmpeg
     lib/                     regras.js, avisos.js (ntfy), config.js, usuarios.js, videos.js
@@ -111,10 +111,12 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 - `setores`: nome, predio, ramal (do setor), ativo (desativar em vez de apagar). `categorias`: nome, icone (lucide), ordem, ativa.
 - `chamados`: protocolo (2026-00001), descricao, categoria, solicitante | solicitante_nome, setor (o lugar do chamado; `local` é legado e não é usado),
   impacto (`so_eu`|`setor`|`publico`) → prioridade (`normal`|`alta`|`urgente`, `baixa` só pelo TI), peso,
-  status (`aberto`|`em_andamento`|`resolvido`), origem (`sistema`|`whatsapp`|`ligacao`|`presencial`),
-  responsavel, registrado_por, anexos (até 5, 250 MB), diagnostico, solucao, confirmado, midia_pendente, ficticio.
+  status (`aberto`|`em_andamento`|`aguardando`|`resolvido`), aguardando_motivo (`peca`|`solicitante`|`terceiro`), aguardando_desde, origem (`sistema`|`whatsapp`|`ligacao`|`presencial`),
+  responsavel, registrado_por, anexos (até 5, 250 MB), diagnostico, solucao, confirmado, avaliacao (`bom`|`ruim`), avaliacao_comentario,
+  midia_pendente, ficticio. "aguardando" = em espera: continua com o responsável, fora da fila e da carga.
 - `avisos`: mural "Avisos do TI" (texto, tipo `info`|`problema`, ate = some sozinho depois, autor). Técnico publica e
   encerra (encerrar = `ate` vira agora; não se apaga). Aparece na barra lateral (PC) e no topo de Meus chamados/Fila (celular).
+- `respostas_prontas`: texto, ordem. Frases do TI, editáveis por qualquer técnico (só o TI lê).
 - `interacoes`: chamado, autor, tipo (`comentario`|`status`|`prioridade`|`atribuicao`|`sistema`), texto, interno,
   anexos (até 4 imagens por mensagem; mensagem pode ser só imagem).
 

@@ -1,9 +1,17 @@
-import type { Impacto, Origem, Prioridade, Status } from "./pb";
+import type { Impacto, MotivoAguardando, Origem, Prioridade, Status } from "./pb";
 
 export const ROTULO_STATUS: Record<Status, string> = {
   aberto: "Aberto",
   em_andamento: "Em andamento",
+  aguardando: "Em espera",
   resolvido: "Resolvido",
+};
+
+/** "Aguardando ..." — o que o chamado espera para continuar. */
+export const ROTULO_AGUARDANDO: Record<MotivoAguardando, string> = {
+  peca: "peça ou equipamento",
+  solicitante: "resposta de quem pediu",
+  terceiro: "terceiro ou fornecedor",
 };
 
 export const ROTULO_PRIORIDADE: Record<Prioridade, string> = {

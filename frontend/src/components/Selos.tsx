@@ -1,13 +1,14 @@
-import { CheckCircle2, CircleDot, FlaskConical, Wrench } from "lucide-react";
+import { CheckCircle2, CircleDot, FlaskConical, Hourglass, Wrench } from "lucide-react";
 import type { Prioridade, Status } from "../lib/pb";
 import { ROTULO_PRIORIDADE, ROTULO_STATUS } from "../lib/formato";
 
 const ESTILO_STATUS: Record<Status, string> = {
   aberto: "bg-mar-50 text-acento",
   em_andamento: "bg-sol-50 text-tinta ring-1 ring-sol",
+  aguardando: "bg-fundo text-tinta-2 ring-1 ring-linha",
   resolvido: "bg-campo-50 text-ok",
 };
-const ICONE_STATUS = { aberto: CircleDot, em_andamento: Wrench, resolvido: CheckCircle2 };
+const ICONE_STATUS = { aberto: CircleDot, em_andamento: Wrench, aguardando: Hourglass, resolvido: CheckCircle2 };
 
 export function SeloStatus({ status }: { status: Status }) {
   const I = ICONE_STATUS[status];

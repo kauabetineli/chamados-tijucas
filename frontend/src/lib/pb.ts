@@ -6,7 +6,8 @@ export const pb = new PocketBase(window.location.origin);
 pb.autoCancellation(false);
 
 export type Papel = "solicitante" | "tecnico";
-export type Status = "aberto" | "em_andamento" | "resolvido";
+export type Status = "aberto" | "em_andamento" | "aguardando" | "resolvido";
+export type MotivoAguardando = "peca" | "solicitante" | "terceiro";
 export type Prioridade = "baixa" | "normal" | "alta" | "urgente";
 export type Impacto = "so_eu" | "setor" | "publico";
 export type Origem = "sistema" | "whatsapp" | "ligacao" | "presencial";
@@ -64,6 +65,12 @@ export interface Chamado extends RecordModel {
   diagnostico: string;
   solucao: string;
   confirmado: boolean;
+  /** só com status "aguardando": o que falta para continuar */
+  aguardando_motivo?: MotivoAguardando | "";
+  aguardando_desde?: string;
+  /** avaliação do solicitante ao confirmar */
+  avaliacao?: "bom" | "ruim" | "";
+  avaliacao_comentario?: string;
   midia_pendente: boolean;
   ficticio?: boolean;
   iniciado_em: string;

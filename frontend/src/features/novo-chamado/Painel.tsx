@@ -1,7 +1,8 @@
-import { CheckCircle2, Clock, Info, Lightbulb, Paperclip, Send, Ticket, Video, X } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { Clock, Info, Lightbulb, Send, Ticket } from "lucide-react";
+import { useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
-import { arrastandoArquivo, useAnexos } from "../../components/Anexos";
+import { useAnexos } from "../../components/Anexos";
+import { CaixaComAnexos, Passo, RodapeEnviar } from "../../components/FormularioPassos";
 import { IconeCategoria } from "../../components/Icone";
 import { ProgressoEnvio } from "../../components/ProgressoEnvio";
 import { useCategorias } from "../../components/CamposChamado";
@@ -17,21 +18,6 @@ const DETALHE_IMPACTO: Record<Impacto, string> = {
   publico: "A população está esperando: atendimento, protocolo ou serviço parado.",
 };
 
-/** Título numerado de cada parte do formulário (1, 2, 3): a ordem fica clara sem explicar. */
-function Passo({ n, titulo, feito, children, id }: { n: number; titulo: string; feito: boolean; children: ReactNode; id: string }) {
-  return (
-    <section aria-labelledby={id} className="space-y-4">
-      <h2 id={id} className="flex items-center gap-3 font-display text-xl font-bold">
-        <span className={`grid size-8 shrink-0 place-items-center rounded-full text-sm ${feito ? "bg-campo-700 text-white" : "bg-mar-50 text-acento"}`}>
-          {feito ? <CheckCircle2 className="size-5" aria-hidden="true" /> : n}
-        </span>
-        {titulo}
-      </h2>
-      <div className="pl-11">{children}</div>
-    </section>
-  );
-}
-
 /**
  * Computador: o formulário é UMA coluna, de cima para baixo (1 problema · 2 o que acontece · 3 quem é afetado · enviar),
  * e a coluna da direita ajuda a preencher (perguntas que o TI vai fazer, chamado parecido, o que acontece depois).
@@ -41,40 +27,11 @@ export function Painel({ f }: { f: FormularioChamado }) {
   const navegar = useNavigate();
   const categorias = useCategorias();
   const [erro, setErro] = useState("");
-  const [sobre, setSobre] = useState(false);
   const anexos = useAnexos(f.setArquivos, f.setPreparandoAnexo);
   const caixa = useRef<HTMLTextAreaElement>(null);
-  const fim = useRef<HTMLDivElement>(null);
-  const [grudado, setGrudado] = useState(false);
-  useEffect(() => {
-    const el = fim.current;
-    if (!el || !("IntersectionObserver" in window)) return;
-    const obs = new IntersectionObserver(([e]) => setGrudado(!e.isIntersecting), { threshold: 0 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
   const nomeCategoria = f.categoriaEscolhida?.nome ?? "";
   const sugestoes = SUGESTOES[nomeCategoria] ?? [];
   const dicas = DICAS[nomeCategoria] ?? DICAS_GERAIS;
-  const previas = useMemo(() => f.arquivos.map((a) => ({ a, url: URL.createObjectURL(a) })), [f.arquivos]);
-  useEffect(() => () => previas.forEach((p) => URL.revokeObjectURL(p.url)), [previas]);
-
-  // a caixa de texto começa baixa e cresce com o texto
-  useLayoutEffect(() => {
-    const el = caixa.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(360, Math.max(140, el.scrollHeight + 2))}px`;
-  }, [f.descricao]);
-
-  // arquivo solto fora da área de anexo não pode fazer o navegador sair da página e perder o texto
-  useEffect(() => {
-    const bloquear = (e: DragEvent) => { if (e.dataTransfer?.types.includes("Files")) e.preventDefault(); };
-    window.addEventListener("dragover", bloquear);
-    window.addEventListener("drop", bloquear);
-    return () => { window.removeEventListener("dragover", bloquear); window.removeEventListener("drop", bloquear); };
-  }, []);
-
   const juntar = (trecho: string) => {
     f.setDescricao((atual) => (atual.trim() ? `${atual.trim()}\n${trecho} ` : `${trecho} `));
     caixa.current?.focus();
@@ -102,7 +59,7 @@ export function Painel({ f }: { f: FormularioChamado }) {
           {f.setor && <p className="text-tinta-2">Para o TI, a partir de <span className="font-semibold text-tinta">{f.setor}</span></p>}
         </div>
 
-        <div className="space-y-8 rounded-2xl bg-superficie p-6 ring-1 ring-linha md:p-8">
+        <div className="space-y-8 rounded-2xl bg-superficie p-5 ring-1 ring-linha md:p-8">
           {/* 1 */}
           <Passo n={1} id="p-categoria" titulo="O que está com problema?" feito={!!f.categoria}>
             <div role="radiogroup" aria-labelledby="p-categoria" className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-4">
@@ -127,52 +84,17 @@ export function Painel({ f }: { f: FormularioChamado }) {
                 ))}
               </div>
             )}
-            {/* caixa de texto + anexos no rodapé dela, como no e-mail */}
-            <div
-              className={`relative overflow-hidden rounded-xl border-2 bg-superficie focus-within:border-acento ${sobre ? "border-acento" : "border-linha"}`}
-              onDragEnter={(e) => { if (arrastandoArquivo(e)) { e.preventDefault(); setSobre(true); } }}
-              onDragOver={(e) => { if (arrastandoArquivo(e)) e.preventDefault(); }}
-              onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setSobre(false); }}
-              onDrop={(e) => { if (!e.dataTransfer.files.length) return; e.preventDefault(); setSobre(false); anexos.adicionar(e.dataTransfer.files); }}
-            >
-              <label htmlFor="descricao" className="sr-only">Descrição do problema</label>
-              <textarea
-                ref={caixa}
-                id="descricao"
-                rows={4}
-                className="block w-full resize-none bg-transparent px-4 py-3 text-base leading-relaxed text-tinta placeholder:text-tinta-2/70 focus:outline-none"
-                placeholder="Ex.: a impressora da recepção mostra uma luz laranja e não imprime desde hoje cedo."
-                value={f.descricao}
-                onChange={(e) => f.setDescricao(e.target.value)}
-                onPaste={(e) => {
-                  const imgs = Array.from(e.clipboardData.files);
-                  if (imgs.length) { e.preventDefault(); anexos.adicionar(imgs); }
-                }}
-              />
-              <div className="flex flex-wrap items-center gap-2 border-t border-linha bg-fundo/60 px-3 py-2">
-                <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm font-semibold text-acento hover:bg-mar-50">
-                  <Paperclip className="size-4" aria-hidden="true" /> Anexar foto ou vídeo
-                  <input type="file" accept="image/*,video/*" multiple className="sr-only" onChange={(e) => { anexos.adicionar(e.target.files); e.target.value = ""; }} />
-                </label>
-                {previas.map(({ a, url }, i) => (
-                  <span key={url} className="relative size-10 overflow-hidden rounded-md ring-1 ring-linha">
-                    {a.type.startsWith("video/") ? (
-                      <><video src={url} className="size-full bg-noite object-cover" muted preload="metadata" /><Video className="absolute bottom-0.5 left-0.5 size-3 text-white" aria-hidden="true" /></>
-                    ) : <img src={url} alt={`Anexo ${i + 1}`} className="size-full object-cover" />}
-                    <button type="button" onClick={() => f.setArquivos((l) => l.filter((x) => x !== a))} className="absolute top-0 right-0 rounded-bl-md bg-noite/80 p-0.5 text-white" aria-label={`Remover anexo ${i + 1}`}>
-                      <X className="size-3" />
-                    </button>
-                  </span>
-                ))}
-                <span className="ml-auto text-xs text-tinta-2">
-                  {anexos.preparando ? "Preparando anexo..." : <>ou cole um print com <kbd className="rounded border border-linha bg-superficie px-1 font-sans font-semibold">Ctrl</kbd>+<kbd className="rounded border border-linha bg-superficie px-1 font-sans font-semibold">V</kbd></>}
-                </span>
-              </div>
-              {sobre && (
-                <div className="pointer-events-none absolute inset-0 grid place-items-center bg-mar-50/90 font-semibold text-acento">Solte para anexar ao chamado</div>
-              )}
-            </div>
-            {anexos.aviso && <p className="mt-2 text-sm font-semibold text-alerta">{anexos.aviso}</p>}
+            <CaixaComAnexos
+              ref={caixa}
+              id="descricao"
+              rotulo="Descrição do problema"
+              placeholder="Ex.: a impressora da recepção mostra uma luz laranja e não imprime desde hoje cedo."
+              valor={f.descricao}
+              aoMudar={f.setDescricao}
+              arquivos={f.arquivos}
+              setArquivos={f.setArquivos}
+              anexos={anexos}
+            />
           </Passo>
 
           {/* 3 */}
@@ -190,27 +112,14 @@ export function Painel({ f }: { f: FormularioChamado }) {
             </div>
           </Passo>
 
-          {/* enviar: no fim do formulário, onde a leitura termina. Se o fim estiver fora da tela (notebook),
-              este rodapé do cartão gruda embaixo e o botão continua à vista; ao chegar no fim, volta ao lugar. */}
-          <div
-            className={`sticky bottom-0 z-10 -mx-6 -mb-6 space-y-3 rounded-b-2xl border-t border-linha bg-superficie px-6 py-3 md:-mx-8 md:-mb-8 md:px-8 md:pl-[4.75rem] ${
-              grudado ? "shadow-[0_-10px_24px_-14px_rgb(0_0_0/0.35)]" : ""
-            }`}
-          >
-            <ProgressoEnvio pct={f.progresso} />
-            {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              {/* grudado embaixo: só o botão, para a faixa ficar baixa */}
-              <p className={`mr-auto text-sm text-tinta-2 ${grudado ? "hidden" : ""}`}>Depois de enviar, você acompanha a sua vez na fila em Meus chamados.</p>
-              <button className="btn-primario px-8 text-lg" disabled={f.enviando || f.preparandoAnexo}>
-                <Send className="size-5" aria-hidden="true" />
-                {f.enviando ? "Enviando..." : f.preparandoAnexo ? "Preparando anexo..." : "Enviar chamado"}
-              </button>
-            </div>
-          </div>
+          {/* enviar: no fim do formulário; gruda embaixo enquanto o fim não aparece (notebook) */}
+          <RodapeEnviar frase="Depois de enviar, você acompanha a sua vez na fila em Meus chamados." topo={<><ProgressoEnvio pct={f.progresso} />{erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}</>}>
+            <button className="btn-primario px-8 text-lg" disabled={f.enviando || f.preparandoAnexo}>
+              <Send className="size-5" aria-hidden="true" />
+              {f.enviando ? "Enviando..." : f.preparandoAnexo ? "Preparando anexo..." : "Enviar chamado"}
+            </button>
+          </RodapeEnviar>
         </div>
-        {/* marcador do fim do cartão: enquanto não aparece na tela, o rodapé está "grudado" */}
-        <div ref={fim} aria-hidden="true" />
       </div>
 
       {/* coluna de apoio: aproveita a largura com o que ajuda a preencher */}

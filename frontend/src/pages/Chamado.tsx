@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Hourglass, MessageCircleQuestion, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { GaleriaAnexos } from "../components/Anexos";
@@ -8,8 +8,9 @@ import { LinhaDoTempo } from "../components/LinhaDoTempo";
 import { PainelTecnico } from "../components/PainelTecnico";
 import { SeloStatus, SeloTeste } from "../components/Selos";
 import { SenhaFila } from "../components/SenhaFila";
+import { SolucoesParecidas } from "../components/SolucoesParecidas";
 import { useAuth } from "../lib/auth";
-import { dataHora, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS } from "../lib/formato";
+import { dataHora, ROTULO_AGUARDANDO, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS } from "../lib/formato";
 import { EXPAND_CHAMADO, ehTecnico, mensagemErro, nomeSolicitante, pb, type Chamado as TChamado, type Status, ramalDe } from "../lib/pb";
 import { useRealtime } from "../lib/useRealtime";
 
@@ -63,7 +64,9 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
   if (!c) return <EsqueletoChamado tecnico={tecnico} />;
 
   const doSolicitante = c.solicitante === usuario?.id;
-  const etapa = ETAPAS.indexOf(c.status);
+  // "aguardando" é a etapa do meio (o TI está com o chamado), com outro nome
+  const etapa = c.status === "aguardando" ? 1 : ETAPAS.indexOf(c.status);
+  const rotuloEtapa = (s: Status) => (s === "em_andamento" && c.status === "aguardando" ? "Em espera" : ROTULO_STATUS[s]);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -114,7 +117,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
                 >
                   {i < etapa || c.status === "resolvido" ? <Check className="size-4" aria-hidden="true" /> : i + 1}
                 </span>
-                <span className={`text-sm font-semibold ${i <= etapa ? "text-tinta" : "text-tinta-2"}`}>{ROTULO_STATUS[s]}</span>
+                <span className={`text-sm font-semibold ${i <= etapa ? "text-tinta" : "text-tinta-2"}`}>{rotuloEtapa(s)}</span>
                 {i < ETAPAS.length - 1 && <span className={`h-0.5 flex-1 ${i < etapa ? "bg-campo-700" : "bg-linha"}`} aria-hidden="true" />}
               </li>
             ))}
@@ -122,6 +125,27 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
 
           {c.status === "aberto" && doSolicitante && aFrente !== null && (
             <SenhaFila aFrente={aFrente} protocolo={c.protocolo} categoria={c.expand?.categoria?.nome} icone={c.expand?.categoria?.icone} animar={novo} />
+          )}
+
+          {c.status === "aguardando" && c.aguardando_motivo && !tecnico && (
+            c.aguardando_motivo === "solicitante" ? (
+              <div role="status" className="flex items-start gap-3 rounded-2xl border-l-8 border-acento bg-mar-50 p-4">
+                <MessageCircleQuestion className="mt-0.5 size-6 shrink-0 text-acento" aria-hidden="true" />
+                <div>
+                  <p className="font-bold">O TI precisa de uma resposta sua.</p>
+                  <p className="text-tinta-2">Leia a última mensagem na conversa e responda por lá. O atendimento continua assim que você responder.</p>
+                  <a href="#mensagem" className="mt-2 inline-flex min-h-11 items-center font-semibold text-acento underline underline-offset-4">Ir para a conversa</a>
+                </div>
+              </div>
+            ) : (
+              <div role="status" className="flex items-start gap-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
+                <Hourglass className="mt-0.5 size-6 shrink-0 text-acento" aria-hidden="true" />
+                <p>
+                  <b>{c.expand?.responsavel?.name ?? "O TI"} está aguardando {ROTULO_AGUARDANDO[c.aguardando_motivo]}.</b>{" "}
+                  <span className="text-tinta-2">O chamado continua com o TI; você não precisa abrir outro.</span>
+                </p>
+              </div>
+            )
           )}
 
           {c.status === "resolvido" && doSolicitante && !c.confirmado && <Confirmacao chamadoId={c.id} aoConcluir={carregar} />}
@@ -137,6 +161,10 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
             </dl>
             <GaleriaAnexos chamado={c} />
           </section>
+
+          {tecnico && c.status !== "resolvido" && c.categoria && (
+            <SolucoesParecidas chamadoId={c.id} categoriaId={c.categoria} categoriaNome={c.expand?.categoria?.nome} />
+          )}
         </div>
 
         {tecnico && (
@@ -158,7 +186,19 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
               {c.solucao && (
                 <p className="mt-1"><span className="font-semibold">Solução: </span>{c.solucao}</p>
               )}
-              {c.confirmado && <p className="mt-3 text-sm font-semibold text-ok">Solicitante confirmou que deu certo.</p>}
+              {c.confirmado && (
+                <div className="mt-3 space-y-1 text-sm">
+                  <p className="font-semibold text-ok">{doSolicitante ? "Você confirmou" : "Solicitante confirmou"} que deu certo.</p>
+                  {c.avaliacao && (
+                    <p className="flex items-center gap-1.5 font-semibold">
+                      {c.avaliacao === "bom"
+                        ? <><ThumbsUp className="size-4 text-ok" aria-hidden="true" /> Atendimento avaliado como bom</>
+                        : <><ThumbsDown className="size-4 text-alerta" aria-hidden="true" /> Atendimento avaliado como "poderia ser melhor"</>}
+                    </p>
+                  )}
+                  {c.avaliacao_comentario && <p className="text-tinta-2">“{c.avaliacao_comentario}”</p>}
+                </div>
+              )}
             </section>
           )}
 
@@ -178,17 +218,24 @@ function Dado({ termo, valor }: { termo: string; valor?: string }) {
   );
 }
 
+/**
+ * Quem pediu confirma se deu certo. "Sim" abre uma pergunta rápida sobre o atendimento (bom / poderia ser melhor,
+ * comentário opcional): é o indicador de satisfação do piloto. Pode pular; a confirmação vale do mesmo jeito.
+ * "Não resolveu" reabre com o motivo.
+ */
 function Confirmacao({ chamadoId, aoConcluir }: { chamadoId: string; aoConcluir: () => void }) {
-  const [reabrindo, setReabrindo] = useState(false);
+  const [etapa, setEtapa] = useState<"pergunta" | "avaliar" | "reabrir">("pergunta");
   const [motivo, setMotivo] = useState("");
+  const [avaliacao, setAvaliacao] = useState<"bom" | "ruim" | "">("");
+  const [comentario, setComentario] = useState("");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
 
-  async function enviar(acao: "confirmar" | "reabrir") {
+  async function enviar(acao: "confirmar" | "reabrir", corpo: Record<string, string> = {}) {
     setErro("");
     setEnviando(true);
     try {
-      await pb.send(`/api/chamados/${chamadoId}/${acao}`, { method: "POST", body: acao === "reabrir" ? { motivo } : {} });
+      await pb.send(`/api/chamados/${chamadoId}/${acao}`, { method: "POST", body: corpo });
       aoConcluir();
     } catch (err) {
       setErro(mensagemErro(err));
@@ -197,31 +244,74 @@ function Confirmacao({ chamadoId, aoConcluir }: { chamadoId: string; aoConcluir:
     }
   }
 
+  const opcao = (valor: "bom" | "ruim", Icone: typeof ThumbsUp, rotulo: string) => (
+    <label
+      className={`flex min-h-16 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 font-semibold ring-1 ${
+        avaliacao === valor ? "bg-mar-50 text-acento ring-2 ring-acento" : "ring-linha hover:ring-acento"
+      }`}
+    >
+      <input type="radio" name="avaliacao" className="sr-only" checked={avaliacao === valor} onChange={() => setAvaliacao(valor)} />
+      <Icone className="size-6" aria-hidden="true" /> {rotulo}
+    </label>
+  );
+
   return (
     <section className="rounded-2xl bg-superficie p-5 ring-2 ring-campo">
-      <h2 className="text-xl font-bold">O TI marcou como resolvido. Deu certo?</h2>
-      {!reabrindo ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button className="btn-sucesso flex-1" disabled={enviando} onClick={() => enviar("confirmar")}>
-            Sim, resolveu
-          </button>
-          <button className="btn-secundario flex-1" onClick={() => setReabrindo(true)}>
-            Não resolveu
-          </button>
-        </div>
-      ) : (
-        <div className="mt-4 space-y-3">
-          <label htmlFor="motivo" className="rotulo">O que continua acontecendo?</label>
-          <textarea id="motivo" className="campo min-h-24" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+      {etapa === "pergunta" && (
+        <>
+          <h2 className="text-xl font-bold">O TI marcou como resolvido. Deu certo?</h2>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button className="btn-sucesso flex-1" onClick={() => setEtapa("avaliar")}>Sim, resolveu</button>
+            <button className="btn-secundario flex-1" onClick={() => setEtapa("reabrir")}>Não resolveu</button>
+          </div>
+        </>
+      )}
+
+      {etapa === "avaliar" && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-xl font-bold">Que bom! Como foi o atendimento?</h2>
+            <p className="text-tinta-2">Sua resposta ajuda o TI a melhorar. É rápido e opcional.</p>
+          </div>
+          <div role="radiogroup" aria-label="Como foi o atendimento" className="flex gap-2">
+            {opcao("bom", ThumbsUp, "Bom")}
+            {opcao("ruim", ThumbsDown, "Poderia ser melhor")}
+          </div>
+          {avaliacao && (
+            <div>
+              <label htmlFor="comentario-avaliacao" className="rotulo">
+                {avaliacao === "bom" ? "Quer deixar um recado? (opcional)" : "O que poderia ser melhor? (opcional)"}
+              </label>
+              <textarea id="comentario-avaliacao" className="campo min-h-20" maxLength={500} value={comentario} onChange={(e) => setComentario(e.target.value)} />
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
-            <button className="btn-primario flex-1" disabled={enviando || !motivo.trim()} onClick={() => enviar("reabrir")}>
-              Reabrir chamado
+            <button
+              className="btn-sucesso flex-1"
+              disabled={enviando || !avaliacao}
+              onClick={() => enviar("confirmar", { avaliacao, comentario: comentario.trim() })}
+            >
+              {enviando ? "Enviando..." : "Enviar e confirmar"}
             </button>
-            <button className="btn-secundario" onClick={() => setReabrindo(false)}>Cancelar</button>
+            <button className="btn-secundario" disabled={enviando} onClick={() => enviar("confirmar")}>Só confirmar</button>
           </div>
         </div>
       )}
-      {erro && <p className="mt-2 font-semibold text-alerta">{erro}</p>}
+
+      {etapa === "reabrir" && (
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold">Que pena. Vamos reabrir.</h2>
+          <label htmlFor="motivo" className="rotulo">O que continua acontecendo?</label>
+          <textarea id="motivo" className="campo min-h-24" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-primario flex-1" disabled={enviando || !motivo.trim()} onClick={() => enviar("reabrir", { motivo })}>
+              Reabrir chamado
+            </button>
+            <button className="btn-secundario" onClick={() => setEtapa("pergunta")}>Cancelar</button>
+          </div>
+        </div>
+      )}
+      {erro && <p role="alert" className="mt-2 font-semibold text-alerta">{erro}</p>}
     </section>
   );
 }

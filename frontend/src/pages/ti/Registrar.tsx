@@ -1,11 +1,19 @@
-import { MessageCircle, Phone, UserRound, X } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
-import { SeletorAnexos } from "../../components/Anexos";
-import { EscolhaCategoria, EscolhaImpacto } from "../../components/CamposChamado";
+import { CheckCircle2, ClipboardList, ListOrdered, MessageCircle, Phone, Send, UserRound, X } from "lucide-react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useAnexos } from "../../components/Anexos";
+import { useCategorias } from "../../components/CamposChamado";
+import { Bloco } from "../../components/Esqueleto";
+import { CaixaComAnexos, Passo, RodapeEnviar } from "../../components/FormularioPassos";
+import { IconeCategoria } from "../../components/Icone";
 import { ProgressoEnvio } from "../../components/ProgressoEnvio";
-import { criarComProgresso } from "../../lib/envio";
+import { SeloStatus } from "../../components/Selos";
+import { useAuth } from "../../lib/auth";
 import { avisar } from "../../lib/avisos";
-import { mensagemErro, pb, type Chamado, type Impacto, type Origem, type Setor, type Usuario } from "../../lib/pb";
+import { criarComProgresso } from "../../lib/envio";
+import { resumo, ROTULO_IMPACTO, ROTULO_ORIGEM } from "../../lib/formato";
+import { EXPAND_CHAMADO, mensagemErro, nomeSolicitante, pb, type Chamado, type Impacto, type Origem, type Setor, type Usuario } from "../../lib/pb";
+import { useRealtime } from "../../lib/useRealtime";
+import { LinkChamado } from "../../lib/verChamado";
 
 const ORIGENS: { valor: Origem; rotulo: string; Icone: typeof Phone }[] = [
   { valor: "whatsapp", rotulo: "WhatsApp", Icone: MessageCircle },
@@ -13,11 +21,20 @@ const ORIGENS: { valor: Origem; rotulo: string; Icone: typeof Phone }[] = [
   { valor: "presencial", rotulo: "Presencial", Icone: UserRound },
 ];
 
+const segmento = (ativo: boolean) =>
+  `flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg px-2 text-sm font-semibold transition-colors ${
+    ativo ? "bg-superficie text-tinta shadow ring-2 ring-acento" : "text-tinta-2 hover:bg-superficie/70 hover:text-tinta"
+  }`;
+
 /**
- * Registro rápido pelo técnico de um pedido que chegou fora do sistema.
- * É o que garante que TODO atendimento entre na contagem e no histórico.
+ * Registro rápido pelo técnico de um pedido que chegou fora do sistema (WhatsApp, ligação, corredor).
+ * É o que garante que TODO atendimento entre na contagem do piloto e no histórico.
+ * Mesmo desenho do Novo chamado: uma coluna numerada, anexo no rodapé da caixa de texto e o botão
+ * que gruda embaixo. À direita (PC largo), o que você já registrou hoje.
  */
 export function Registrar() {
+  const { usuario } = useAuth();
+  const categorias = useCategorias();
   const [origem, setOrigem] = useState<Origem>("whatsapp");
   const [busca, setBusca] = useState("");
   const [sugestoes, setSugestoes] = useState<Usuario[]>([]);
@@ -26,7 +43,7 @@ export function Registrar() {
   const [setor, setSetor] = useState("");
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [impacto, setImpacto] = useState<Impacto | "">("so_eu");
+  const [impacto, setImpacto] = useState<Impacto>("so_eu");
   const [resolvido, setResolvido] = useState(false);
   const [diagnostico, setDiagnostico] = useState("");
   const [solucao, setSolucao] = useState("");
@@ -35,9 +52,10 @@ export function Registrar() {
   const [salvando, setSalvando] = useState(false);
   const [progresso, setProgresso] = useState<number | null>(null);
   const [preparandoAnexo, setPreparandoAnexo] = useState(false);
+  const anexos = useAnexos(setArquivos, setPreparandoAnexo);
 
   useEffect(() => {
-    pb.collection("setores").getFullList<Setor>({ sort: "nome" }).then(setSetores).catch(() => {});
+    pb.collection("setores").getFullList<Setor>({ sort: "nome", filter: "ativo = true" }).then(setSetores).catch(() => {});
   }, []);
 
   // busca de servidores cadastrados, a partir de 2 letras
@@ -45,7 +63,7 @@ export function Registrar() {
     if (solicitante || busca.trim().length < 2) return setSugestoes([]);
     const t = window.setTimeout(() => {
       pb.collection("users")
-        .getList<Usuario>(1, 6, { filter: pb.filter("name ~ {:q} || email ~ {:q} || matricula ~ {:q}", { q: busca.trim() }), sort: "name", expand: "setor" })
+        .getList<Usuario>(1, 6, { filter: pb.filter("name ~ {:q} || matricula ~ {:q}", { q: busca.trim() }), sort: "name", expand: "setor" })
         .then((r) => setSugestoes(r.items))
         .catch(() => {});
     }, 250);
@@ -67,8 +85,10 @@ export function Registrar() {
   async function registrar(e: FormEvent) {
     e.preventDefault();
     setErro("");
-    if (!categoria) return setErro("Escolha a categoria.");
-    if (!solicitante && !busca.trim()) return setErro("Informe quem pediu.");
+    if (!solicitante && !busca.trim()) return setErro("Diga quem pediu (passo 1).");
+    if (!categoria) return setErro("Escolha a categoria (passo 2).");
+    if (!descricao.trim()) return setErro("Escreva o que foi pedido (passo 3).");
+    if (resolvido && (!diagnostico.trim() || !solucao.trim())) return setErro("Preencha a causa e o que foi feito (passo 5).");
     setSalvando(true);
     setProgresso(arquivos.length ? 0 : null);
     try {
@@ -98,109 +118,208 @@ export function Registrar() {
     }
   }
 
+  const quemOk = !!solicitante || !!busca.trim();
+
   return (
-    <form onSubmit={registrar} className="mx-auto max-w-2xl space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Registrar pedido</h1>
-        <p className="mt-1 text-tinta-2">Para o que chegou por WhatsApp, ligação ou no corredor. Leva menos de um minuto.</p>
-      </div>
-
-
-      <fieldset>
-        <legend className="rotulo text-lg">Como chegou?</legend>
-        <div className="grid grid-cols-3 gap-2">
-          {ORIGENS.map(({ valor, rotulo, Icone }) => (
-            <label key={valor} className="opcao flex-col justify-center gap-1 text-center">
-              <input type="radio" name="origem" checked={origem === valor} onChange={() => setOrigem(valor)} className="sr-only" />
-              <Icone className="size-6 text-acento" aria-hidden="true" />
-              {rotulo}
-            </label>
-          ))}
+    <form onSubmit={registrar} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Registrar pedido</h1>
+          <p className="mt-1 text-tinta-2">Para o que chegou por WhatsApp, ligação ou no corredor. Leva menos de um minuto.</p>
         </div>
-      </fieldset>
 
-      <div className="relative">
-        <label htmlFor="quem" className="rotulo text-lg">Quem pediu?</label>
-        <div className="relative">
-          <input
-            id="quem"
-            className="campo pr-12"
-            autoComplete="off"
-            placeholder="Nome ou matrícula"
-            value={busca}
-            onChange={(e) => { setBusca(e.target.value); setSolicitante(null); }}
-          />
-          {busca && (
-            <button type="button" onClick={() => { setBusca(""); setSolicitante(null); }} className="absolute top-1/2 right-3 -translate-y-1/2 p-1 text-tinta-2" aria-label="Limpar nome">
-              <X className="size-5" />
+        <div className="space-y-8 rounded-2xl bg-superficie p-5 ring-1 ring-linha md:p-8">
+          {/* 1 */}
+          <Passo n={1} id="r-quem" titulo="Quem pediu, e por onde?" feito={quemOk}>
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-1 rounded-xl bg-fundo p-1" role="radiogroup" aria-label="Como chegou">
+                {ORIGENS.map(({ valor, rotulo, Icone }) => (
+                  <label key={valor} className={`${segmento(origem === valor)} flex-col gap-0.5 sm:flex-row sm:gap-2`}>
+                    <input type="radio" name="origem" checked={origem === valor} onChange={() => setOrigem(valor)} className="sr-only" />
+                    <Icone className="size-5 shrink-0 text-acento" aria-hidden="true" /> {rotulo}
+                  </label>
+                ))}
+              </div>
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+                <div className="relative">
+                  <label htmlFor="quem" className="rotulo">Nome ou matrícula</label>
+                  <div className="relative">
+                    <input
+                      id="quem"
+                      className="campo pr-12"
+                      autoComplete="off"
+                      placeholder="Ex.: Maria ou 12345"
+                      value={busca}
+                      onChange={(e) => { setBusca(e.target.value); setSolicitante(null); }}
+                    />
+                    {busca && (
+                      <button type="button" onClick={() => { setBusca(""); setSolicitante(null); }} className="absolute top-1/2 right-3 -translate-y-1/2 p-1 text-tinta-2" aria-label="Limpar nome">
+                        <X className="size-5" />
+                      </button>
+                    )}
+                  </div>
+                  {sugestoes.length > 0 && (
+                    <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl bg-superficie shadow-lg ring-1 ring-linha">
+                      {sugestoes.map((u) => (
+                        <li key={u.id}>
+                          <button type="button" onClick={() => escolher(u)} className="w-full px-4 py-3 text-left hover:bg-mar-50">
+                            <span className="block font-semibold">{u.name}</span>
+                            <span className="block text-sm text-tinta-2">{[u.matricula && `mat. ${u.matricula}`, u.expand?.setor?.nome].filter(Boolean).join(" · ")}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="ajuda">
+                    {solicitante
+                      ? <span className="inline-flex items-center gap-1.5 text-ok"><CheckCircle2 className="size-4" aria-hidden="true" /> Tem conta: vai acompanhar pelo sistema.</span>
+                      : "Sem conta? O nome digitado fica registrado assim mesmo."}
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="setor" className="rotulo">Setor</label>
+                  <select id="setor" className="campo" value={setor} onChange={(e) => setSetor(e.target.value)}>
+                    <option value="">Não informado</option>
+                    {setores.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </Passo>
+
+          {/* 2 */}
+          <Passo n={2} id="r-categoria" titulo="O que está com problema?" feito={!!categoria}>
+            <div role="radiogroup" aria-labelledby="r-categoria" className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-4">
+              {categorias.map((c) => (
+                <label key={c.id} className="opcao min-h-12 gap-2.5 py-2 text-[15px]">
+                  <input type="radio" name="categoria" className="sr-only" checked={categoria === c.id} onChange={() => setCategoria(c.id)} />
+                  <IconeCategoria nome={c.icone} className="size-5 shrink-0 text-acento" />
+                  <span className="leading-tight">{c.nome}</span>
+                </label>
+              ))}
+              {!categorias.length && [0, 1, 2, 3, 4, 5].map((i) => <Bloco key={i} className="h-12 rounded-xl" />)}
+            </div>
+          </Passo>
+
+          {/* 3 */}
+          <Passo n={3} id="r-descricao" titulo="O que foi pedido?" feito={!!descricao.trim()}>
+            <CaixaComAnexos
+              id="descricao"
+              rotulo="O que foi pedido"
+              placeholder="Ex.: Maria (Tributos) ligou: a impressora não puxa o papel desde cedo."
+              valor={descricao}
+              aoMudar={setDescricao}
+              arquivos={arquivos}
+              setArquivos={setArquivos}
+              anexos={anexos}
+              rotuloAnexar="Anexar print ou foto"
+              min={110}
+            />
+          </Passo>
+
+          {/* 4 */}
+          <Passo n={4} id="r-impacto" titulo="Isso está atrapalhando quem?" feito>
+            <div className="grid gap-1 rounded-xl bg-fundo p-1 sm:grid-cols-3" role="radiogroup" aria-labelledby="r-impacto">
+              {(Object.keys(ROTULO_IMPACTO) as Impacto[]).map((k) => (
+                <label key={k} className={segmento(impacto === k)}>
+                  <input type="radio" name="impacto" className="sr-only" checked={impacto === k} onChange={() => setImpacto(k)} />
+                  {ROTULO_IMPACTO[k]}
+                </label>
+              ))}
+            </div>
+            <p className="ajuda">Define a prioridade na fila, como quando o próprio servidor abre.</p>
+          </Passo>
+
+          {/* 5 */}
+          <Passo n={5} id="r-resolvido" titulo="Já foi resolvido?" feito={!resolvido || (!!diagnostico.trim() && !!solucao.trim())}>
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-fundo p-1" role="radiogroup" aria-labelledby="r-resolvido">
+              <label className={segmento(!resolvido)}>
+                <input type="radio" name="resolvido" className="sr-only" checked={!resolvido} onChange={() => setResolvido(false)} />
+                <ListOrdered className="size-4" aria-hidden="true" /> Não, vai para a fila
+              </label>
+              <label className={segmento(resolvido)}>
+                <input type="radio" name="resolvido" className="sr-only" checked={resolvido} onChange={() => setResolvido(true)} />
+                <CheckCircle2 className="size-4 text-ok" aria-hidden="true" /> Sim, resolvi na hora
+              </label>
+            </div>
+            {resolvido && (
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <div>
+                  <label htmlFor="diag" className="rotulo">Qual era a causa?</label>
+                  <textarea id="diag" className="campo min-h-24" value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} />
+                </div>
+                <div>
+                  <label htmlFor="sol" className="rotulo">O que foi feito?</label>
+                  <textarea id="sol" className="campo min-h-24" value={solucao} onChange={(e) => setSolucao(e.target.value)} />
+                </div>
+                <p className="ajuda lg:col-span-2">Vai direto para o Histórico: na próxima vez, quem atender vê como foi resolvido.</p>
+              </div>
+            )}
+          </Passo>
+
+          <RodapeEnviar
+            acimaDaBarra
+            frase="Entra na fila (ou no histórico) e na contagem do piloto."
+            topo={<><ProgressoEnvio pct={progresso} />{erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}</>}
+          >
+            <button className="btn-primario w-full px-8 text-lg sm:w-auto" disabled={salvando || preparandoAnexo}>
+              {resolvido ? <CheckCircle2 className="size-5" aria-hidden="true" /> : <Send className="size-5" aria-hidden="true" />}
+              {salvando ? "Registrando..." : preparandoAnexo ? "Preparando anexo..." : resolvido ? "Registrar resolvido" : "Registrar na fila"}
             </button>
-          )}
+          </RodapeEnviar>
         </div>
-        {sugestoes.length > 0 && (
-          <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl bg-superficie shadow-lg ring-1 ring-linha">
-            {sugestoes.map((u) => (
-              <li key={u.id}>
-                <button type="button" onClick={() => escolher(u)} className="w-full px-4 py-3 text-left hover:bg-mar-50">
-                  <span className="block font-semibold">{u.name}</span>
-                  <span className="block text-sm text-tinta-2">{[u.matricula && `mat. ${u.matricula}`, u.expand?.setor?.nome].filter(Boolean).join(" · ") || u.email}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="ajuda">
-          {solicitante
-            ? "Servidor cadastrado: ele vai acompanhar o chamado pelo sistema."
-            : "Se a pessoa não tiver conta, o nome digitado fica registrado assim mesmo."}
-        </p>
       </div>
 
-      <div>
-        <label htmlFor="setor" className="rotulo text-lg">Setor</label>
-        <select id="setor" className="campo" value={setor} onChange={(e) => setSetor(e.target.value)}>
-          <option value="">Não informado</option>
-          {setores.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-        </select>
-      </div>
-
-      <EscolhaCategoria valor={categoria} onChange={setCategoria} titulo="Categoria" />
-
-      <div>
-        <label htmlFor="descricao" className="rotulo text-lg">O que foi pedido?</label>
-        <textarea id="descricao" required className="campo min-h-28" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
-      </div>
-
-      <EscolhaImpacto valor={impacto} onChange={setImpacto} />
-
-      <div>
-        <p className="rotulo text-lg">Print ou foto (opcional)</p>
-        <SeletorAnexos arquivos={arquivos} onChange={setArquivos} aoPreparar={setPreparandoAnexo} />
-      </div>
-
-      <div className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
-        <label className="flex cursor-pointer items-center gap-3 font-semibold">
-          <input type="checkbox" checked={resolvido} onChange={(e) => setResolvido(e.target.checked)} className="size-6 accent-ok" />
-          Já resolvi na hora
-        </label>
-        {resolvido && (
-          <div className="mt-4 space-y-4">
-            <div>
-              <label htmlFor="diag" className="rotulo">Qual era a causa?</label>
-              <textarea id="diag" required className="campo min-h-20" value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} />
-            </div>
-            <div>
-              <label htmlFor="sol" className="rotulo">O que foi feito?</label>
-              <textarea id="sol" required className="campo min-h-20" value={solucao} onChange={(e) => setSolucao(e.target.value)} />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
-      <ProgressoEnvio pct={progresso} />
-      <button className="btn-primario w-full text-lg" disabled={salvando || preparandoAnexo}>
-        {salvando ? "Registrando..." : resolvido ? "Registrar atendimento resolvido" : "Registrar na fila"}
-      </button>
+      <aside className="hidden space-y-4 xl:sticky xl:top-8 xl:mt-[4.75rem] xl:block" aria-label="Registrados por você hoje">
+        <RegistradosHoje eu={usuario?.id ?? ""} />
+      </aside>
     </form>
+  );
+}
+
+/** O que este técnico registrou hoje: confere de relance se aquele WhatsApp já entrou. */
+function RegistradosHoje({ eu }: { eu: string }) {
+  const [lista, setLista] = useState<Chamado[] | null>(null);
+  const carregar = useCallback(async () => {
+    const inicio = new Date();
+    inicio.setHours(0, 0, 0, 0);
+    const r = await pb.collection("chamados").getList<Chamado>(1, 8, {
+      filter: pb.filter("registrado_por = {:eu} && created >= {:d}", { eu, d: inicio.toISOString().replace("T", " ") }),
+      sort: "-created",
+      expand: EXPAND_CHAMADO,
+      requestKey: "registrados-hoje",
+    });
+    setLista(r.items);
+  }, [eu]);
+  useEffect(() => { if (eu) carregar().catch(() => setLista([])); }, [carregar, eu]);
+  useRealtime("chamados", () => carregar().catch(() => {}));
+
+  return (
+    <section className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
+      <h2 className="flex items-center gap-2 font-display text-lg font-bold">
+        <ClipboardList className="size-5 text-acento" aria-hidden="true" /> Registrados por você hoje
+        {lista && <span className="ml-auto font-display text-base text-tinta-2">{lista.length}</span>}
+      </h2>
+      {lista === null ? (
+        <div className="mt-3 space-y-3">{[0, 1, 2].map((i) => <Bloco key={i} className="h-10" />)}</div>
+      ) : lista.length === 0 ? (
+        <p className="mt-2 text-sm text-tinta-2">Nada ainda. Cada pedido que chega fora do sistema e é registrado aqui entra na contagem do piloto.</p>
+      ) : (
+        <ul className="mt-2 divide-y divide-linha">
+          {lista.map((c) => (
+            <li key={c.id}>
+              <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className="-mx-2 block rounded-lg px-2 py-2.5 hover:bg-fundo">
+                <span className="flex items-center gap-2 text-sm">
+                  <span className="font-display font-bold">{c.protocolo}</span>
+                  <SeloStatus status={c.status} />
+                  <span className="ml-auto text-xs text-tinta-2">{ROTULO_ORIGEM[c.origem]}</span>
+                </span>
+                <span className="mt-0.5 block truncate text-sm text-tinta-2">{nomeSolicitante(c)} · {resumo(c.descricao, 60)}</span>
+              </LinkChamado>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

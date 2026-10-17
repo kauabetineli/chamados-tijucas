@@ -1,15 +1,18 @@
-import { Download, QrCode } from "lucide-react";
-import { Link } from "react-router";
+import { BarChart3, Download, QrCode, ThumbsDown, ThumbsUp, UserRound } from "lucide-react";
+import { Link, useSearchParams } from "react-router";
 import { useEffect, useState } from "react";
 import { Bloco } from "../../components/Esqueleto";
 import { duracaoHoras, ROTULO_ORIGEM } from "../../lib/formato";
 import { baixarCsvChamados } from "../../lib/planilha";
 import { EXPAND_CHAMADO, pb, type Chamado, type Origem } from "../../lib/pb";
+import { MeusNumeros } from "./MeusNumeros";
 
 interface Resumo {
   dias: number;
   total: number;
-  agora: { aberto: number; em_andamento: number };
+  agora: { aberto: number; em_andamento: number; aguardando: number };
+  avaliacao: { bom: number; ruim: number; confirmados: number };
+  por_tecnico: { chave: string; total: number }[];
   resolvidos: number;
   horas_media_resolucao: number;
   horas_media_inicio: number;
@@ -21,8 +24,44 @@ interface Resumo {
 
 const PERIODOS = [7, 30, 90];
 
-/** Indicadores do atendimento. Também servem de evidência para o piloto. */
+/**
+ * Indicadores. Aba "Equipe": o atendimento todo, com os números do piloto (quanto entra pelo sistema,
+ * satisfação). Aba "Meus números": o dia, a semana, o mês e o ano de quem está logado.
+ */
 export function Painel() {
+  const [params, setParams] = useSearchParams();
+  const aba = params.get("aba") === "meus" ? "meus" : "equipe";
+  const irPara = (a: "equipe" | "meus") => {
+    const p = new URLSearchParams(params);
+    if (a === "meus") p.set("aba", "meus"); else p.delete("aba");
+    setParams(p, { replace: true });
+  };
+  const botaoAba = (id: "equipe" | "meus", rotulo: string, Icone: typeof BarChart3) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={aba === id}
+      onClick={() => irPara(id)}
+      className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 font-semibold sm:flex-none ${aba === id ? "bg-mar-700 text-white" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
+    >
+      <Icone className="size-4" aria-hidden="true" /> {rotulo}
+    </button>
+  );
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-bold">Painel</h1>
+        <div role="tablist" aria-label="Quais números" className="flex w-full gap-1 rounded-xl bg-superficie p-1 ring-1 ring-linha sm:w-auto">
+          {botaoAba("equipe", "Equipe", BarChart3)}
+          {botaoAba("meus", "Meus números", UserRound)}
+        </div>
+      </div>
+      {aba === "meus" ? <MeusNumeros /> : <PainelEquipe />}
+    </div>
+  );
+}
+
+function PainelEquipe() {
   const [dias, setDias] = useState(30);
   const [r, setR] = useState<Resumo | null>(null);
   const [erro, setErro] = useState(false);
@@ -45,11 +84,12 @@ export function Painel() {
   const pctSistema = r && r.total
     ? Math.round(((r.por_origem.find((o) => o.chave === "sistema")?.total ?? 0) / r.total) * 100)
     : 0;
+  const avaliados = r ? r.avaliacao.bom + r.avaliacao.ruim : 0;
+  const pctBom = r && avaliados ? Math.round((r.avaliacao.bom / avaliados) * 100) : 0;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-3xl font-bold">Painel</h1>
         <div className="flex flex-wrap gap-2">
           <div role="tablist" aria-label="Período" className="flex rounded-xl bg-superficie p-1 ring-1 ring-linha">
             {PERIODOS.map((p) => (
@@ -91,9 +131,41 @@ export function Painel() {
             <Numero termo="Tempo médio até resolver" valor={r.resolvidos ? duracaoHoras(r.horas_media_resolucao) : "—"} />
           </dl>
           <p className="text-tinta-2">
-            Agora: <strong className="text-tinta">{r.agora.aberto}</strong> aguardando e{" "}
-            <strong className="text-tinta">{r.agora.em_andamento}</strong> em atendimento.
+            Agora: <strong className="text-tinta">{r.agora.aberto}</strong> na fila,{" "}
+            <strong className="text-tinta">{r.agora.em_andamento}</strong> em atendimento e{" "}
+            <strong className="text-tinta">{r.agora.aguardando}</strong> em espera (peça, resposta ou terceiro).
           </p>
+
+          {/* números que o piloto acompanha (AC2): pedidos que passam pelo sistema e satisfação de quem pediu */}
+          <section aria-labelledby="t-piloto" className="space-y-3">
+            <h2 id="t-piloto" className="text-xl font-bold">Piloto</h2>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
+                <p className="text-sm text-tinta-2">Abertos pelo próprio servidor no sistema</p>
+                <p className="mt-1 font-display text-4xl font-extrabold">{r.total ? `${pctSistema}%` : "—"}</p>
+                <div className="mt-3 h-3 overflow-hidden rounded-full bg-linha" aria-hidden="true">
+                  <div className="h-full rounded-full bg-campo" style={{ width: `${pctSistema}%` }} />
+                </div>
+                <p className="mt-2 text-sm text-tinta-2">
+                  O resto o TI registrou ao receber por WhatsApp, ligação ou no corredor. Para a meta do piloto,
+                  compare o total do período ({r.total}) com a contagem manual da equipe.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
+                <p className="text-sm text-tinta-2">Satisfação de quem pediu</p>
+                <p className="mt-1 font-display text-4xl font-extrabold">{avaliados ? `${pctBom}%` : "—"}</p>
+                <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                  <span className="inline-flex items-center gap-1.5"><ThumbsUp className="size-4 text-ok" aria-hidden="true" /><b>{r.avaliacao.bom}</b> bom</span>
+                  <span className="inline-flex items-center gap-1.5"><ThumbsDown className="size-4 text-alerta" aria-hidden="true" /><b>{r.avaliacao.ruim}</b> poderia ser melhor</span>
+                </p>
+                <p className="mt-2 text-sm text-tinta-2">
+                  {r.avaliacao.confirmados
+                    ? `${avaliados} de ${r.avaliacao.confirmados} chamados confirmados no período foram avaliados.`
+                    : "Nenhum chamado confirmado no período ainda."}
+                </p>
+              </div>
+            </div>
+          </section>
 
           <div className="grid gap-8 lg:grid-cols-2">
             <Barras
@@ -103,6 +175,7 @@ export function Painel() {
             />
             <Barras titulo="Por categoria" dados={r.por_categoria.map((o) => ({ rotulo: o.chave, total: o.total }))} />
             <Barras titulo="Por setor" dados={r.por_setor.map((o) => ({ rotulo: o.chave, total: o.total }))} />
+            <Barras titulo="Resolvidos por técnico" dados={r.por_tecnico.map((o) => ({ rotulo: o.chave, total: o.total }))} />
             <PorDia dados={r.por_dia} dias={r.dias} />
           </div>
         </>
@@ -155,7 +228,7 @@ function PorDia({ dados: brutos, dias }: { dados: { dia: string; total: number }
   const max = Math.max(1, ...dados.map((d) => d.total));
   const rotulo = (dia: string) => new Date(dia + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   return (
-    <section>
+    <section className="lg:col-span-2">
       <h2 className="text-xl font-bold">Chamados por dia</h2>
       {brutos.length === 0 ? (
         <p className="mt-3 text-tinta-2">Sem chamados no período.</p>

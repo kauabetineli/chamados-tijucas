@@ -44,6 +44,6 @@ export function corDe(id: string) {
  */
 export async function atribuir(c: Chamado, tecnicoId: string) {
   const dados: Partial<Chamado> = { responsavel: tecnicoId };
-  if (!tecnicoId && c.status === "em_andamento") dados.status = "aberto";
+  if (!tecnicoId && (c.status === "em_andamento" || c.status === "aguardando")) dados.status = "aberto";
   return pb.collection("chamados").update<Chamado>(c.id, dados);
 }

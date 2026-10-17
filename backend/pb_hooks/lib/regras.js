@@ -9,7 +9,8 @@ const PESOS = { baixa: 1, normal: 2, alta: 3, urgente: 4 };
 // o técnico pode mudar depois
 const PRIORIDADE_POR_IMPACTO = { so_eu: "normal", setor: "alta", publico: "urgente" };
 
-const ROTULO_STATUS = { aberto: "Aberto", em_andamento: "Em andamento", resolvido: "Resolvido" };
+const ROTULO_STATUS = { aberto: "Aberto", em_andamento: "Em andamento", aguardando: "Em espera", resolvido: "Resolvido" };
+const ROTULO_AGUARDANDO = { peca: "peça ou equipamento", solicitante: "resposta do solicitante", terceiro: "terceiro ou fornecedor" };
 const ROTULO_PRIORIDADE = { baixa: "Baixa", normal: "Normal", alta: "Alta", urgente: "Urgente" };
 
 function ehTecnico(auth) {
@@ -96,6 +97,7 @@ module.exports = {
   PESOS,
   PRIORIDADE_POR_IMPACTO,
   ROTULO_STATUS,
+  ROTULO_AGUARDANDO,
   ROTULO_PRIORIDADE,
   ehTecnico,
   ehAdmin,

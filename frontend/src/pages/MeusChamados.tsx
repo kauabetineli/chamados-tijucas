@@ -1,4 +1,4 @@
-import { History, Inbox, Plus, Search, Wrench } from "lucide-react";
+import { History, Hourglass, Inbox, MessageCircleQuestion, Plus, Search, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { EsqueletoLinhas } from "../components/Esqueleto";
@@ -7,7 +7,7 @@ import { LinhaChamado } from "../components/LinhaChamado";
 import { Paginacao, usePaginacao } from "../components/Paginacao";
 import { SenhaFila } from "../components/SenhaFila";
 import { useAuth } from "../lib/auth";
-import { resumo } from "../lib/formato";
+import { resumo, ROTULO_AGUARDANDO } from "../lib/formato";
 import { EXPAND_CHAMADO, pb, type Chamado } from "../lib/pb";
 import { buscarPagina } from "../lib/paginar";
 import { useRealtime } from "../lib/useRealtime";
@@ -100,7 +100,10 @@ export function MeusChamados() {
   const naFila = chamados
     .filter((c) => c.status === "aberto")
     .sort((a, b) => (posicoes[a.id]?.a_frente ?? 0) - (posicoes[b.id]?.a_frente ?? 0));
-  const emAtendimento = chamados.filter((c) => c.status === "em_andamento");
+  // "aguardando" também é atendimento para quem pediu (o TI está com o chamado); quem precisa responder vem primeiro
+  const emAtendimento = chamados
+    .filter((c) => c.status === "em_andamento" || c.status === "aguardando")
+    .sort((a, b) => Number(b.aguardando_motivo === "solicitante") - Number(a.aguardando_motivo === "solicitante"));
   const paraConfirmar = chamados.filter((c) => c.status === "resolvido" && !c.confirmado);
   const emAberto = naFila.length + emAtendimento.length + paraConfirmar.length;
 
@@ -183,20 +186,35 @@ export function MeusChamados() {
           {emAtendimento.length > 0 && (
             <section aria-labelledby="t-atend" className="space-y-3">
               <h2 id="t-atend" className="text-xl font-bold">Em atendimento</h2>
-              {emAtendimento.map((c) => (
-                <LinkChamado key={c.id} id={c.id} para={`/chamado/${c.id}`} className={`flex items-start gap-3 rounded-2xl border-l-8 border-sol bg-superficie p-4 ring-1 ${verId === c.id ? "ring-2 ring-acento" : "ring-linha hover:ring-acento"}`}>
-                  <Wrench className="mt-0.5 size-6 shrink-0 text-tinta" aria-hidden="true" />
-                  <span>
-                    <span className="block font-bold">
-                      {c.expand?.responsavel?.name ?? "Um técnico"} está cuidando do seu chamado.
+              {emAtendimento.map((c) => {
+                const responder = c.status === "aguardando" && c.aguardando_motivo === "solicitante";
+                const Icone = responder ? MessageCircleQuestion : c.status === "aguardando" ? Hourglass : Wrench;
+                const quem = c.expand?.responsavel?.name ?? "Um técnico";
+                return (
+                  <LinkChamado
+                    key={c.id}
+                    id={c.id}
+                    para={`/chamado/${c.id}`}
+                    className={`flex items-start gap-3 rounded-2xl border-l-8 p-4 ring-1 ${responder ? "border-acento bg-mar-50" : "border-sol bg-superficie"} ${verId === c.id ? "ring-2 ring-acento" : "ring-linha hover:ring-acento"}`}
+                  >
+                    <Icone className={`mt-0.5 size-6 shrink-0 ${responder ? "text-acento" : "text-tinta"}`} aria-hidden="true" />
+                    <span>
+                      <span className="block font-bold">
+                        {responder
+                          ? "O TI precisa de uma resposta sua."
+                          : c.status === "aguardando" && c.aguardando_motivo
+                            ? `${quem} está aguardando ${ROTULO_AGUARDANDO[c.aguardando_motivo]}.`
+                            : `${quem} está cuidando do seu chamado.`}
+                      </span>
+                      <span className="block text-tinta-2">
+                        <span className="font-display font-bold text-tinta">{c.protocolo}</span> {resumo(c.descricao, 70)}
+                      </span>
+                      {responder && <span className="mt-1 block text-sm font-semibold text-acento">Abra o chamado e responda na conversa.</span>}
+                      {novidade(c) && <SeloNovidade />}
                     </span>
-                    <span className="block text-tinta-2">
-                      <span className="font-display font-bold text-tinta">{c.protocolo}</span> {resumo(c.descricao, 70)}
-                    </span>
-                    {novidade(c) && <SeloNovidade />}
-                  </span>
-                </LinkChamado>
-              ))}
+                  </LinkChamado>
+                );
+              })}
             </section>
           )}
 

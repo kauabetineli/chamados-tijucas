@@ -11,7 +11,7 @@ import { Paginacao, usePaginacao } from "../../components/Paginacao";
 import { VisaoTI } from "../../components/VisaoTI";
 import { useSetores, useTecnicos } from "../../lib/equipe";
 import { atrasado, esperaCurta, horasEsperando } from "../../lib/fila";
-import { dataCurta, duracaoHoras, paraData, resumo, ROTULO_PRIORIDADE } from "../../lib/formato";
+import { dataCurta, duracaoHoras, paraData, resumo, ROTULO_AGUARDANDO, ROTULO_PRIORIDADE } from "../../lib/formato";
 import { buscarPagina } from "../../lib/paginar";
 import { baixarCsvChamados } from "../../lib/planilha";
 import { EXPAND_CHAMADO, nomeSolicitante, pb, type Chamado, type Prioridade } from "../../lib/pb";
@@ -20,8 +20,9 @@ import { useRealtime } from "../../lib/useRealtime";
 
 const SITUACOES = [
   { valor: "", rotulo: "Em aberto", filtro: 'status != "resolvido"' },
-  { valor: "aberto", rotulo: "Aguardando", filtro: 'status = "aberto"' },
+  { valor: "aberto", rotulo: "Na fila", filtro: 'status = "aberto"' },
   { valor: "em_andamento", rotulo: "Em atendimento", filtro: 'status = "em_andamento"' },
+  { valor: "aguardando_algo", rotulo: "Em espera", filtro: 'status = "aguardando"' },
   { valor: "resolvido", rotulo: "Resolvidos", filtro: 'status = "resolvido"' },
   { valor: "todos", rotulo: "Todos", filtro: "" },
 ];
@@ -44,6 +45,10 @@ function Tempo({ c }: { c: Chamado }) {
   if (c.status === "resolvido") {
     const ini = paraData(c.created), fim = paraData(c.resolvido_em);
     return <span className="text-tinta-2">{ini && fim ? `resolvido em ${duracaoHoras((fim.getTime() - ini.getTime()) / 3_600_000)}` : "—"}</span>;
+  }
+  if (c.status === "aguardando") {
+    const ini = paraData(c.aguardando_desde || "");
+    return <span className="text-tinta-2">em espera{c.aguardando_motivo ? ` (${ROTULO_AGUARDANDO[c.aguardando_motivo]})` : ""}{ini ? ` ${ha((Date.now() - ini.getTime()) / 3_600_000)}` : ""}</span>;
   }
   if (c.status === "em_andamento") {
     const ini = paraData(c.iniciado_em);

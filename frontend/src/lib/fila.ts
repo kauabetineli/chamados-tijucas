@@ -38,7 +38,8 @@ export function esperaCurta(horas: number): string {
  * - proximo: MEU próximo = o primeiro da fila (prioridade, depois chegada) que é meu ou está livre.
  *   Um chamado passado para mim e um livre disputam pela ordem da fila: urgente vem antes;
  * - depois: o resto dos abertos, na ordem (os meus aparecem destacados);
- * - comOutros: em atendimento por colegas.
+ * - comOutros: em atendimento por colegas;
+ * - esperando: MEUS chamados em "aguardando" (peça, resposta, terceiro): fora da fila e da carga, mas não esquecidos.
  * `fila` = todos os abertos na ordem de atendimento (para numerar 1º, 2º...).
  * Espera a lista já ordenada por -peso,created.
  */
@@ -46,9 +47,10 @@ export function organizarFila(lista: Chamado[], eu: string) {
   const fila = lista.filter((c) => c.status === "aberto");
   const atendendo = lista.filter((c) => c.status === "em_andamento" && c.responsavel === eu);
   const comOutros = lista.filter((c) => c.status === "em_andamento" && c.responsavel !== eu);
+  const esperando = lista.filter((c) => c.status === "aguardando" && c.responsavel === eu);
   const proximo = fila.find((c) => !c.responsavel || c.responsavel === eu) ?? null;
   const depois = fila.filter((c) => c !== proximo);
-  return { atendendo, comOutros, fila, proximo, depois };
+  return { atendendo, comOutros, esperando, fila, proximo, depois };
 }
 
 /** Quantos chamados (abertos ou em atendimento) cada técnico tem, e quantos estão livres. */
@@ -56,7 +58,8 @@ export function cargaDaEquipe(lista: Chamado[]) {
   const carga: Record<string, number> = {};
   let livres = 0;
   for (const c of lista) {
-    if (c.status === "resolvido") continue;
+    // "aguardando" não pesa: o técnico não consegue avançar enquanto espera
+    if (c.status === "resolvido" || c.status === "aguardando") continue;
     if (c.responsavel) carga[c.responsavel] = (carga[c.responsavel] ?? 0) + 1;
     else if (c.status === "aberto") livres++;
   }
