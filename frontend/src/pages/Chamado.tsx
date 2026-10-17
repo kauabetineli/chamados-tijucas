@@ -202,7 +202,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
             </section>
           )}
 
-          <LinhaDoTempo chamadoId={c.id} solicitanteId={c.solicitante} />
+          <LinhaDoTempo chamadoId={c.id} solicitanteId={c.solicitante} status={c.status} aoMudarChamado={carregar} />
         </div>
       </div>
     </div>

@@ -148,8 +148,17 @@ onRecordUpdateRequest((e) => {
     const extra = para === "aguardando" ? ` (${R.ROTULO_AGUARDANDO[motivo]})` : "";
     R.registrar(e.app, rec.id, autor, "status", `Status: ${R.ROTULO_STATUS[de]} → ${R.ROTULO_STATUS[para]}${extra}`, false);
     if (para === "aguardando" && motivo === "solicitante") {
-      R.notificarSolicitante(e.app, rec, "O TI precisa de uma resposta sua",
-        "O atendimento do seu chamado está esperando uma resposta sua. Abra o chamado e responda por lá.");
+      // "Enviar e aguardar resposta": a mensagem acabou de ir (e já avisou a pessoa com o texto dela);
+      // não manda um segundo aviso genérico logo em seguida
+      const umMinuto = new Date(Date.now() - 60000).toISOString().replace("T", " ");
+      const recente = e.app.findRecordsByFilter(
+        "interacoes", "chamado = {:c} && tipo = 'comentario' && interno = false && autor != {:s} && created >= {:d}",
+        "-created", 1, 0, { c: rec.id, s: rec.getString("solicitante"), d: umMinuto },
+      ).filter((r) => !!r);
+      if (!recente.length) {
+        R.notificarSolicitante(e.app, rec, "O TI precisa de uma resposta sua",
+          "O atendimento do seu chamado está esperando uma resposta sua. Abra o chamado e responda por lá.");
+      }
     } else if (para === "em_andamento" && de !== "aguardando") {
       R.notificarSolicitante(e.app, rec, "Seu chamado está em atendimento", "Um técnico do TI começou a atender o seu chamado.");
     } else if (para === "resolvido") {

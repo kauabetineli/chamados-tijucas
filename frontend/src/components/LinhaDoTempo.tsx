@@ -1,11 +1,12 @@
 import { EsqueletoConversa } from "./Esqueleto";
-import { ImagePlus, Lock, Send, X } from "lucide-react";
+import { Hourglass, ImagePlus, Lock, Send, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
+import { avisar } from "../lib/avisos";
 import { dataHora } from "../lib/formato";
 import { prepararArquivo } from "../lib/imagem";
-import { ehTecnico, mensagemErro, pb, type Interacao } from "../lib/pb";
+import { ehTecnico, mensagemErro, pb, type Interacao, type Status } from "../lib/pb";
 import { useRealtime } from "../lib/useRealtime";
 import { marcarVisto } from "../lib/visto";
 import { RespostasProntas } from "./RespostasProntas";
@@ -43,7 +44,13 @@ function PreviasImagens({ arquivos, aoRemover }: { arquivos: File[]; aoRemover: 
  * botão "Imagem" (galeria ou câmera), colar print (Ctrl+V) ou arrastar no PC.
  * A imagem aberta fica no endereço (?imagem=<mensagem>.<n>): o "voltar" do celular fecha a tela cheia.
  */
-export function LinhaDoTempo({ chamadoId, solicitanteId }: { chamadoId: string; solicitanteId: string }) {
+export function LinhaDoTempo({ chamadoId, solicitanteId, status, aoMudarChamado }: {
+  chamadoId: string;
+  solicitanteId: string;
+  /** situação do chamado: libera o "Enviar e aguardar resposta" para o técnico */
+  status?: Status;
+  aoMudarChamado?: () => void;
+}) {
   const { usuario } = useAuth();
   const tecnico = ehTecnico(usuario);
   const [params, setParams] = useSearchParams();
@@ -88,7 +95,10 @@ export function LinhaDoTempo({ chamadoId, solicitanteId }: { chamadoId: string; 
     }
   }
 
-  async function enviar(e: FormEvent) {
+  // técnico: pergunta e já deixa o chamado esperando a resposta (volta sozinho quando a pessoa responder)
+  const podeAguardar = tecnico && !interno && !!solicitanteId && (status === "em_andamento" || status === "aguardando");
+
+  async function enviar(e: FormEvent, aguardar = false) {
     e.preventDefault();
     if (!texto.trim() && !imagens.length) return;
     setEnviando(true);
@@ -100,6 +110,11 @@ export function LinhaDoTempo({ chamadoId, solicitanteId }: { chamadoId: string; 
       d.append("interno", String(tecnico && interno));
       imagens.forEach((f) => d.append("anexos", f));
       await pb.collection("interacoes").create(d);
+      if (aguardar) {
+        await pb.collection("chamados").update(chamadoId, { status: "aguardando", aguardando_motivo: "solicitante" });
+        avisar("Mensagem enviada. O chamado fica em espera até a pessoa responder.");
+        aoMudarChamado?.();
+      }
       setTexto("");
       setImagens([]);
       setInterno(false);
@@ -244,9 +259,22 @@ export function LinhaDoTempo({ chamadoId, solicitanteId }: { chamadoId: string; 
               Nota interna (só o TI vê)
             </label>
           )}
-          <button className="btn-primario ml-auto" disabled={!podeEnviar}>
-            <Send className="size-5" aria-hidden="true" /> {enviando ? "Enviando..." : "Enviar"}
-          </button>
+          <div className="ml-auto flex flex-wrap justify-end gap-2">
+            {podeAguardar && (
+              <button
+                type="button"
+                className="btn-secundario"
+                disabled={!podeEnviar}
+                onClick={(e) => enviar(e, true)}
+                title="Envia a mensagem e põe o chamado em espera. Quando a pessoa responder, volta sozinho para atendimento."
+              >
+                <Hourglass className="size-5" aria-hidden="true" /> Enviar e aguardar resposta
+              </button>
+            )}
+            <button className="btn-primario" disabled={!podeEnviar}>
+              <Send className="size-5" aria-hidden="true" /> {enviando ? "Enviando..." : "Enviar"}
+            </button>
+          </div>
         </div>
         <p className="hidden text-sm text-tinta-2 md:block">Dica: cole um print com Ctrl+V ou arraste uma imagem para cá.</p>
         {erro && <p className="text-sm font-semibold text-alerta">{erro}</p>}
