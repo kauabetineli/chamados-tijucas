@@ -2,8 +2,9 @@
 # Rode como ADMINISTRADOR no PC que vai ser o servidor:
 #   powershell -ExecutionPolicy Bypass -File scripts\instalar-servico.ps1
 # Opcional: -Porta 8080 (padrao 80, assim o endereco fica http://IP-do-PC sem porta)
+# Opcional: -NtfyTopico "dinodesk-ti-xxxx" liga os avisos no celular dos tecnicos (app ntfy)
 
-param([int]$Porta = 80)
+param([int]$Porta = 80, [string]$NtfyTopico = "")
 $ErrorActionPreference = "Stop"
 
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -18,6 +19,21 @@ if (-not (Test-Path $exe)) { throw "Nao achei $exe. Rode antes: scripts\baixar-p
 if (-not (Test-Path (Join-Path $backend "pb_public\index.html"))) {
   throw "Nao achei o front compilado em backend\pb_public. Rode 'npm run build' na pasta frontend (ou use o pacote gerado por scripts\gerar-pacote.ps1)."
 }
+
+# config.json: marca o servidor como PRODUCAO (bloqueia dados de teste) e guarda o topico do ntfy
+$arqConfig = Join-Path $backend "config.json"
+$cfg = [ordered]@{}
+if (Test-Path $arqConfig) {
+  (Get-Content $arqConfig -Raw | ConvertFrom-Json).PSObject.Properties | ForEach-Object { $cfg[$_.Name] = $_.Value }
+}
+$cfg["ambiente"] = "producao"
+if ($NtfyTopico) {
+  $cfg["ntfy_topico"] = $NtfyTopico
+  $cfg["ntfy_servidor"] = "https://ntfy.sh"
+  Write-Host "Avisos do ntfy ligados no topico informado."
+}
+$cfg | ConvertTo-Json | Set-Content -Encoding UTF8 $arqConfig
+Write-Host "Servidor marcado como producao: as ferramentas de teste nao criam dados aqui."
 
 $nome = "DinoDesk"
 $argumentos = "serve --http 0.0.0.0:$Porta " +

@@ -21,6 +21,14 @@
               padding: 14px; border-radius: 12px; margin-top: 18px; }
     a.botao:focus-visible { outline: 3px solid #0093c9; outline-offset: 2px; }
     small { display: block; margin-top: 14px; color: #47605a; }
+    /* modo escuro: segue o aparelho (mesmos tons do sistema) */
+    @media (prefers-color-scheme: dark) {
+      :root { color-scheme: dark; }
+      body { background: #0c1613; color: #e4eeea; }
+      main { background: #15231f; }
+      .aviso { background: #312b07; }
+      small { color: #a3b8b1; }
+    }
   </style>
 </head>
 <body>
@@ -49,8 +57,9 @@
   </main>
   <script>
     (function () {
-      var local = new URLSearchParams(window.location.search).get("local");
-      var alvo = window.DESTINO.replace(/\/$/, "") + (local ? "/novo?local=" + encodeURIComponent(local) : "/");
+      // QR das etiquetas manda ?novo=1: abre direto o formulário de novo chamado
+      var novo = /[?&](novo|local)=/.test(window.location.search);
+      var alvo = window.DESTINO.replace(/\/$/, "") + (novo ? "/novo" : "/");
       document.getElementById("abrir").href = alvo;
       setTimeout(function () { window.location.href = alvo; }, 1500);
     })();

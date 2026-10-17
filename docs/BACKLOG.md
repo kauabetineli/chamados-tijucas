@@ -6,7 +6,7 @@ com o TI e pelo menos 2 setores, meta de **50% dos chamados registrados no siste
 ## Já feito na base inicial
 
 - [x] Cadastro e login (e-mail e senha), com setor
-- [x] Abrir chamado: categoria, descrição, impacto, local, foto/vídeo pela câmera (fotos são reduzidas antes do envio)
+- [x] Abrir chamado: categoria, descrição, impacto, foto/vídeo (o lugar é o setor da conta) pela câmera (fotos são reduzidas antes do envio)
 - [x] Meus chamados com a **senha da fila** (posição em tempo real)
 - [x] Detalhe do chamado: etapas, conversa com o TI, confirmar ou reabrir
 - [x] Fila do TI (todos / comigo / sem responsável), atualização em tempo real
@@ -15,7 +15,7 @@ com o TI e pelo menos 2 setores, meta de **50% dos chamados registrados no siste
 - [x] Registro rápido de pedido por WhatsApp, ligação ou presencial (inclusive já resolvido)
 - [x] Histórico de soluções com busca
 - [x] Painel com indicadores e exportação da planilha (CSV)
-- [x] QR codes das salas para imprimir
+- [x] Etiquetas com QR code para abrir chamado
 - [x] E-mail ao solicitante (atendimento iniciado, resolvido, resposta do TI)
 - [x] Scripts de instalação no PC Windows, backup, pacote e atualização
 - [x] Página de redirecionamento para o site da Prefeitura
@@ -38,7 +38,7 @@ com o TI e pelo menos 2 setores, meta de **50% dos chamados registrados no siste
 - [ ] Respostas prontas para o TI ("Reinicie o computador e me avise")
 - [ ] Aviso sonoro na fila quando chega chamado novo
 - [ ] Anexar foto também nos comentários
-- [ ] Tela de perfil (trocar setor e telefone)
+- [ ] Tela de perfil (trocar setor e senha; o ramal é cadastrado pelo TI)
 
 ## Depois do piloto (trabalhos futuros)
 

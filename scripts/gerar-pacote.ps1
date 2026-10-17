@@ -17,7 +17,8 @@ Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path "$tmp\backend", "$tmp\scripts" | Out-Null
 Copy-Item "$backend\pocketbase.exe" "$tmp\backend\"
 Copy-Item "$backend\pb_hooks", "$backend\pb_migrations", "$backend\pb_public" "$tmp\backend\" -Recurse
-Copy-Item "$PSScriptRoot\instalar-servico.ps1", "$PSScriptRoot\desinstalar-servico.ps1", "$PSScriptRoot\copiar-backups.ps1", "$PSScriptRoot\atualizar.ps1" "$tmp\scripts\"
+if (Test-Path "$backend\bin\ffmpeg.exe") { Copy-Item "$backend\bin" "$tmp\backend\" -Recurse } else { Write-Host "Aviso: sem backend\bin\ffmpeg.exe (rode scripts\baixar-ffmpeg.ps1); os videos nao serao comprimidos." }
+Copy-Item "$PSScriptRoot\instalar-servico.ps1", "$PSScriptRoot\desinstalar-servico.ps1", "$PSScriptRoot\copiar-backups.ps1", "$PSScriptRoot\atualizar.ps1", "$PSScriptRoot\baixar-ffmpeg.ps1" "$tmp\scripts\"
 Copy-Item (Join-Path $raiz "docs\IMPLANTACAO.md") $tmp
 
 $data = Get-Date -Format "yyyy-MM-dd"

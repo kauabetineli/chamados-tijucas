@@ -14,7 +14,7 @@ resolvem com causa e solução (que viram o **histórico**) e acompanham os indi
 |---|---|
 | 1. Solicitante espera resposta imediata porque não vê a fila | Senha com a posição na fila, status em 3 etapas, conversa com o TI, e-mail a cada mudança |
 | 2. Sem fila nem prioridade | Fila única ordenada por prioridade e chegada; prioridade sugerida pelo impacto e ajustada pelo TI |
-| 3. Sem centralização | Abertura pelo sistema, QR code nas salas e **registro rápido** pelo técnico do que chega por outros canais |
+| 3. Sem centralização | Abertura pelo sistema, QR code colado perto dos computadores e **registro rápido** pelo técnico do que chega por outros canais |
 | 4. Sem histórico | Resolver exige causa e solução; histórico pesquisável |
 
 ## Stack
@@ -37,21 +37,37 @@ backend/
   pb_data/         banco e arquivos (NUNCA vai pro Git)
 frontend/src/
   pages/           telas do solicitante (MeusChamados, NovoChamado, Chamado)
-  pages/ti/        telas do TI (Fila, Registrar, Historico, Painel, QrCodes)
+  pages/ti/        telas do TI (Fila, Registrar, Historico, Painel, Usuarios, QrCodes)
   components/      peças reutilizadas (SenhaFila, LinhaDoTempo, PainelTecnico...)
   lib/             cliente do PocketBase, tipos, autenticação, formatação
+ferramentas/       CLI e servidor MCP: dados de teste e operação do sistema por IA
 redirecionamento/  página para o site da Prefeitura que leva ao servidor interno
 scripts/           PowerShell: baixar, instalar no PC servidor, backup, pacote, atualizar
-docs/              arquitetura, implantação e backlog
+docs/              arquitetura, API, ferramentas de IA, implantação e backlog
+AGENTS.md          manual para assistentes de IA (CLAUDE.md aponta para ele)
 ```
 
 ## Rodar no seu computador (Windows)
 
 Pré-requisito: [Node.js 22+](https://nodejs.org).
 
+### Jeito rápido: dois cliques em `iniciar.bat`
+
+Na primeira vez ele instala as dependências, baixa o PocketBase e cria o superusuário de teste
+(`admin@local.dev` / `SenhaForte123`). Depois abre duas janelas (PocketBase e front) e o navegador,
+e mostra o endereço para abrir pelo celular.
+
+- Editou `pb_hooks` ou criou migration? Rode `iniciar.bat` de novo: ele reinicia tudo.
+- Para parar: `parar.bat` (ou feche as duas janelas).
+
+### Passo a passo manual (se preferir)
+
 ```powershell
 # 1. baixar o PocketBase (uma vez)
 powershell -ExecutionPolicy Bypass -File scripts\baixar-pocketbase.ps1
+
+# 1b. opcional: ffmpeg, que comprime os vídeos enviados pelo celular
+powershell -ExecutionPolicy Bypass -File scripts\baixar-ffmpeg.ps1
 
 # 2. terminal 1: backend (cria o banco e aplica as migrations na primeira vez)
 cd backend
@@ -67,7 +83,23 @@ npm run dev
 - Sistema: http://localhost:5173 (pelo celular na mesma rede: `http://IP-do-seu-PC:5173`)
 - Painel admin do PocketBase: http://127.0.0.1:8090/_/
 
+Avisos no celular (opcional): copie `backend\config.exemplo.json` para `backend\config.json`, coloque o tópico do ntfy
+e reinicie o PocketBase. Para o toque no aviso abrir o chamado, ajuste a URL em Settings > Application do painel admin.
+
 Para testar como técnico: crie uma conta pelo sistema e, no painel admin, mude o campo `papel` dela para `tecnico`.
+Depois disso, o próprio técnico cria contas na tela **Usuários**.
+
+## Dados de teste e IA
+
+O projeto vem pronto para uma IA trabalhar nele: [`AGENTS.md`](AGENTS.md) é o manual, e `ferramentas/` tem uma CLI e um
+servidor MCP que criam usuários, abrem chamados com fotos e vídeos falsos, simulam o movimento da fila e apagam tudo depois.
+
+```powershell
+cd ferramentas; npm install; node configurar.mjs      # pergunta o superusuário e liga o MCP
+node dino.mjs popular                                  # sistema cheio em segundos
+```
+
+Guia completo: [`docs/FERRAMENTAS-IA.md`](docs/FERRAMENTAS-IA.md). Rotas: [`docs/API.md`](docs/API.md).
 Setores e categorias também são cadastrados pelo painel admin.
 
 > No Windows o PocketBase **não** reinicia sozinho quando você edita `pb_hooks`. Pare (Ctrl+C) e rode `serve` de novo.
