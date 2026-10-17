@@ -3,6 +3,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { SeletorAnexos } from "../../components/Anexos";
 import { EscolhaCategoria, EscolhaImpacto } from "../../components/CamposChamado";
+import { ProgressoEnvio } from "../../components/ProgressoEnvio";
+import { criarComProgresso } from "../../lib/envio";
 import { mensagemErro, pb, type Chamado, type Impacto, type Origem, type Setor, type Usuario } from "../../lib/pb";
 
 const ORIGENS: { valor: Origem; rotulo: string; Icone: typeof Phone }[] = [
@@ -25,13 +27,14 @@ export function Registrar() {
   const [categoria, setCategoria] = useState("");
   const [descricao, setDescricao] = useState("");
   const [impacto, setImpacto] = useState<Impacto | "">("so_eu");
-  const [local, setLocal] = useState("");
   const [resolvido, setResolvido] = useState(false);
   const [diagnostico, setDiagnostico] = useState("");
   const [solucao, setSolucao] = useState("");
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [progresso, setProgresso] = useState<number | null>(null);
+  const [preparandoAnexo, setPreparandoAnexo] = useState(false);
   const [ultimo, setUltimo] = useState<Chamado | null>(null);
 
   useEffect(() => {
@@ -59,7 +62,7 @@ export function Registrar() {
 
   function limpar() {
     setSolicitante(null); setBusca(""); setSetor(""); setCategoria(""); setDescricao("");
-    setImpacto("so_eu"); setLocal(""); setResolvido(false); setDiagnostico(""); setSolucao(""); setArquivos([]);
+    setImpacto("so_eu"); setResolvido(false); setDiagnostico(""); setSolucao(""); setArquivos([]);
   }
 
   async function registrar(e: FormEvent) {
@@ -68,6 +71,7 @@ export function Registrar() {
     if (!categoria) return setErro("Escolha a categoria.");
     if (!solicitante && !busca.trim()) return setErro("Informe quem pediu.");
     setSalvando(true);
+    setProgresso(arquivos.length ? 0 : null);
     try {
       const d = new FormData();
       d.append("origem", origem);
@@ -77,11 +81,10 @@ export function Registrar() {
       d.append("categoria", categoria);
       d.append("descricao", descricao);
       d.append("impacto", impacto);
-      d.append("local", local);
       d.append("status", resolvido ? "resolvido" : "aberto");
       if (resolvido) { d.append("diagnostico", diagnostico); d.append("solucao", solucao); }
       arquivos.forEach((f) => d.append("anexos", f));
-      const c = await pb.collection("chamados").create<Chamado>(d);
+      const c = await criarComProgresso<Chamado>("chamados", d, setProgresso);
       setUltimo(c);
       limpar();
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -89,6 +92,7 @@ export function Registrar() {
       setErro(mensagemErro(err));
     } finally {
       setSalvando(false);
+      setProgresso(null);
     }
   }
 
@@ -100,7 +104,7 @@ export function Registrar() {
       </div>
 
       {ultimo && (
-        <div role="status" className="flex items-start gap-3 rounded-2xl bg-campo-50 p-4 text-campo-700">
+        <div role="status" className="flex items-start gap-3 rounded-2xl bg-campo-50 p-4 text-ok">
           <CheckCircle2 className="mt-0.5 size-6 shrink-0" aria-hidden="true" />
           <p className="font-semibold">
             Registrado como <Link to={`/ti/chamado/${ultimo.id}`} className="underline underline-offset-4">{ultimo.protocolo}</Link>.
@@ -115,7 +119,7 @@ export function Registrar() {
           {ORIGENS.map(({ valor, rotulo, Icone }) => (
             <label key={valor} className="opcao flex-col justify-center gap-1 text-center">
               <input type="radio" name="origem" checked={origem === valor} onChange={() => setOrigem(valor)} className="sr-only" />
-              <Icone className="size-6 text-mar-700" aria-hidden="true" />
+              <Icone className="size-6 text-acento" aria-hidden="true" />
               {rotulo}
             </label>
           ))}
@@ -140,7 +144,7 @@ export function Registrar() {
           )}
         </div>
         {sugestoes.length > 0 && (
-          <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-linha">
+          <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl bg-superficie shadow-lg ring-1 ring-linha">
             {sugestoes.map((u) => (
               <li key={u.id}>
                 <button type="button" onClick={() => escolher(u)} className="w-full px-4 py-3 text-left hover:bg-mar-50">
@@ -176,18 +180,13 @@ export function Registrar() {
       <EscolhaImpacto valor={impacto} onChange={setImpacto} />
 
       <div>
-        <label htmlFor="local" className="rotulo text-lg">Local</label>
-        <input id="local" className="campo" value={local} onChange={(e) => setLocal(e.target.value)} />
-      </div>
-
-      <div>
         <p className="rotulo text-lg">Print ou foto (opcional)</p>
-        <SeletorAnexos arquivos={arquivos} onChange={setArquivos} />
+        <SeletorAnexos arquivos={arquivos} onChange={setArquivos} aoPreparar={setPreparandoAnexo} />
       </div>
 
-      <div className="rounded-2xl bg-white p-5 ring-1 ring-linha">
+      <div className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
         <label className="flex cursor-pointer items-center gap-3 font-semibold">
-          <input type="checkbox" checked={resolvido} onChange={(e) => setResolvido(e.target.checked)} className="size-6 accent-campo-700" />
+          <input type="checkbox" checked={resolvido} onChange={(e) => setResolvido(e.target.checked)} className="size-6 accent-ok" />
           Já resolvi na hora
         </label>
         {resolvido && (
@@ -204,8 +203,9 @@ export function Registrar() {
         )}
       </div>
 
-      {erro && <p role="alert" className="font-semibold text-brasa-700">{erro}</p>}
-      <button className="btn-primario w-full text-lg" disabled={salvando}>
+      {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
+      <ProgressoEnvio pct={progresso} />
+      <button className="btn-primario w-full text-lg" disabled={salvando || preparandoAnexo}>
         {salvando ? "Registrando..." : resolvido ? "Registrar atendimento resolvido" : "Registrar na fila"}
       </button>
     </form>

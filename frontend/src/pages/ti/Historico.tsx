@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { IconeCategoria } from "../../components/Icone";
 import { useCategorias } from "../../components/CamposChamado";
+import { Paginacao, usePaginacao } from "../../components/Paginacao";
+import { SeloTeste } from "../../components/Selos";
 import { dataCurta } from "../../lib/formato";
+import { buscarPagina } from "../../lib/paginar";
 import { EXPAND_CHAMADO, nomeSolicitante, pb, type Chamado } from "../../lib/pb";
-
-const POR_PAGINA = 20;
 
 /** Base de soluções: o que já foi resolvido, pesquisável pelo problema, causa ou solução. */
 export function Historico() {
@@ -15,7 +16,7 @@ export function Historico() {
   const [categoria, setCategoria] = useState("");
   const [itens, setItens] = useState<Chamado[] | null>(null);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
+  const pag = usePaginacao("historico", 10);
 
   useEffect(() => {
     const t = window.setTimeout(async () => {
@@ -27,19 +28,21 @@ export function Historico() {
       }
       if (categoria) { partes.push("categoria = {:c}"); params.c = categoria; }
       try {
-        const r = await pb.collection("chamados").getList<Chamado>(1, POR_PAGINA * pagina, {
+        const r = await buscarPagina<Chamado>("chamados", pag.pagina, pag.porPagina, {
           filter: pb.filter(partes.join(" && "), params),
           sort: "-resolvido_em",
           expand: EXPAND_CHAMADO,
         });
-        setItens(r.items);
-        setTotal(r.totalItems);
-      } catch {
-        setItens([]);
+        setItens(r.itens);
+        setTotal(r.total);
+        if (r.pagina !== pag.pagina) pag.setPagina(r.pagina);
+      } catch (err) {
+        // pedido cancelado porque veio outro (digitando rápido): mantém a lista
+        if (!(err as { isAbort?: boolean })?.isAbort) setItens([]);
       }
     }, 250);
     return () => window.clearTimeout(t);
-  }, [q, categoria, pagina]);
+  }, [q, categoria, pag.pagina, pag.porPagina]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -57,12 +60,12 @@ export function Historico() {
             className="campo pl-12"
             placeholder="Ex.: spooler, senha bloqueada, 2026-00012"
             value={q}
-            onChange={(e) => { setQ(e.target.value); setPagina(1); }}
+            onChange={(e) => { setQ(e.target.value); pag.voltarAoInicio(); }}
           />
         </label>
         <label>
           <span className="sr-only">Categoria</span>
-          <select className="campo sm:w-56" value={categoria} onChange={(e) => { setCategoria(e.target.value); setPagina(1); }}>
+          <select className="campo sm:w-56" value={categoria} onChange={(e) => { setCategoria(e.target.value); pag.voltarAoInicio(); }}>
             <option value="">Todas as categorias</option>
             {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select>
@@ -72,7 +75,7 @@ export function Historico() {
       {itens === null ? (
         <p className="text-tinta-2">Carregando...</p>
       ) : itens.length === 0 ? (
-        <p className="rounded-2xl bg-white p-6 text-center ring-1 ring-linha">
+        <p className="rounded-2xl bg-superficie p-6 text-center ring-1 ring-linha">
           {q || categoria ? "Nada encontrado com esse filtro." : "Os chamados resolvidos aparecem aqui, com a causa e a solução."}
         </p>
       ) : (
@@ -81,17 +84,23 @@ export function Historico() {
           <ul className="space-y-3">
             {itens.map((c) => (
               <li key={c.id}>
-                <Link to={`/ti/chamado/${c.id}`} className="block rounded-xl bg-white p-4 ring-1 ring-linha hover:ring-mar-700">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-tinta-2">
-                    <span className="font-display text-base font-bold text-tinta">{c.protocolo}</span>
-                    <span className="inline-flex items-center gap-1">
-                      <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 text-mar-700" />
-                      {c.expand?.categoria?.nome}
-                    </span>
-                    <span>{nomeSolicitante(c)}{c.expand?.setor ? `, ${c.expand.setor.nome}` : ""}</span>
-                    <span className="ml-auto">{dataCurta(c.resolvido_em)}{c.expand?.responsavel ? `, por ${c.expand.responsavel.name}` : ""}</span>
+                <Link to={`/ti/chamado/${c.id}`} className="block rounded-xl bg-superficie p-4 ring-1 ring-linha hover:ring-acento">
+                  {/* mesmo desenho do cartão da fila: 1 identidade · 2 problema · 3 detalhes */}
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    <span className="font-display text-base font-bold">{c.protocolo}</span>
+                    <span className="text-sm text-tinta-2">resolvido em {dataCurta(c.resolvido_em)}</span>
                   </div>
-                  <p className="mt-2 font-semibold">{c.descricao}</p>
+                  <p className="mt-1 font-semibold">{c.descricao}</p>
+                  <div className="mt-1 flex min-w-0 items-center gap-2 text-sm whitespace-nowrap text-tinta-2">
+                    <span className="inline-flex min-w-0 shrink-0 items-center gap-1 sm:shrink" title={c.expand?.categoria?.nome}>
+                      <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 shrink-0 text-acento" />
+                      <span className="sr-only truncate sm:not-sr-only">{c.expand?.categoria?.nome}</span>
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span className="min-w-0 truncate">{nomeSolicitante(c)}{c.expand?.setor ? `, ${c.expand.setor.nome}` : ""}</span>
+                    {c.expand?.responsavel && <><span aria-hidden="true">·</span><span className="min-w-0 truncate">por {c.expand.responsavel.name}</span></>}
+                    {c.ficticio && <span className="ml-auto shrink-0"><SeloTeste ficticio compacto /></span>}
+                  </div>
                   <div className="mt-3 grid gap-2 border-t border-linha pt-3 sm:grid-cols-2">
                     <p><span className="block text-sm text-tinta-2">Causa</span>{c.diagnostico || "—"}</p>
                     <p><span className="block text-sm text-tinta-2">Solução</span>{c.solucao || "—"}</p>
@@ -100,9 +109,14 @@ export function Historico() {
               </li>
             ))}
           </ul>
-          {itens.length < total && (
-            <button className="btn-secundario w-full" onClick={() => setPagina((p) => p + 1)}>Mostrar mais</button>
-          )}
+          <Paginacao
+            pagina={pag.pagina}
+            porPagina={pag.porPagina}
+            total={total}
+            aoMudarPagina={pag.setPagina}
+            aoMudarPorPagina={pag.setPorPagina}
+            rotulo="resolvidos"
+          />
         </>
       )}
     </div>

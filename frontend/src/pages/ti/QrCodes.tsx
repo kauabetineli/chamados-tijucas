@@ -13,46 +13,46 @@ function lerBase() {
 }
 
 /**
- * Gera etiquetas com QR code para colar nas salas e equipamentos.
- * O QR abre o formulário com o local já preenchido (?local=...).
+ * Gera etiquetas com QR code para colar perto dos computadores e impressoras.
+ * O QR abre o formulário de novo chamado; o lugar é o setor de quem está logado
+ * (não há mais "local" por sala), então todas as etiquetas são iguais.
  * Use como endereço a página de redirecionamento do site da Prefeitura:
  * assim, se o IP do servidor mudar, as etiquetas continuam valendo.
  */
 export function QrCodes() {
   const [base, setBase] = useState(lerBase);
-  const [locais, setLocais] = useState("Recepção\nProtocolo\nRecursos Humanos");
-  const [etiquetas, setEtiquetas] = useState<{ local: string; svg: string }[]>([]);
+  const [quantidade, setQuantidade] = useState(6);
+  const [svg, setSvg] = useState("");
 
   useEffect(() => {
     try { localStorage.setItem(CHAVE, base); } catch { /* sem armazenamento: tudo bem */ }
-    const lista = locais.split("\n").map((l) => l.trim()).filter(Boolean);
-    Promise.all(
-      lista.map(async (local) => {
-        const url = `${base}${base.includes("?") ? "&" : "?"}local=${encodeURIComponent(local)}`;
-        const svg = await QRCode.toString(url, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#113227", light: "#ffffff" } });
-        return { local, svg };
-      }),
-    ).then(setEtiquetas).catch(() => setEtiquetas([]));
-  }, [base, locais]);
+    // tema-fixo: QR sempre escuro sobre branco (é impresso e lido pela câmera)
+    QRCode.toString(base, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#113227", light: "#ffffff" } })
+      .then(setSvg)
+      .catch(() => setSvg(""));
+  }, [base]);
 
   return (
     <div className="space-y-6">
       <div className="space-y-5 print:hidden">
         <div>
-          <h1 className="text-3xl font-bold">QR codes das salas</h1>
+          <h1 className="text-3xl font-bold">QR code para abrir chamado</h1>
           <p className="mt-1 max-w-2xl text-tinta-2">
-            Imprima e cole perto dos computadores e impressoras. Quem escanear cai direto no formulário, com o local preenchido.
+            Imprima e cole perto dos computadores e impressoras. Quem escanear cai direto no formulário de novo chamado.
           </p>
         </div>
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_12rem]">
           <div>
             <label htmlFor="base" className="rotulo">Endereço que o QR abre</label>
             <input id="base" className="campo" value={base} onChange={(e) => setBase(e.target.value.trim())} />
-            <p className="ajuda">Use o endereço da página de redirecionamento no site da Prefeitura, se ela já existir.</p>
+            <p className="ajuda">Use o endereço da página de redirecionamento no site da Prefeitura, se ela já existir, com <code>?novo=1</code> no fim (abre direto o formulário).</p>
           </div>
           <div>
-            <label htmlFor="locais" className="rotulo">Locais (um por linha)</label>
-            <textarea id="locais" className="campo min-h-32" value={locais} onChange={(e) => setLocais(e.target.value)} />
+            <label htmlFor="qtd" className="rotulo">Etiquetas</label>
+            <input
+              id="qtd" type="number" min={1} max={24} className="campo" value={quantidade}
+              onChange={(e) => setQuantidade(Math.max(1, Math.min(24, Number(e.target.value) || 1)))}
+            />
           </div>
         </div>
         <button className="btn-primario" onClick={() => window.print()}>
@@ -60,27 +60,26 @@ export function QrCodes() {
         </button>
       </div>
 
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2 print:gap-6">
-        {etiquetas.map(({ local, svg }) => (
-          <li key={local} className="break-inside-avoid overflow-hidden rounded-2xl bg-white ring-2 ring-tinta print:rounded-none">
-            <div className="flex items-center gap-3 bg-mar-700 px-5 py-3 text-white">
-              <img src="/icone-fundo-azul.svg" alt="" className="size-14 shrink-0" />
-              <div>
-                <p className="font-display text-xl font-bold">Problema com o computador?</p>
-                <p className="font-semibold">Abra um chamado no Dino Desk</p>
+      {svg && (
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2 print:gap-6">
+          {/* tema-fixo: a etiqueta é papel; a prévia fica clara também no modo escuro */}
+          {Array.from({ length: quantidade }, (_, i) => (
+            <li key={i} className="break-inside-avoid overflow-hidden rounded-2xl bg-white text-noite ring-2 ring-noite print:rounded-none">
+              <div className="flex items-center gap-3 bg-mar-700 px-5 py-3 text-white">
+                <img src="/icone-fundo-azul.svg" alt="" className="size-14 shrink-0" />
+                <div>
+                  <p className="font-display text-xl font-bold">Problema com o computador?</p>
+                  <p className="font-semibold">Abra um chamado no Dino Desk</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-4 p-5">
-              <div className="w-32 shrink-0" dangerouslySetInnerHTML={{ __html: svg }} />
-              <div>
-                <p className="text-sm text-tinta-2">Local</p>
-                <p className="font-display text-lg leading-tight font-bold">{local}</p>
-                <p className="mt-2 text-sm">Aponte a câmera do celular. Funciona no Wi-Fi da Prefeitura.</p>
+              <div className="flex items-center gap-4 p-5">
+                <div className="w-32 shrink-0" dangerouslySetInnerHTML={{ __html: svg }} />
+                <p className="text-sm">Aponte a câmera do celular. Funciona no Wi-Fi da Prefeitura.</p>
               </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -4,9 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "dev": "node scripts/verificar-tema.mjs --aviso && vite",
+    "build": "node scripts/verificar-tema.mjs && tsc -b && vite build",
+    "preview": "vite preview",
+    "verificar-tema": "node scripts/verificar-tema.mjs"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",

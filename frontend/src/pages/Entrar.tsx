@@ -37,10 +37,10 @@ export function Entrar() {
           <label htmlFor="senha" className="rotulo">Senha</label>
           <input id="senha" type="password" autoComplete="current-password" required className="campo" value={senha} onChange={(e) => setSenha(e.target.value)} />
         </div>
-        {erro && <p role="alert" className="font-semibold text-brasa-700">{erro}</p>}
+        {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
         <button className="btn-primario w-full" disabled={entrando}>{entrando ? "Entrando..." : "Entrar"}</button>
         <p className="text-center">
-          Primeiro acesso? <Link to={`/cadastro${voltar ? `?voltar=${encodeURIComponent(voltar)}` : ""}`} className="font-semibold text-mar-700 underline underline-offset-4">Criar conta</Link>
+          Primeiro acesso? <Link to={`/cadastro${voltar ? `?voltar=${encodeURIComponent(voltar)}` : ""}`} className="font-semibold text-acento underline underline-offset-4">Criar conta</Link>
         </p>
         <p className="text-center text-sm text-tinta-2">Esqueceu a senha? Fale com o Departamento de TI.</p>
       </form>

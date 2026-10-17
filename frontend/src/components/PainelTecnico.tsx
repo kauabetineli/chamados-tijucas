@@ -1,5 +1,6 @@
 import { CheckCircle2, Play, RotateCcw, Undo2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
 import { ROTULO_PRIORIDADE } from "../lib/formato";
 import { mensagemErro, pb, type Chamado, type Prioridade, type Usuario } from "../lib/pb";
@@ -9,7 +10,13 @@ import { COR_PRIORIDADE } from "./Selos";
 export function PainelTecnico({ chamado: c, aoMudar }: { chamado: Chamado; aoMudar: () => void }) {
   const { usuario } = useAuth();
   const [tecnicos, setTecnicos] = useState<Usuario[]>([]);
-  const [resolvendo, setResolvendo] = useState(false);
+  const [params] = useSearchParams();
+  // vindo do "Resolver..." das ações rápidas da fila: já abre o formulário
+  const [resolvendo, setResolvendo] = useState(params.get("resolver") === "1" && c.status === "em_andamento");
+  const formResolver = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (resolvendo) formResolver.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [resolvendo]);
   const [diagnostico, setDiagnostico] = useState(c.diagnostico);
   const [solucao, setSolucao] = useState(c.solucao);
   const [erro, setErro] = useState("");
@@ -34,7 +41,7 @@ export function PainelTecnico({ chamado: c, aoMudar }: { chamado: Chamado; aoMud
   }
 
   return (
-    <div className="space-y-5 rounded-2xl bg-white p-5 ring-1 ring-linha">
+    <div className="space-y-5 rounded-2xl bg-superficie p-5 ring-1 ring-linha">
       <h2 className="text-xl font-bold">Atendimento</h2>
 
       {c.status === "aberto" && (
@@ -62,6 +69,7 @@ export function PainelTecnico({ chamado: c, aoMudar }: { chamado: Chamado; aoMud
 
       {resolvendo && (
         <form
+          ref={formResolver}
           className="space-y-3"
           onSubmit={(e) => {
             e.preventDefault();
@@ -108,7 +116,7 @@ export function PainelTecnico({ chamado: c, aoMudar }: { chamado: Chamado; aoMud
         </select>
       </div>
 
-      {erro && <p role="alert" className="font-semibold text-brasa-700">{erro}</p>}
+      {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
     </div>
   );
 }

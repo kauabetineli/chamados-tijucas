@@ -4,7 +4,19 @@
 
 /*
   Identidade visual inspirada no brasão de Tijucas (mesma do infográfico e dos slides).
-  Os tons "-700" existem para garantir contraste de texto branco (WCAG AA).
+
+  TEMA CLARO E ESCURO: toda cor da interface sai destes tokens. Os semânticos mudam sozinhos
+  no modo escuro (bloco .dark abaixo), então um componente novo já nasce com os dois temas
+  desde que use só eles. Regras (conferidas por scripts/verificar-tema.mjs no build):
+  - fundo da página: bg-fundo · cartões, painéis, campos: bg-superficie
+  - texto: text-tinta (principal), text-tinta-2 (secundário) · bordas: border-linha / ring-linha
+  - links, ícones e contornos de destaque: text-acento / ring-acento / border-acento
+  - sucesso: text-ok · erro e atraso: text-alerta
+  - preenchimentos com texto branco: bg-mar-700, bg-campo-700 (botões)
+  - fundos suaves: bg-mar-50, bg-campo-50, bg-brasa-50, bg-sol-50
+  - escuro fixo (sobre foto/vídeo, senha amarela): bg-noite / text-noite
+  Proibido: bg-white, bg-black, text-black, cor em hexadecimal no componente.
+  Exceção consciente: escreva "tema-fixo" num comentário na linha ou na linha de cima.
 */
 @theme {
   --font-sans: "Source Sans 3 Variable", system-ui, sans-serif;
@@ -29,12 +41,58 @@
   --color-tinta-2: #47605a;   /* texto secundário */
   --color-linha: #d5e0dc;     /* divisórias */
   --color-fundo: #f4f7f6;     /* fundo da página */
+
+  --color-superficie: #ffffff; /* cartões, painéis, campos */
+  --color-acento: #00658c;     /* links, ícones e contornos de destaque */
+  --color-ok: #006b34;         /* texto de sucesso */
+  --color-alerta: #b4201f;     /* texto de erro e atraso */
+  --color-noite: #113227;      /* escuro FIXO (não muda com o tema) */
+}
+
+/* dark: utilitários "dark:" seguem a classe .dark no <html> (definida em index.html / lib/tema.ts) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Modo escuro: só os tokens mudam; os componentes continuam iguais.
+   Contraste conferido para WCAG AA (texto normal >= 4,5:1 sobre fundo e superfície). */
+:root.dark {
+  color-scheme: dark;
+  --color-fundo: #0c1613;
+  --color-superficie: #15231f;
+  --color-tinta: #e4eeea;
+  --color-tinta-2: #a3b8b1;
+  --color-linha: #2c3f39;
+  --color-acento: #5ec4ee;
+  --color-ok: #62d394;
+  --color-alerta: #ff8f85;
+  --color-mar-50: #0f2b37;
+  --color-campo-50: #10301f;
+  --color-brasa-50: #3b1614;
+  --color-sol-50: #312b07;
 }
 
 @layer base {
   html {
     font-size: 17px;
     -webkit-tap-highlight-color: transparent;
+    /* toque responde na hora (sem a espera do zoom de toque duplo); a pinça continua funcionando */
+    touch-action: manipulation;
+  }
+
+  /* Jeito de aplicativo no celular: segurar botão, link, menu ou foto não abre o menu do navegador
+     ("abrir em nova guia", "salvar imagem") nem seleciona o texto do botão.
+     Textos de conteúdo (descrição, conversa, solução) e campos continuam selecionáveis.
+     O menu do Android é bloqueado em src/lib/jeitoDeApp.ts. */
+  @media (pointer: coarse) {
+    a, button, label, nav, img, video, [role="tab"], [role="dialog"] {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    input, textarea, .selecionavel, .selecionavel * {
+      -webkit-touch-callout: default;
+      -webkit-user-select: text;
+      user-select: text;
+    }
   }
   body {
     @apply bg-fundo font-sans text-tinta antialiased;
@@ -43,6 +101,10 @@
   h1, h2, h3 {
     @apply font-display;
     letter-spacing: -0.01em;
+  }
+  /* Tailwind v4 tirou a "mãozinha" dos botões: tudo que é clicável volta a mostrar */
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]), select, summary, label:has(> input[type="radio"]), label:has(> input[type="checkbox"]) {
+    cursor: pointer;
   }
   :focus-visible {
     outline: 3px solid var(--color-mar);
@@ -57,27 +119,27 @@
 }
 
 @utility btn {
-  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 font-semibold active:scale-[0.98] disabled:cursor-not-allowed disabled:active:scale-100 disabled:opacity-50;
 }
 
 @layer components {
-  .btn-primario { @apply btn bg-mar-700 text-white hover:bg-tinta; }
-  .btn-sucesso { @apply btn bg-campo-700 text-white hover:bg-tinta; }
-  .btn-secundario { @apply btn border-2 border-linha bg-white text-tinta hover:border-mar-700; }
-  .btn-perigo { @apply btn border-2 border-brasa-700 bg-white text-brasa-700 hover:bg-brasa-50; }
+  .btn-primario { @apply btn bg-mar-700 text-white hover:bg-noite; }
+  .btn-sucesso { @apply btn bg-campo-700 text-white hover:bg-noite; }
+  .btn-secundario { @apply btn border-2 border-linha bg-superficie text-tinta hover:border-acento; }
+  .btn-perigo { @apply btn border-2 border-alerta bg-superficie text-alerta hover:bg-brasa-50; }
 
   .campo {
-    @apply block w-full rounded-xl border-2 border-linha bg-white px-4 py-3 text-base text-tinta placeholder:text-tinta-2/70 focus:border-mar-700 focus:outline-none;
+    @apply block w-full rounded-xl border-2 border-linha bg-superficie px-4 py-3 text-base text-tinta placeholder:text-tinta-2/70 focus:border-acento focus:outline-none;
   }
   .rotulo { @apply mb-2 block font-semibold; }
   .ajuda { @apply mt-1 text-sm text-tinta-2; }
 
   /* opção grande e tocável (categorias, impacto, origem) */
   .opcao {
-    @apply flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border-2 border-linha bg-white px-4 py-3 text-left font-semibold transition-colors hover:border-mar-700;
+    @apply flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border-2 border-linha bg-superficie px-4 py-3 text-left font-semibold hover:border-acento active:scale-[0.98];
   }
   .opcao:has(input:checked) {
-    @apply border-mar-700 bg-mar-50;
+    @apply border-acento bg-mar-50;
   }
   .opcao:has(input:focus-visible) {
     outline: 3px solid var(--color-mar);
@@ -98,7 +160,7 @@
       radial-gradient(circle 14px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
   }
   .senha-picote {
-    border-left: 3px dashed color-mix(in srgb, var(--color-tinta) 35%, transparent);
+    border-left: 3px dashed color-mix(in srgb, var(--color-noite) 35%, transparent);
   }
 }
 
@@ -106,9 +168,22 @@
   from { transform: translateY(12px) rotate(-1.5deg); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
+/* o cartão que acabou de mudar pisca um contorno (achar onde ele foi parar na fila) */
+@keyframes realce {
+  0%, 55% { box-shadow: 0 0 0 4px var(--color-acento); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.animar-realce { animation: realce 2.2s ease-out both; }
 .animar-chegada { animation: chegou 420ms cubic-bezier(.2,.8,.2,1) both; }
 
 @media print {
+  /* impressão sempre no tema claro */
+  :root.dark {
+    color-scheme: light;
+    --color-fundo: #ffffff; --color-superficie: #ffffff; --color-tinta: #113227; --color-tinta-2: #47605a;
+    --color-linha: #d5e0dc; --color-acento: #00658c; --color-ok: #006b34; --color-alerta: #b4201f;
+    --color-mar-50: #e5f4fa; --color-campo-50: #e3f5ea; --color-brasa-50: #fdeceb; --color-sol-50: #fffbd6;
+  }
   body {
     background: #fff;
     -webkit-print-color-adjust: exact;

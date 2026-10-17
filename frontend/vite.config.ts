@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     host: true, // permite abrir pelo celular na mesma rede: http://IP-do-PC:5173
+    allowedHosts: [".ts.net"], // permite testar pelo Tailscale Funnel (https://<pc>.<rede>.ts.net)
     proxy: {
       "/api": { target: "http://127.0.0.1:8090", changeOrigin: true },
       "/_": { target: "http://127.0.0.1:8090", changeOrigin: true },

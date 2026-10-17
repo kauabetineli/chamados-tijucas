@@ -2,11 +2,14 @@ import { Plus, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { LinhaChamado } from "../components/LinhaChamado";
+import { Paginacao, usePaginacao } from "../components/Paginacao";
 import { SenhaFila } from "../components/SenhaFila";
 import { useAuth } from "../lib/auth";
 import { resumo } from "../lib/formato";
 import { EXPAND_CHAMADO, pb, type Chamado } from "../lib/pb";
+import { buscarPagina } from "../lib/paginar";
 import { useRealtime } from "../lib/useRealtime";
+import { ultimaVisita } from "../lib/visto";
 
 type Posicoes = Record<string, { a_frente: number; posicao: number }>;
 
@@ -14,19 +17,30 @@ export function MeusChamados() {
   const { usuario } = useAuth();
   const [chamados, setChamados] = useState<Chamado[] | null>(null);
   const [posicoes, setPosicoes] = useState<Posicoes>({});
+  // última mensagem ou mudança feita pelo TI em cada chamado (para o "Nova resposta")
+  const [ultimaDoTI, setUltimaDoTI] = useState<Record<string, number>>({});
 
   const carregar = useCallback(async () => {
     if (!usuario) return;
-    const [lista, pos] = await Promise.all([
+    const [lista, pos, doTI] = await Promise.all([
+      // só os ativos vêm inteiros; os já confirmados (que só crescem) são paginados abaixo
       pb.collection("chamados").getFullList<Chamado>({
-        filter: pb.filter("solicitante = {:u}", { u: usuario.id }),
+        filter: pb.filter('solicitante = {:u} && (status != "resolvido" || confirmado = false)', { u: usuario.id }),
         sort: "-created",
         expand: EXPAND_CHAMADO,
       }),
       pb.send<{ itens: Posicoes }>("/api/fila/minhas-posicoes", {}),
+      pb.collection("interacoes").getList<{ chamado: string; created: string }>(1, 200, {
+        filter: pb.filter('chamado.solicitante = {:u} && autor != {:u} && (tipo = "comentario" || tipo = "status")', { u: usuario.id }),
+        sort: "-created",
+        fields: "chamado,created",
+      }).catch(() => ({ items: [] })),
     ]);
     setChamados(lista);
     setPosicoes(pos?.itens ?? {});
+    const mapa: Record<string, number> = {};
+    for (const i of doTI.items) mapa[i.chamado] ??= Date.parse(i.created.replace(" ", "T"));
+    setUltimaDoTI(mapa);
   }, [usuario]);
 
   useEffect(() => { carregar().catch(() => setChamados([])); }, [carregar]);
@@ -38,6 +52,26 @@ export function MeusChamados() {
     return () => window.clearInterval(t);
   }, [carregar]);
 
+  // anteriores (resolvidos e confirmados): paginados no banco
+  const pag = usePaginacao("meus-anteriores", 10);
+  const [anteriores, setAnteriores] = useState<Chamado[]>([]);
+  const [totalAnteriores, setTotalAnteriores] = useState(0);
+  useEffect(() => {
+    if (!usuario) return;
+    buscarPagina<Chamado>("chamados", pag.pagina, pag.porPagina, {
+      filter: pb.filter('solicitante = {:u} && status = "resolvido" && confirmado = true', { u: usuario.id }),
+      sort: "-resolvido_em",
+      expand: EXPAND_CHAMADO,
+    }).then((r) => {
+      setAnteriores(r.itens);
+      setTotalAnteriores(r.total);
+      if (r.pagina !== pag.pagina) pag.setPagina(r.pagina);
+    }).catch(() => {});
+  }, [usuario, pag.pagina, pag.porPagina]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // novidade = o TI escreveu ou mudou o status depois da última vez que a pessoa abriu o chamado
+  const novidade = (c: Chamado) => (ultimaDoTI[c.id] ?? 0) > ultimaVisita(c.id);
+
   if (chamados === null) return <p className="text-tinta-2">Carregando seus chamados...</p>;
 
   const naFila = chamados
@@ -45,9 +79,8 @@ export function MeusChamados() {
     .sort((a, b) => (posicoes[a.id]?.a_frente ?? 0) - (posicoes[b.id]?.a_frente ?? 0));
   const emAtendimento = chamados.filter((c) => c.status === "em_andamento");
   const paraConfirmar = chamados.filter((c) => c.status === "resolvido" && !c.confirmado);
-  const anteriores = chamados.filter((c) => c.status === "resolvido" && c.confirmado);
 
-  if (chamados.length === 0) {
+  if (chamados.length === 0 && totalAnteriores === 0) {
     return (
       <div className="mx-auto max-w-md py-12 text-center">
         <h1 className="text-3xl font-bold">Precisa de ajuda do TI?</h1>
@@ -55,7 +88,7 @@ export function MeusChamados() {
           Abra um chamado e acompanhe por aqui a sua vez na fila e as respostas do Departamento de TI.
         </p>
         <Link to="/novo" className="btn-primario mt-6">
-          <Plus className="size-5" aria-hidden="true" /> Abrir chamado
+          <Plus className="size-5" aria-hidden="true" /> Novo chamado
         </Link>
       </div>
     );
@@ -75,6 +108,8 @@ export function MeusChamados() {
                 protocolo={c.protocolo}
                 categoria={c.expand?.categoria?.nome}
                 icone={c.expand?.categoria?.icone}
+                descricao={resumo(c.descricao, 90)}
+                novidade={novidade(c)}
               />
             </Link>
           ))}
@@ -88,7 +123,7 @@ export function MeusChamados() {
         <section aria-labelledby="t-atend" className="space-y-3">
           <h2 id="t-atend" className="text-xl font-bold">Em atendimento</h2>
           {emAtendimento.map((c) => (
-            <Link key={c.id} to={`/chamado/${c.id}`} className="flex items-start gap-3 rounded-2xl border-l-8 border-sol bg-white p-4 ring-1 ring-linha">
+            <Link key={c.id} to={`/chamado/${c.id}`} className="flex items-start gap-3 rounded-2xl border-l-8 border-sol bg-superficie p-4 ring-1 ring-linha">
               <Wrench className="mt-0.5 size-6 shrink-0 text-tinta" aria-hidden="true" />
               <span>
                 <span className="block font-bold">
@@ -97,6 +132,7 @@ export function MeusChamados() {
                 <span className="block text-tinta-2">
                   <span className="font-display font-bold text-tinta">{c.protocolo}</span> {resumo(c.descricao, 70)}
                 </span>
+                {novidade(c) && <SeloNovidade />}
               </span>
             </Link>
           ))}
@@ -107,7 +143,7 @@ export function MeusChamados() {
         <section aria-labelledby="t-conf">
           <h2 id="t-conf" className="text-xl font-bold">Resolvidos: confirme se deu certo</h2>
           <ul className="divide-y divide-linha">
-            {paraConfirmar.map((c) => <LinhaChamado key={c.id} c={c} para={`/chamado/${c.id}`} />)}
+            {paraConfirmar.map((c) => <LinhaChamado key={c.id} c={c} para={`/chamado/${c.id}`} novidade={novidade(c)} />)}
           </ul>
         </section>
       )}
@@ -118,8 +154,28 @@ export function MeusChamados() {
           <ul className="divide-y divide-linha">
             {anteriores.map((c) => <LinhaChamado key={c.id} c={c} para={`/chamado/${c.id}`} />)}
           </ul>
+          {totalAnteriores > 10 && (
+            <div className="mt-3">
+              <Paginacao
+                pagina={pag.pagina}
+                porPagina={pag.porPagina}
+                total={totalAnteriores}
+                aoMudarPagina={pag.setPagina}
+                aoMudarPorPagina={pag.setPorPagina}
+                rotulo="anteriores"
+              />
+            </div>
+          )}
         </section>
       )}
     </div>
+  );
+}
+
+function SeloNovidade() {
+  return (
+    <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-mar-700 px-2.5 py-0.5 text-xs font-bold text-white">
+      <span className="size-2 rounded-full bg-sol" aria-hidden="true" /> Nova resposta do TI
+    </span>
   );
 }

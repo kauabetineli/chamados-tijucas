@@ -1,7 +1,7 @@
 // Reduz fotos grandes antes do envio (celulares geram arquivos de 4-8 MB).
 // Vídeos e formatos que o navegador não decodifica (ex.: HEIC) vão como estão.
 const LADO_MAX = 1600;
-export const TAMANHO_MAX = 30 * 1024 * 1024; // igual ao limite do backend
+export const TAMANHO_MAX = 250 * 1024 * 1024; // igual ao limite do backend
 
 export async function prepararArquivo(arquivo: File): Promise<File> {
   if (!arquivo.type.startsWith("image/") || arquivo.type === "image/gif") return arquivo;

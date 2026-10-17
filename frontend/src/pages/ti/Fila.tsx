@@ -1,26 +1,341 @@
-import { MapPin, User } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router";
+import { AlertTriangle, ChevronDown, Clock, GripVertical, MoreVertical, User, Wrench, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
+import { Link, useNavigate } from "react-router";
+import { Avatar, SeloLivre } from "../../components/Avatar";
 import { IconeCategoria } from "../../components/Icone";
-import { COR_PRIORIDADE, SeloPrioridade, SeloStatus } from "../../components/Selos";
+import { MenuAcoes } from "../../components/MenuAcoes";
+import { MenuAtribuir } from "../../components/MenuAtribuir";
+import { Paginacao, usePaginacao } from "../../components/Paginacao";
+import { VisaoTI } from "../../components/VisaoTI";
+import { COR_PRIORIDADE, PilulaPrioridade, SeloTeste } from "../../components/Selos";
 import { useAuth } from "../../lib/auth";
-import { resumo, ROTULO_ORIGEM, tempoRelativo } from "../../lib/formato";
-import { EXPAND_CHAMADO, nomeSolicitante, pb, type Chamado } from "../../lib/pb";
+import { atribuir, useTecnicos } from "../../lib/equipe";
+import { atrasado, cargaDaEquipe, esperaCurta, horasEsperando, organizarFila } from "../../lib/fila";
+import { resumo, ROTULO_ORIGEM } from "../../lib/formato";
+import { EXPAND_CHAMADO, mensagemErro, nomeSolicitante, pb, type Chamado, type Usuario } from "../../lib/pb";
 import { useRealtime } from "../../lib/useRealtime";
 
-type Filtro = "todos" | "comigo" | "sem";
+const TIPO_ARRASTE = "application/x-dinodesk-chamado";
+const primeiroNome = (n?: string) => (n || "").trim().split(/\s+/)[0] || "Técnico";
 
+/**
+ * Linha de detalhes do cartão (3ª linha): categoria · setor · espera, e os selos no fim.
+ * Nunca quebra: se faltar espaço, categoria e setor encurtam com "…".
+ */
+function Detalhes({ c }: { c: Chamado }) {
+  const late = atrasado(c);
+  return (
+    <div className="mt-1 flex min-w-0 items-center gap-2 text-sm whitespace-nowrap text-tinta-2">
+      {/* no celular, só o ícone da categoria: sobra espaço para o setor */}
+      <span className="inline-flex min-w-0 shrink-0 items-center gap-1 sm:shrink" title={c.expand?.categoria?.nome}>
+        <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 shrink-0 text-acento" />
+        <span className="sr-only truncate sm:not-sr-only">{c.expand?.categoria?.nome}</span>
+      </span>
+      {c.expand?.setor?.nome && (
+        <>
+          <span aria-hidden="true">·</span>
+          <span className="min-w-0 truncate">{c.expand.setor.nome}</span>
+        </>
+      )}
+      {c.status === "aberto" && (
+        <span className={`inline-flex shrink-0 items-center gap-1 ${late ? "font-semibold text-alerta" : ""}`}>
+          <span aria-hidden="true" className="font-normal text-tinta-2">·</span>
+          {late ? <AlertTriangle className="size-4" aria-hidden="true" /> : <Clock className="size-4" aria-hidden="true" />}
+          {late ? "atrasado " : "há "}{esperaCurta(horasEsperando(c))}
+        </span>
+      )}
+      {c.status === "em_andamento" && (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-sol-50 px-2 py-0.5 text-xs font-semibold text-tinta ring-1 ring-sol">
+          <Wrench className="size-3.5" aria-hidden="true" /> atendendo
+        </span>
+      )}
+      {c.ficticio && <span className="ml-auto shrink-0"><SeloTeste ficticio compacto /></span>}
+    </div>
+  );
+}
+
+/** Botão com o dono atual ("Livre", "você", "Felipe"); toque abre o menu de atribuir. */
+function BotaoDono({ c, eu, aoAbrir, compacto }: { c: Chamado; eu: string; aoAbrir: () => void; compacto?: boolean }) {
+  const dono = c.expand?.responsavel;
+  const rotulo = !c.responsavel ? "Livre" : c.responsavel === eu ? "Você" : primeiroNome(dono?.name);
+  return (
+    <button
+      type="button"
+      onClick={aoAbrir}
+      className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full py-1 pr-2 pl-1 hover:bg-mar-50"
+      aria-label={`Atribuir ${c.protocolo}. Agora: ${rotulo}`}
+    >
+      {c.responsavel ? (
+        <Avatar id={c.responsavel} nome={dono?.name} tamanho="sm" destaque={c.responsavel === eu} />
+      ) : compacto ? (
+        // celular: círculo tracejado no lugar do selo, para sobrar espaço para o texto
+        <>
+          <span className="size-7 rounded-full border-2 border-dashed border-tinta-2/50 sm:hidden" aria-hidden="true" />
+          <span className="hidden sm:inline-flex"><SeloLivre /></span>
+        </>
+      ) : <SeloLivre />}
+      {c.responsavel && <span className={`text-sm font-semibold ${compacto ? "hidden sm:inline" : ""}`}>{rotulo}</span>}
+    </button>
+  );
+}
+
+/** "⋯": ações rápidas do chamado. */
+function BotaoMais({ c, aoAbrir }: { c: Chamado; aoAbrir: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={aoAbrir}
+      className="grid size-11 shrink-0 place-items-center rounded-full text-tinta-2 hover:bg-mar-50 hover:text-tinta"
+      aria-label={`Ações do ${c.protocolo}`}
+    >
+      <MoreVertical className="size-5" />
+    </button>
+  );
+}
+
+/**
+ * Segurar o dedo ~0,5 s no cartão abre as ações (como nos apps). Rolar a tela cancela.
+ * Depois de abrir pelo "segurar", o toque não navega para o chamado.
+ */
+function useSegurar(aoSegurar: () => void) {
+  const espera = useRef<{ t: number; x: number; y: number } | null>(null);
+  const disparou = useRef(false);
+  const cancelar = () => {
+    if (espera.current) window.clearTimeout(espera.current.t);
+    espera.current = null;
+  };
+  return {
+    onPointerDown: (e: PE) => {
+      if (e.pointerType !== "touch") return;
+      disparou.current = false;
+      const { clientX: x, clientY: y } = e;
+      espera.current = {
+        x, y,
+        t: window.setTimeout(() => {
+          disparou.current = true;
+          espera.current = null;
+          navigator.vibrate?.(15);
+          aoSegurar();
+        }, 450),
+      };
+    },
+    onPointerMove: (e: PE) => {
+      const s = espera.current;
+      if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) cancelar();
+    },
+    onPointerUp: cancelar,
+    onPointerCancel: cancelar,
+    onClickCapture: (e: ME) => {
+      if (disparou.current) { e.preventDefault(); e.stopPropagation(); disparou.current = false; }
+    },
+  };
+}
+
+/** Faixa da equipe: quantos chamados cada um tem. Toque filtra; no PC, solte um chamado aqui para atribuir. */
+function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastando, aoSoltar }: {
+  tecnicos: Usuario[];
+  eu: string;
+  carga: Record<string, number>;
+  livres: number;
+  filtro: string;
+  aoFiltrar: (f: string) => void;
+  arrastando: boolean;
+  aoSoltar: (tecnicoId: string, chamadoId: string) => void;
+}) {
+  const [sobre, setSobre] = useState("");
+  const alvo = (id: string) => ({
+    onDragOver: (e: DragEvent) => { if (e.dataTransfer.types.includes(TIPO_ARRASTE)) { e.preventDefault(); setSobre(id); } },
+    onDragLeave: () => setSobre(""),
+    onDrop: (e: DragEvent) => {
+      e.preventDefault();
+      setSobre("");
+      const chamado = e.dataTransfer.getData(TIPO_ARRASTE);
+      if (chamado) aoSoltar(id === "livres" ? "" : id, chamado);
+    },
+  });
+  const chip = (id: string, ativo: boolean) =>
+    `flex min-h-12 shrink-0 items-center gap-2 rounded-full py-1.5 pr-4 pl-1.5 font-semibold ring-1 ${
+      sobre === id ? "bg-mar-700 text-white ring-acento scale-105" :
+      ativo ? "bg-mar-50 ring-2 ring-acento" :
+      arrastando ? "bg-superficie ring-2 ring-dashed ring-acento/60" : "bg-superficie ring-linha hover:ring-acento"
+    }`;
+  const ordem = [...tecnicos].sort((a, b) => (a.id === eu ? -1 : b.id === eu ? 1 : 0));
+
+  return (
+    <div className={`sticky top-[70px] z-10 -mx-4 px-4 py-2 backdrop-blur ${arrastando ? "bg-mar-50/95" : "bg-fundo/95"}`}>
+      <p className={`mb-1.5 text-sm font-semibold ${arrastando ? "text-acento" : "text-tinta-2"}`}>
+        {arrastando ? "Solte na pessoa para atribuir" : "Equipe"}
+      </p>
+      <div className="-mx-1.5 -my-1 flex gap-2 overflow-x-auto px-1.5 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Chamados por técnico">
+        {ordem.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={chip(t.id, filtro === t.id)}
+            aria-pressed={filtro === t.id}
+            onClick={() => aoFiltrar(filtro === t.id ? "" : t.id)}
+            {...alvo(t.id)}
+          >
+            <Avatar id={t.id} nome={t.name} tamanho="sm" destaque={t.id === eu} />
+            {t.id === eu ? "Você" : primeiroNome(t.name)}
+            <span className="font-display text-lg">{carga[t.id] ?? 0}</span>
+          </button>
+        ))}
+        <button
+          type="button"
+          className={chip("livres", filtro === "livres")}
+          aria-pressed={filtro === "livres"}
+          onClick={() => aoFiltrar(filtro === "livres" ? "" : "livres")}
+          {...alvo("livres")}
+        >
+          <span className="grid size-7 place-items-center rounded-full border-2 border-dashed border-tinta-2/50" aria-hidden="true" />
+          Livres
+          <span className="font-display text-lg">{livres}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Cartão de chamado na fila. No PC dá para arrastar (alça à esquerda) até alguém da equipe. */
+function Cartao({ c, eu, posicao, destaque, realcado, aoAtribuir, aoAcoes, arrastavel, aoArrastar }: {
+  c: Chamado;
+  realcado?: boolean;
+  eu: string;
+  posicao?: number;
+  destaque?: boolean;
+  aoAtribuir: () => void;
+  aoAcoes: () => void;
+  arrastavel: boolean;
+  aoArrastar: (id: string) => void;
+}) {
+  const segurar = useSegurar(aoAcoes);
+  return (
+    <li
+      id={`chamado-${c.id}`}
+      {...segurar}
+      draggable={arrastavel}
+      onDragStart={(e) => { e.dataTransfer.setData(TIPO_ARRASTE, c.id); e.dataTransfer.effectAllowed = "move"; aoArrastar(c.id); }}
+      onDragEnd={() => aoArrastar("")}
+      className={`group flex items-stretch overflow-hidden rounded-xl ring-1 hover:ring-acento ${destaque ? "bg-sol-50 ring-sol" : "bg-superficie ring-linha"} ${realcado ? "animar-realce" : ""}`}
+    >
+      <span className={`w-1.5 shrink-0 ${COR_PRIORIDADE[c.prioridade]}`} aria-hidden="true" />
+      {arrastavel && (
+        <span className="hidden w-5 shrink-0 cursor-grab items-center justify-center text-tinta-2/40 group-hover:text-tinta-2 md:flex" aria-hidden="true">
+          <GripVertical className="size-4" />
+        </span>
+      )}
+      {posicao !== undefined && (
+        <span className="grid w-11 shrink-0 place-items-center font-display text-xl font-bold text-tinta-2" aria-label={`${posicao}º da fila`}>
+          {posicao}º
+        </span>
+      )}
+      <Link to={`/ti/chamado/${c.id}`} draggable={false} className={`min-w-0 flex-1 py-3 ${posicao === undefined ? "pl-3" : ""}`}>
+        {/* 1: identidade (nunca quebra) · 2: o problema · 3: detalhes */}
+        <div className="flex items-center gap-2 whitespace-nowrap">
+          <span className="font-display text-base font-bold">{c.protocolo}</span>
+          <PilulaPrioridade prioridade={c.prioridade} />
+        </div>
+        <p className="mt-1 truncate font-semibold">{resumo(c.descricao, 140)}</p>
+        <Detalhes c={c} />
+      </Link>
+      <div className="flex items-center pr-1.5 pl-1">
+        <BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} compacto />
+        <BotaoMais c={c} aoAbrir={aoAcoes} />
+      </div>
+    </li>
+  );
+}
+
+/** O próximo chamado livre, em destaque, com começar e atribuir. */
+function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, realcado }: { c: Chamado; eu: string; posicao: number; aoComecar: () => void; aoAtribuir: () => void; aoAcoes: () => void; ocupado: boolean; realcado?: boolean }) {
+  const meu = c.responsavel === eu;
+  return (
+    <section id={`chamado-${c.id}`} aria-labelledby="titulo-proximo" className={`overflow-hidden rounded-2xl bg-superficie ring-2 ring-acento ${realcado ? "animar-realce" : ""}`}>
+      <div className={`h-2 ${COR_PRIORIDADE[c.prioridade]}`} aria-hidden="true" />
+      <div className="p-5 md:p-6">
+        {/* título e dono à esquerda (podem quebrar linha); "⋮" sempre fixo no canto direito */}
+        <div className="flex items-start gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 pt-2">
+            <p id="titulo-proximo" className="text-sm font-bold tracking-wider text-acento uppercase">
+              Seu próximo{posicao > 1 && <span className="font-semibold text-tinta-2 normal-case" title="Os de cima estão com colegas"> · {posicao}º da fila</span>}
+            </p>
+            {meu ? (
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold whitespace-nowrap">
+                <Avatar id={eu} nome={c.expand?.responsavel?.name} tamanho="sm" destaque /> Passado para você
+              </span>
+            ) : <SeloLivre />}
+          </div>
+          <div className="-mt-1 -mr-3"><BotaoMais c={c} aoAbrir={aoAcoes} /></div>
+        </div>
+        {/* mesmo desenho dos cartões da fila, em tamanho maior */}
+        <div className="mt-2 flex items-center gap-2 whitespace-nowrap">
+          <span className="font-display text-2xl font-extrabold">{c.protocolo}</span>
+          <PilulaPrioridade prioridade={c.prioridade} />
+        </div>
+        <p className="mt-2 text-lg leading-snug">{resumo(c.descricao, 220)}</p>
+        <Detalhes c={c} />
+        <p className="mt-1 flex min-w-0 items-center gap-1 text-sm whitespace-nowrap text-tinta-2">
+          <User className="size-4 shrink-0" aria-hidden="true" />
+          <span className="truncate">{nomeSolicitante(c)}{c.origem !== "sistema" ? ` · chegou por ${ROTULO_ORIGEM[c.origem]}` : ""}</span>
+        </p>
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+          <button type="button" className="btn-primario flex-1 text-lg" onClick={aoComecar} disabled={ocupado}>
+            <Wrench className="size-5" aria-hidden="true" />
+            {ocupado ? "Pegando..." : "Começar atendimento"}
+          </button>
+          <button type="button" className="btn-secundario" onClick={aoAtribuir}>
+            Passar para alguém <ChevronDown className="size-4" aria-hidden="true" />
+          </button>
+          <Link to={`/ti/chamado/${c.id}`} className="btn px-3 text-tinta-2 hover:text-tinta">Ver detalhes</Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Secao({ titulo, total, children }: { titulo: string; total: number; children: ReactNode }) {
+  return (
+    <section className="space-y-2">
+      <h2 className="flex items-baseline gap-2 text-lg font-bold">
+        {titulo} <span className="font-display text-base text-tinta-2">{total}</span>
+      </h2>
+      <ul className="space-y-2">{children}</ul>
+    </section>
+  );
+}
+
+/**
+ * Fila do técnico, organizada pela pergunta "o que eu faço agora?":
+ * faixa da equipe (carga de cada um, filtro e alvo para arrastar), o que estou atendendo,
+ * o MEU PRÓXIMO (primeiro da fila que é meu ou livre), o resto da fila numerado
+ * (os meus destacados) e o que está em atendimento com os colegas.
+ * Cada cartão mostra o dono; tocar nele atribui (eu, colega ou de volta para a fila).
+ */
 export function Fila() {
   const { usuario } = useAuth();
+  const eu = usuario?.id ?? "";
+  const navegar = useNavigate();
+  const tecnicos = useTecnicos();
   const [chamados, setChamados] = useState<Chamado[] | null>(null);
-  const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [pegando, setPegando] = useState("");
+  const [aviso, setAviso] = useState("");
+  const [filtro, setFiltro] = useState("");
+  const [menu, setMenu] = useState<Chamado | null>(null);
+  const [acoes, setAcoes] = useState<Chamado | null>(null);
+  const [arrastando, setArrastando] = useState("");
+  // cartão que acabou de mudar: a tela rola até ele e ele pisca (prioridade nova = lugar novo na fila)
+  const [realce, setRealce] = useState("");
+  // a fila precisa de todos os chamados em aberto (posição, contagem da equipe);
+  // a lista "Depois na fila" é mostrada em páginas para a tela não ficar enorme
+  const pag = usePaginacao("fila", 10);
   const [, setTique] = useState(0);
+  const podeArrastar = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: fine)").matches;
 
   const carregar = useCallback(async () => {
     const lista = await pb.collection("chamados").getFullList<Chamado>({
       filter: 'status != "resolvido"',
-      // em atendimento primeiro; depois a fila: prioridade e ordem de chegada
-      sort: "-status,-peso,created",
+      sort: "-peso,created", // a mesma ordem da senha que o servidor vê
       expand: EXPAND_CHAMADO,
     });
     setChamados(lista);
@@ -29,95 +344,196 @@ export function Fila() {
   useEffect(() => { carregar().catch(() => setChamados([])); }, [carregar]);
   useRealtime("chamados", () => carregar().catch(() => {}));
   useEffect(() => {
-    const t = window.setInterval(() => setTique((n) => n + 1), 60_000);
+    const t = window.setInterval(() => setTique((n) => n + 1), 60_000); // atualiza "esperando há"
     return () => window.clearInterval(t);
   }, []);
 
-  const aguardando = chamados?.filter((c) => c.status === "aberto").length ?? 0;
-  const emAtendimento = chamados?.filter((c) => c.status === "em_andamento").length ?? 0;
+  const lista = chamados ?? [];
+  const { atendendo, comOutros, fila, proximo, depois } = organizarFila(lista, eu);
+  const { carga, livres } = cargaDaEquipe(lista);
+  const atrasados = fila.filter((c) => atrasado(c)).length;
+  const posicao = (c: Chamado) => (c.status === "aberto" ? fila.indexOf(c) + 1 : undefined);
 
   useEffect(() => {
-    document.title = aguardando ? `(${aguardando}) Fila | Dino Desk` : "Fila | Dino Desk";
+    document.title = fila.length ? `(${fila.length}) Fila | Dino Desk` : "Fila | Dino Desk";
     return () => { document.title = "Dino Desk"; };
-  }, [aguardando]);
+  }, [fila.length]);
 
-  const visiveis = (chamados ?? []).filter((c) =>
-    filtro === "comigo" ? c.responsavel === usuario?.id : filtro === "sem" ? !c.responsavel : true,
+  async function comecar(c: Chamado) {
+    setAviso("");
+    setPegando(c.id);
+    try {
+      // outro técnico pode ter pegado no mesmo instante
+      const atual = await pb.collection("chamados").getOne<Chamado>(c.id);
+      if (atual.status !== "aberto" || (atual.responsavel && atual.responsavel !== eu)) {
+        setAviso(`O ${c.protocolo} acabou de ser pego por outro técnico. A fila foi atualizada.`);
+        await carregar();
+        return;
+      }
+      await pb.collection("chamados").update(c.id, { status: "em_andamento", responsavel: eu });
+      navegar(`/ti/chamado/${c.id}`);
+    } catch (err) {
+      setAviso(mensagemErro(err));
+    } finally {
+      setPegando("");
+    }
+  }
+
+  function depoisDeSalvar(msg: string, id: string) {
+    setAviso(msg);
+    carregar().then(() => setRealce(id)).catch(() => {});
+  }
+
+  useEffect(() => {
+    if (!realce) return;
+    const el = document.getElementById(`chamado-${realce}`);
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const t = window.setTimeout(() => setRealce(""), 2400);
+    return () => window.clearTimeout(t);
+  }, [realce]);
+
+  async function soltar(tecnicoId: string, chamadoId: string) {
+    setArrastando("");
+    const c = lista.find((x) => x.id === chamadoId);
+    if (!c || c.responsavel === tecnicoId) return;
+    try {
+      await atribuir(c, tecnicoId);
+      const nome = tecnicoId === eu ? "você" : primeiroNome(tecnicos.find((t) => t.id === tecnicoId)?.name);
+      setAviso(tecnicoId ? `${c.protocolo} agora está com ${nome}.` : `${c.protocolo} voltou para a fila.`);
+      await carregar();
+      setRealce(c.id);
+    } catch (err) {
+      setAviso(mensagemErro(err));
+    }
+  }
+
+  const cartao = (c: Chamado, destaque = false) => (
+    <Cartao
+      key={c.id}
+      c={c}
+      eu={eu}
+      posicao={posicao(c)}
+      destaque={destaque}
+      realcado={realce === c.id}
+      aoAtribuir={() => setMenu(c)}
+      aoAcoes={() => setAcoes(c)}
+      arrastavel={podeArrastar}
+      aoArrastar={setArrastando}
+    />
   );
 
+  // visão filtrada (toque num técnico ou em "Livres" na faixa da equipe)
+  const filtrados = filtro === "livres"
+    ? fila.filter((c) => !c.responsavel)
+    : filtro
+      ? [...lista.filter((c) => c.status === "em_andamento" && c.responsavel === filtro), ...fila.filter((c) => c.responsavel === filtro)]
+      : [];
+  // se a lista encolheu (chamado saiu da fila), fica na última página que existe
+  const fatia = <T,>(l: T[]) => {
+    if (pag.porPagina === 0) return l;
+    const p = Math.min(pag.pagina, Math.max(1, Math.ceil(l.length / pag.porPagina)));
+    return l.slice((p - 1) * pag.porPagina, p * pag.porPagina);
+  };
+  const listaPaginada = filtro ? filtrados : depois;
+  const rodape = listaPaginada.length > 10 && (
+    <Paginacao
+      pagina={Math.min(pag.pagina, Math.max(1, Math.ceil(listaPaginada.length / (pag.porPagina || 1))))}
+      porPagina={pag.porPagina}
+      total={listaPaginada.length}
+      aoMudarPagina={pag.setPagina}
+      aoMudarPorPagina={pag.setPorPagina}
+      rotulo="chamados"
+    />
+  );
+  const nomeFiltro = filtro === "livres" ? "Livres" : filtro === eu ? "Com você" : `Com ${primeiroNome(tecnicos.find((t) => t.id === filtro)?.name)}`;
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">Fila</h1>
-          <p className="text-tinta-2">
-            <span className="font-display text-xl font-bold text-tinta">{aguardando}</span> aguardando,{" "}
-            <span className="font-display text-xl font-bold text-tinta">{emAtendimento}</span> em atendimento
-          </p>
-        </div>
-        <div role="tablist" aria-label="Filtrar fila" className="flex rounded-xl bg-white p-1 ring-1 ring-linha">
-          {([["todos", "Todos"], ["comigo", "Comigo"], ["sem", "Sem responsável"]] as [Filtro, string][]).map(([k, r]) => (
-            <button
-              key={k}
-              role="tab"
-              aria-selected={filtro === k}
-              onClick={() => setFiltro(k)}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold ${filtro === k ? "bg-mar-700 text-white" : "text-tinta-2"}`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h1 className="text-3xl font-bold">Fila</h1>
+        <p className="mt-1 flex flex-wrap gap-x-4 text-tinta-2">
+          <span><b className="font-display text-xl text-tinta">{fila.length}</b> aguardando</span>
+          {atrasados > 0 && (
+            <span className="font-semibold text-alerta"><b className="font-display text-xl">{atrasados}</b> {atrasados === 1 ? "atrasado" : "atrasados"}</span>
+          )}
+          <span><b className="font-display text-xl text-tinta">{atendendo.length + comOutros.length}</b> em atendimento</span>
+        </p>
       </div>
+      <VisaoTI />
+      </div>
+
+      {tecnicos.length > 0 && (
+        <FaixaEquipe
+          tecnicos={tecnicos}
+          eu={eu}
+          carga={carga}
+          livres={livres}
+          filtro={filtro}
+          aoFiltrar={(f) => { setFiltro(f); pag.voltarAoInicio(); }}
+          arrastando={!!arrastando}
+          aoSoltar={soltar}
+        />
+      )}
+
+      {aviso && (
+        <p role="status" className="flex items-start gap-2 rounded-xl bg-sol-50 p-4 font-semibold ring-1 ring-sol">
+          <span className="flex-1">{aviso}</span>
+          <button type="button" onClick={() => setAviso("")} className="text-tinta-2" aria-label="Fechar aviso"><X className="size-5" /></button>
+        </p>
+      )}
 
       {chamados === null ? (
         <p className="text-tinta-2">Carregando a fila...</p>
-      ) : visiveis.length === 0 ? (
-        <div className="rounded-2xl bg-white p-8 text-center ring-1 ring-linha">
-          <p className="text-xl font-bold">Nenhum chamado aqui.</p>
-          <p className="mt-1 text-tinta-2">
-            Pedido chegou pelo WhatsApp, por ligação ou no corredor?{" "}
-            <Link to="/ti/registrar" className="font-semibold text-mar-700 underline underline-offset-4">Registre aqui</Link>.
-          </p>
-        </div>
+      ) : filtro ? (
+        <>
+          <Secao titulo={nomeFiltro} total={filtrados.length}>
+            {filtrados.length ? fatia(filtrados).map((c) => cartao(c, c.status === "em_andamento" && c.responsavel === eu)) : <li className="text-tinta-2">Nenhum chamado aqui.</li>}
+          </Secao>
+          {rodape}
+        </>
       ) : (
-        <ul className="space-y-2">
-          {visiveis.map((c) => (
-            <li key={c.id}>
-              <Link to={`/ti/chamado/${c.id}`} className="flex overflow-hidden rounded-xl bg-white ring-1 ring-linha hover:ring-mar-700">
-                <span className={`w-2 shrink-0 ${COR_PRIORIDADE[c.prioridade]}`} aria-hidden="true" />
-                <div className="min-w-0 flex-1 p-4">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <span className="font-display text-lg font-bold">{c.protocolo}</span>
-                    <SeloPrioridade prioridade={c.prioridade} />
-                    <span className="inline-flex items-center gap-1 text-sm font-semibold">
-                      <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 text-mar-700" />
-                      {c.expand?.categoria?.nome}
-                    </span>
-                  </div>
-                  <p className="mt-1.5 font-semibold">{resumo(c.descricao)}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-tinta-2">
-                    <span className="inline-flex items-center gap-1"><User className="size-4" aria-hidden="true" />{nomeSolicitante(c)}</span>
-                    {(c.expand?.setor || c.local) && (
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="size-4" aria-hidden="true" />
-                        {[c.expand?.setor?.nome, c.local].filter(Boolean).join(", ")}
-                      </span>
-                    )}
-                    {c.origem !== "sistema" && <span>{ROTULO_ORIGEM[c.origem]}</span>}
-                    <span>aberto {tempoRelativo(c.created)}</span>
-                    {c.status === "em_andamento" && (
-                      <span className="ml-auto inline-flex items-center gap-2">
-                        <SeloStatus status={c.status} />
-                        {c.expand?.responsavel?.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          {atendendo.length > 0 && <Secao titulo="Você está atendendo" total={atendendo.length}>{atendendo.map((c) => cartao(c, true))}</Secao>}
+
+          {proximo ? (
+            <Proximo c={proximo} eu={eu} posicao={fila.indexOf(proximo) + 1} aoComecar={() => comecar(proximo)} aoAtribuir={() => setMenu(proximo)} aoAcoes={() => setAcoes(proximo)} ocupado={pegando === proximo.id} realcado={realce === proximo.id} />
+          ) : (
+            <div className="rounded-2xl bg-superficie p-8 text-center ring-1 ring-linha">
+              <p className="text-xl font-bold">Nada esperando por você na fila.</p>
+              <p className="mt-1 text-tinta-2">
+                Pedido chegou pelo WhatsApp, por ligação ou no corredor?{" "}
+                <Link to="/ti/registrar" className="font-semibold text-acento underline underline-offset-4">Registre aqui</Link>.
+              </p>
+            </div>
+          )}
+
+          {depois.length > 0 && <Secao titulo="Depois na fila" total={depois.length}>{fatia(depois).map((c) => cartao(c, c.responsavel === eu))}</Secao>}
+          {!filtro && rodape}
+          {comOutros.length > 0 && <Secao titulo="Em atendimento com colegas" total={comOutros.length}>{comOutros.map((c) => cartao(c))}</Secao>}
+        </>
+      )}
+
+      {acoes && (
+        <MenuAcoes
+          chamado={acoes}
+          eu={eu}
+          tecnicos={tecnicos}
+          carga={carga}
+          aoFechar={() => setAcoes(null)}
+          aoSalvo={depoisDeSalvar}
+        />
+      )}
+
+      {menu && (
+        <MenuAtribuir
+          chamado={menu}
+          tecnicos={tecnicos}
+          eu={eu}
+          carga={carga}
+          aoFechar={() => setMenu(null)}
+          aoAtribuir={depoisDeSalvar}
+        />
       )}
     </div>
   );

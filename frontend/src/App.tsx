@@ -13,12 +13,14 @@ import { Historico } from "./pages/ti/Historico";
 import { Painel } from "./pages/ti/Painel";
 import { QrCodes } from "./pages/ti/QrCodes";
 import { Registrar } from "./pages/ti/Registrar";
+import { TodosChamados } from "./pages/ti/TodosChamados";
+import { Usuarios } from "./pages/ti/Usuarios";
 
 function Protegida({ children }: { children: ReactNode }) {
   const { usuario } = useAuth();
   const loc = useLocation();
   if (!usuario) {
-    // guarda o destino (ex.: /novo?local=... vindo do QR code) para depois do login
+    // guarda o destino (ex.: /novo, vindo do QR code) para depois do login
     return <Navigate to={`/entrar?voltar=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
   }
   return children;
@@ -55,6 +57,8 @@ export function App() {
             <Route path="ti/registrar" element={<SoTecnico><Registrar /></SoTecnico>} />
             <Route path="ti/historico" element={<SoTecnico><Historico /></SoTecnico>} />
             <Route path="ti/painel" element={<SoTecnico><Painel /></SoTecnico>} />
+            <Route path="ti/chamados" element={<SoTecnico><TodosChamados /></SoTecnico>} />
+            <Route path="ti/usuarios" element={<SoTecnico><Usuarios /></SoTecnico>} />
             <Route path="ti/qrcodes" element={<SoTecnico><QrCodes /></SoTecnico>} />
             <Route path="ti/chamado/:id" element={<SoTecnico><Chamado /></SoTecnico>} />
           </Route>

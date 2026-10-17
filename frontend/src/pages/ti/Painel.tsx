@@ -1,8 +1,9 @@
 import { Download, QrCode } from "lucide-react";
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
-import { duracaoHoras, ROTULO_ORIGEM, ROTULO_STATUS, ROTULO_PRIORIDADE, dataHora } from "../../lib/formato";
-import { EXPAND_CHAMADO, nomeSolicitante, pb, type Chamado, type Origem } from "../../lib/pb";
+import { duracaoHoras, ROTULO_ORIGEM } from "../../lib/formato";
+import { baixarCsvChamados } from "../../lib/planilha";
+import { EXPAND_CHAMADO, pb, type Chamado, type Origem } from "../../lib/pb";
 
 interface Resumo {
   dias: number;
@@ -37,17 +38,7 @@ export function Painel() {
       sort: "created",
       expand: EXPAND_CHAMADO,
     });
-    const cab = ["protocolo", "aberto_em", "origem", "categoria", "setor", "solicitante", "prioridade", "status", "responsavel", "iniciado_em", "resolvido_em", "descricao", "diagnostico", "solucao"];
-    const linhas = lista.map((c) => [
-      c.protocolo, dataHora(c.created), ROTULO_ORIGEM[c.origem], c.expand?.categoria?.nome ?? "", c.expand?.setor?.nome ?? "",
-      nomeSolicitante(c), ROTULO_PRIORIDADE[c.prioridade], ROTULO_STATUS[c.status], c.expand?.responsavel?.name ?? "",
-      dataHora(c.iniciado_em), dataHora(c.resolvido_em), c.descricao, c.diagnostico, c.solucao,
-    ]);
-    const csv = [cab, ...linhas].map((l) => l.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
-    const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
-    const a = Object.assign(document.createElement("a"), { href: url, download: `chamados-ultimos-${dias}-dias.csv` });
-    a.click();
-    URL.revokeObjectURL(url);
+    baixarCsvChamados(lista, `chamados-ultimos-${dias}-dias.csv`);
   }
 
   const pctSistema = r && r.total
@@ -59,7 +50,7 @@ export function Painel() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-3xl font-bold">Painel</h1>
         <div className="flex flex-wrap gap-2">
-          <div role="tablist" aria-label="Período" className="flex rounded-xl bg-white p-1 ring-1 ring-linha">
+          <div role="tablist" aria-label="Período" className="flex rounded-xl bg-superficie p-1 ring-1 ring-linha">
             {PERIODOS.map((p) => (
               <button
                 key={p}
@@ -73,7 +64,7 @@ export function Painel() {
             ))}
           </div>
           <Link to="/ti/qrcodes" className="btn-secundario min-h-11">
-            <QrCode className="size-5" aria-hidden="true" /> QR codes das salas
+            <QrCode className="size-5" aria-hidden="true" /> QR code para abrir chamado
           </Link>
           <button className="btn-secundario min-h-11" onClick={baixarCsv}>
             <Download className="size-5" aria-hidden="true" /> Baixar planilha
@@ -81,7 +72,7 @@ export function Painel() {
         </div>
       </div>
 
-      {erro && <p className="font-semibold text-brasa-700">Não foi possível carregar os indicadores.</p>}
+      {erro && <p className="font-semibold text-alerta">Não foi possível carregar os indicadores.</p>}
       {!r ? (
         !erro && <p className="text-tinta-2">Carregando...</p>
       ) : (
@@ -115,7 +106,7 @@ export function Painel() {
 
 function Numero({ termo, valor }: { termo: string; valor: string }) {
   return (
-    <div className="bg-white p-5">
+    <div className="bg-superficie p-5">
       <dt className="text-sm text-tinta-2">{termo}</dt>
       <dd className="mt-1 font-display text-4xl font-extrabold">{valor}</dd>
     </div>
@@ -167,7 +158,7 @@ function PorDia({ dados: brutos, dias }: { dados: { dia: string; total: number }
             {dados.map((d) => (
               <div key={d.dia} className="group relative flex h-full flex-1 items-end">
                 <span className="mx-auto w-full max-w-6 rounded-t bg-mar" style={{ height: `${(d.total / max) * 100}%` }} />
-                <span className="pointer-events-none absolute bottom-full left-1/2 mb-1 hidden -translate-x-1/2 rounded bg-tinta px-2 py-1 text-xs whitespace-nowrap text-white group-hover:block">
+                <span className="pointer-events-none absolute bottom-full left-1/2 mb-1 hidden -translate-x-1/2 rounded bg-noite px-2 py-1 text-xs whitespace-nowrap text-white group-hover:block">
                   {rotulo(d.dia)}: {d.total}
                 </span>
               </div>

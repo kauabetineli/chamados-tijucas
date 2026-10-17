@@ -5,7 +5,7 @@ import { GaleriaAnexos } from "../components/Anexos";
 import { IconeCategoria } from "../components/Icone";
 import { LinhaDoTempo } from "../components/LinhaDoTempo";
 import { PainelTecnico } from "../components/PainelTecnico";
-import { SeloStatus } from "../components/Selos";
+import { SeloStatus, SeloTeste } from "../components/Selos";
 import { SenhaFila } from "../components/SenhaFila";
 import { useAuth } from "../lib/auth";
 import { dataHora, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS } from "../lib/formato";
@@ -44,7 +44,7 @@ export function Chamado() {
   if (erro && !c) {
     return (
       <div className="mx-auto max-w-2xl">
-        <p className="font-semibold text-brasa-700">Não foi possível abrir este chamado. {erro}</p>
+        <p className="font-semibold text-alerta">Não foi possível abrir este chamado. {erro}</p>
         <Link to={voltar} className="btn-secundario mt-4">Voltar</Link>
       </div>
     );
@@ -56,12 +56,12 @@ export function Chamado() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <Link to={voltar} className="mb-4 inline-flex items-center gap-1.5 font-semibold text-mar-700">
+      <Link to={voltar} className="mb-4 inline-flex items-center gap-1.5 font-semibold text-acento">
         <ArrowLeft className="size-5" aria-hidden="true" /> {tecnico ? "Fila" : "Meus chamados"}
       </Link>
 
       {novo && (
-        <div role="status" className="mb-5 flex items-start gap-3 rounded-2xl bg-campo-50 p-4 text-campo-700">
+        <div role="status" className="mb-5 flex items-start gap-3 rounded-2xl bg-campo-50 p-4 text-ok">
           <CheckCircle2 className="mt-0.5 size-6 shrink-0" aria-hidden="true" />
           <p className="font-semibold">
             Chamado aberto. O TI já vê o seu pedido na fila e você recebe as respostas por aqui
@@ -77,8 +77,9 @@ export function Chamado() {
             <p className="font-display text-4xl font-extrabold tracking-tight">{c.protocolo}</p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <SeloStatus status={c.status} />
+              <SeloTeste ficticio={c.ficticio} />
               <span className="inline-flex items-center gap-1.5 font-semibold">
-                <IconeCategoria nome={c.expand?.categoria?.icone} className="size-5 text-mar-700" />
+                <IconeCategoria nome={c.expand?.categoria?.icone} className="size-5 text-acento" />
                 {c.expand?.categoria?.nome}
               </span>
               <span className="text-tinta-2">aberto em {dataHora(c.created)}</span>
@@ -95,7 +96,7 @@ export function Chamado() {
                       ? "bg-campo-700 text-white"
                       : i === etapa
                         ? "bg-mar-700 text-white"
-                        : "bg-white text-tinta-2 ring-2 ring-linha"
+                        : "bg-superficie text-tinta-2 ring-2 ring-linha"
                   }`}
                 >
                   {i < etapa || c.status === "resolvido" ? <Check className="size-4" aria-hidden="true" /> : i + 1}
@@ -115,9 +116,8 @@ export function Chamado() {
           <section className="space-y-4">
             <p className="text-lg whitespace-pre-wrap">{c.descricao}</p>
             <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-              {tecnico && <Dado termo="Quem pediu" valor={nomeSolicitante(c) + (c.expand?.solicitante?.telefone ? ` (${c.expand.solicitante.telefone})` : "")} />}
+              {tecnico && <Dado termo="Quem pediu" valor={nomeSolicitante(c) + (c.expand?.solicitante?.ramal ? ` (ramal ${c.expand.solicitante.ramal})` : "")} />}
               <Dado termo="Setor" valor={c.expand?.setor?.nome} />
-              <Dado termo="Local" valor={c.local} />
               <Dado termo="Quem é afetado" valor={ROTULO_IMPACTO[c.impacto]} />
               {tecnico && <Dado termo="Como chegou" valor={ROTULO_ORIGEM[c.origem]} />}
               <Dado termo="Responsável no TI" valor={c.expand?.responsavel?.name} />
@@ -137,7 +137,7 @@ export function Chamado() {
         <div className="space-y-7 md:col-start-1">
 
           {c.status === "resolvido" && (c.diagnostico || c.solucao) && (
-            <section className="rounded-2xl border-l-8 border-campo bg-white p-5 ring-1 ring-linha">
+            <section className="rounded-2xl border-l-8 border-campo bg-superficie p-5 ring-1 ring-linha">
               <h2 className="text-xl font-bold">O que o TI fez</h2>
               {c.diagnostico && (
                 <p className="mt-2"><span className="font-semibold">Causa: </span>{c.diagnostico}</p>
@@ -145,7 +145,7 @@ export function Chamado() {
               {c.solucao && (
                 <p className="mt-1"><span className="font-semibold">Solução: </span>{c.solucao}</p>
               )}
-              {c.confirmado && <p className="mt-3 text-sm font-semibold text-campo-700">Solicitante confirmou que deu certo.</p>}
+              {c.confirmado && <p className="mt-3 text-sm font-semibold text-ok">Solicitante confirmou que deu certo.</p>}
             </section>
           )}
 
@@ -185,7 +185,7 @@ function Confirmacao({ chamadoId, aoConcluir }: { chamadoId: string; aoConcluir:
   }
 
   return (
-    <section className="rounded-2xl bg-white p-5 ring-2 ring-campo">
+    <section className="rounded-2xl bg-superficie p-5 ring-2 ring-campo">
       <h2 className="text-xl font-bold">O TI marcou como resolvido. Deu certo?</h2>
       {!reabrindo ? (
         <div className="mt-4 flex flex-wrap gap-2">
@@ -208,7 +208,7 @@ function Confirmacao({ chamadoId, aoConcluir }: { chamadoId: string; aoConcluir:
           </div>
         </div>
       )}
-      {erro && <p className="mt-2 font-semibold text-brasa-700">{erro}</p>}
+      {erro && <p className="mt-2 font-semibold text-alerta">{erro}</p>}
     </section>
   );
 }

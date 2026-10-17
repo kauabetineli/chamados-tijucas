@@ -29,7 +29,9 @@ export interface Usuario extends RecordModel {
   name: string;
   setor: string;
   papel: Papel | "";
-  telefone: string;
+  /** ramal da sala, cadastrado pelo TI */
+  ramal: string;
+  ficticio?: boolean;
   expand?: { setor?: Setor };
 }
 
@@ -40,6 +42,7 @@ export interface Chamado extends RecordModel {
   solicitante: string;
   solicitante_nome: string;
   setor: string;
+  /** legado: não é mais preenchido nem mostrado (o lugar é o setor) */
   local: string;
   impacto: Impacto;
   prioridade: Prioridade;
@@ -52,6 +55,8 @@ export interface Chamado extends RecordModel {
   diagnostico: string;
   solucao: string;
   confirmado: boolean;
+  midia_pendente: boolean;
+  ficticio?: boolean;
   iniciado_em: string;
   resolvido_em: string;
   created: string;
@@ -70,6 +75,8 @@ export interface Interacao extends RecordModel {
   tipo: "comentario" | "status" | "prioridade" | "atribuicao" | "sistema";
   texto: string;
   interno: boolean;
+  /** imagens da mensagem (print, foto do erro) */
+  anexos?: string[];
   created: string;
   expand?: { autor?: Usuario };
 }
@@ -96,11 +103,17 @@ export function destinoSeguro(caminho: string | null): string | null {
 
 /** Mensagem de erro legível a partir de um erro do PocketBase. */
 export function mensagemErro(err: unknown): string {
-  const e = err as { response?: { message?: string; data?: Record<string, { message?: string }> }; message?: string };
+  const e = err as {
+    status?: number;
+    response?: { message?: string; data?: Record<string, { code?: string; message?: string }> };
+    message?: string;
+  };
+  if (e?.status === 413) return "O arquivo é grande demais para enviar. Grave um vídeo mais curto (até 1 minuto).";
   const campos = e?.response?.data;
   if (campos && Object.keys(campos).length) {
     const [campo, info] = Object.entries(campos)[0];
-    return `${ROTULO_CAMPO[campo] ?? campo}: ${traduzir(info?.message ?? "")}`;
+    const porCodigo = info?.code ? ERRO_POR_CODIGO[info.code] : undefined;
+    return `${ROTULO_CAMPO[campo] ?? campo}: ${porCodigo ?? traduzir(info?.message ?? "")}`;
   }
   const msg = e?.response?.message || e?.message || "";
   return traduzir(msg) || "Não foi possível concluir. Verifique a conexão com a rede da Prefeitura.";
@@ -115,6 +128,12 @@ const ROTULO_CAMPO: Record<string, string> = {
   categoria: "Categoria",
   impacto: "Quem é afetado",
   anexos: "Anexos",
+};
+
+const ERRO_POR_CODIGO: Record<string, string> = {
+  validation_file_size_limit: "um dos arquivos passa de 250 MB. Grave um vídeo mais curto (até 1 minuto).",
+  validation_invalid_mime_type: "formato não aceito. Envie foto (JPG, PNG, HEIC) ou vídeo (MP4, MOV).",
+  validation_max_select_constraint: "envie no máximo 5 arquivos.",
 };
 
 function traduzir(msg: string) {
