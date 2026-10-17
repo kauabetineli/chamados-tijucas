@@ -283,3 +283,29 @@ routerAdd("PATCH", "/api/ti/setores/{id}", (e) => {
   e.app.save(rec);
   return e.json(200, { setor: U.setorPublico(e.app, rec) });
 }, $apis.requireAuth());
+
+// Servidor vendo a conta de um técnico (responsável, autor de mensagem): só nome, papel e setor.
+// Matrícula (é o login), ramal próprio, telefone e marcas internas ficam só para o TI e para o dono da conta.
+onRecordEnrich((e) => {
+  const quem = e.requestInfo ? e.requestInfo.auth : null;
+  const doTI = quem && quem.collection().name === "users" && quem.getString("papel") === "tecnico";
+  const superusuario = quem && quem.collection().name === "_superusers";
+  if (!superusuario && !doTI && (!quem || quem.id !== e.record.id)) {
+    e.record.hide("matricula", "ramal", "telefone", "admin", "trocar_senha", "bloqueado", "ficticio");
+  }
+  e.next();
+}, "users");
+
+// ...e também não dá para "adivinhar" esses campos filtrando a lista (ex.: filter=matricula="12345").
+onRecordsListRequest((e) => {
+  const quem = e.auth;
+  const doTI = quem && quem.getString("papel") === "tecnico";
+  if (!e.hasSuperuserAuth() && !doTI) {
+    const q = e.requestInfo().query || {};
+    const texto = `${q.filter || ""} ${q.sort || ""}`;
+    if (/matricula|ramal|telefone|admin|trocar_senha|bloqueado|ficticio|email/i.test(texto)) {
+      throw new ForbiddenError("Filtro não permitido.");
+    }
+  }
+  e.next();
+}, "users");

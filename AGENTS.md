@@ -107,7 +107,8 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 - `users` (auth): name, **matricula** (login, até 8 dígitos, única), email (opcional), setor → setores,
   papel (`solicitante` | `tecnico`), admin (admin do TI), ramal (próprio, opcional), trocar_senha, bloqueado, ficticio.
   **Não há cadastro público**: só o admin do TI cria contas (`POST /api/ti/usuarios`); a pessoa só troca a própria senha.
-  O PocketBase ESCONDE o e-mail de outros usuários; o TI usa `GET /api/ti/usuarios`.
+  O PocketBase ESCONDE o e-mail de outros usuários; o TI usa `GET /api/ti/usuarios`. O servidor vê as contas de técnicos
+  (nome do responsável e de quem respondeu), sem matrícula, ramal e marcas internas (hook `onRecordEnrich` em usuarios.pb.js).
 - `setores`: nome, predio, ramal (do setor), ativo (desativar em vez de apagar). `categorias`: nome, icone (lucide), ordem, ativa.
 - `chamados`: protocolo (2026-00001), descricao, categoria, solicitante | solicitante_nome, setor (o lugar do chamado; `local` é legado e não é usado),
   impacto (`so_eu`|`setor`|`publico`) → prioridade (`normal`|`alta`|`urgente`, `baixa` só pelo TI), peso,
