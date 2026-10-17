@@ -35,8 +35,8 @@ QR code / link  →  site da Prefeitura (/dinodesk, página estática)  →  htt
 
 | Coleção | Campos principais | Quem vê / altera |
 |---|---|---|
-| `users` (auth) | name, email, setor, papel (`solicitante`/`tecnico`), ramal (da sala, cadastrado pelo TI) | cada um vê a si; técnicos veem todos. Ninguém se promove a técnico (só pelo painel admin) |
-| `setores` | nome, predio, ativo | leitura pública (tela de cadastro); edição só no painel admin |
+| `users` (auth) | name, matricula (login, única), email (opcional), setor, papel (`solicitante`/`tecnico`), admin, ramal (próprio, opcional), trocar_senha, bloqueado | cada um vê a si; técnicos veem todos. Só o admin do TI cria e edita (rotas `/api/ti/usuarios`); a pessoa só troca a própria senha |
+| `setores` | nome, predio, ramal, ativo | leitura pública; criação e edição pelo admin do TI (`/api/ti/setores`) |
 | `categorias` | nome, icone, ordem, ativa | leitura para logados; edição só no painel admin |
 | `chamados` | protocolo, descricao, categoria, solicitante / solicitante_nome, setor (é o lugar do chamado; `local` ficou só como legado), impacto, prioridade, peso, status, origem, responsavel, registrado_por, anexos, diagnostico, solucao, confirmado, iniciado_em, resolvido_em | solicitante vê os seus; técnicos veem e alteram todos |
 | `interacoes` | chamado, autor, tipo (comentario/status/prioridade/atribuicao/sistema), texto, interno | solicitante vê a linha do tempo dos seus chamados, sem as notas internas |
@@ -76,11 +76,22 @@ teste passam pelas mesmas regras dos hooks que o uso real. Tudo o que geram leva
 Só o superusuário consegue marcar uma conta como fictícia; um chamado herda a marca do solicitante e ela não muda depois.
 Guia de uso: `docs/FERRAMENTAS-IA.md`. Manual para agentes: `AGENTS.md`.
 
-## Contas criadas pelo TI
+## Contas criadas só pelo administrador do TI
 
-A tela **Usuários** (`/ti/usuarios`) usa rotas próprias (`pb_hooks/usuarios.pb.js`) porque o PocketBase esconde o
-e-mail de outros usuários e não deixa um usuário comum criar contas de outro papel. O técnico cria a conta e recebe uma
-senha provisória (`Dino` + 6 números, fácil de ditar por telefone), mostrada uma única vez; o mesmo vale para "Nova senha".
+Não existe "criar conta" público: se o sistema for para a internet, ninguém de fora se cadastra.
+- **Administrador do TI** (`users.admin`, só para técnicos): na tela **Pessoas e setores** (`/ti/usuarios`) cria e edita
+  setores (com o **ramal do setor**) e contas, gera senha provisória e bloqueia acesso. Os outros técnicos só consultam.
+  O sistema nunca fica sem admin ativo: ninguém tira o próprio admin nem se bloqueia, e o último admin não pode ser removido.
+  A migration `1760000007` promove o técnico mais antigo a admin, se não houver nenhum.
+- **Login pela matrícula** (até 8 dígitos, única). O e-mail é opcional (nem todo servidor tem); quem tem pode entrar com ele
+  e recebe os avisos por e-mail.
+- **Senha provisória aleatória** (`k7Pm-x4Qz-9Rta`, sem caracteres que confundem), mostrada uma única vez, com bilhete
+  para imprimir. No primeiro acesso a pessoa é **obrigada** a criar a própria senha (`users.trocar_senha`): o front mostra
+  só a tela "Crie a sua senha" e o servidor recusa abrir chamado ou comentar até trocar. A senha nova não pode ser igual
+  à provisória.
+- **Bloquear** em vez de apagar (`users.bloqueado`): a pessoa não entra mais, as sessões abertas caem e os chamados ficam
+  no histórico. Setor também é desativado, não apagado.
+- A própria pessoa só troca a senha: nome, setor, matrícula, papel e ramal são do admin (hook em `usuarios.pb.js`).
 
 ## O lugar do chamado é o setor
 
@@ -90,7 +101,8 @@ só para não perder dados antigos; a interface não mostra nem preenche.
 
 ## Ramal, não celular
 
-O cadastro guarda só o **ramal da sala**, preenchido pelo TI na tela Usuários (o servidor não edita).
+O **ramal é do setor** (cadastrado pelo admin do TI). Se a pessoa tiver um ramal diferente, o admin preenche o
+"ramal próprio" dela, que tem preferência. O servidor não edita.
 Não há campo de celular nem atalho para ligar ou chamar no WhatsApp: o contato pessoal dos técnicos por WhatsApp
 é um dos problemas do diagnóstico, e a conversa sobre o chamado acontece dentro do sistema.
 

@@ -15,7 +15,7 @@ const TECNICO: Item[] = [
   { para: "/ti/registrar", rotulo: "Registrar", Icone: SquarePen },
   { para: "/ti/historico", rotulo: "Histórico", Icone: History },
   { para: "/ti/painel", rotulo: "Painel", Icone: BarChart3 },
-  { para: "/ti/usuarios", rotulo: "Usuários", Icone: Users },
+  { para: "/ti/usuarios", rotulo: "Pessoas", Icone: Users },
 ];
 
 export function Layout() {

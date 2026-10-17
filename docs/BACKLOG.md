@@ -5,7 +5,8 @@ com o TI e pelo menos 2 setores, meta de **50% dos chamados registrados no siste
 
 ## Já feito na base inicial
 
-- [x] Cadastro e login (e-mail e senha), com setor
+- [x] Contas criadas só pelo admin do TI: login pela matrícula, senha provisória trocada no 1º acesso, bloqueio
+- [x] Setores com ramal, gerenciados pelo admin do TI (tela Pessoas e setores)
 - [x] Abrir chamado: categoria, descrição, impacto, foto/vídeo (o lugar é o setor da conta) pela câmera (fotos são reduzidas antes do envio)
 - [x] Meus chamados com a **senha da fila** (posição em tempo real)
 - [x] Detalhe do chamado: etapas, conversa com o TI, confirmar ou reabrir

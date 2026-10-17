@@ -46,7 +46,7 @@ export function Registrar() {
     if (solicitante || busca.trim().length < 2) return setSugestoes([]);
     const t = window.setTimeout(() => {
       pb.collection("users")
-        .getList<Usuario>(1, 6, { filter: pb.filter("name ~ {:q} || email ~ {:q}", { q: busca.trim() }), sort: "name", expand: "setor" })
+        .getList<Usuario>(1, 6, { filter: pb.filter("name ~ {:q} || email ~ {:q} || matricula ~ {:q}", { q: busca.trim() }), sort: "name", expand: "setor" })
         .then((r) => setSugestoes(r.items))
         .catch(() => {});
     }, 250);
@@ -133,7 +133,7 @@ export function Registrar() {
             id="quem"
             className="campo pr-12"
             autoComplete="off"
-            placeholder="Digite o nome"
+            placeholder="Nome ou matrícula"
             value={busca}
             onChange={(e) => { setBusca(e.target.value); setSolicitante(null); }}
           />
@@ -149,7 +149,7 @@ export function Registrar() {
               <li key={u.id}>
                 <button type="button" onClick={() => escolher(u)} className="w-full px-4 py-3 text-left hover:bg-mar-50">
                   <span className="block font-semibold">{u.name}</span>
-                  <span className="block text-sm text-tinta-2">{u.expand?.setor?.nome ?? u.email}</span>
+                  <span className="block text-sm text-tinta-2">{[u.matricula && `mat. ${u.matricula}`, u.expand?.setor?.nome].filter(Boolean).join(" · ") || u.email}</span>
                 </button>
               </li>
             ))}

@@ -1,140 +1,357 @@
-import { Check, Copy, KeyRound, Pencil, Search, UserPlus } from "lucide-react";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import {
+  Ban, Building2, Check, Copy, KeyRound, Lock, Pencil, Phone, Plus, Printer, Search, ShieldCheck, UserPlus, Users,
+} from "lucide-react";
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useSearchParams } from "react-router";
+import { Avatar } from "../../components/Avatar";
+import { PainelRapido, RodapeRascunho, RotuloSecao } from "../../components/PainelRapido";
 import { Paginacao, usePaginacao } from "../../components/Paginacao";
 import { SeloTeste } from "../../components/Selos";
-import { mensagemErro, pb, type Setor } from "../../lib/pb";
+import { useAuth } from "../../lib/auth";
+import { limparCache } from "../../lib/cache";
+import { ehAdmin, mensagemErro, pb } from "../../lib/pb";
 
-/** Usuário como as rotas /api/ti/usuarios devolvem (ver docs/API.md). */
-interface UsuarioTI { id: string; nome: string; email: string; setor: string; setor_nome: string; ramal: string; papel: string; ficticio: boolean }
-interface RespostaUsuario {
-  usuario: UsuarioTI;
-  senha_provisoria: string | null;
+/** Pessoa como as rotas /api/ti/usuarios devolvem (ver docs/API.md). */
+interface PessoaTI {
+  id: string; nome: string; matricula: string; email: string;
+  papel: "solicitante" | "tecnico"; admin: boolean;
+  setor: string; setor_nome: string; setor_ramal: string; ramal: string;
+  trocar_senha: boolean; bloqueado: boolean; ficticio: boolean;
+}
+interface SetorTI { id: string; nome: string; predio: string; ramal: string; ativo: boolean; pessoas: number }
+interface RespostaPessoa { usuario: PessoaTI; senha_provisoria: string | null }
+
+const enderecoDoSistema = () => window.location.origin.replace(/^https?:\/\//, "");
+
+function useSetoresTI() {
+  const [setores, setSetores] = useState<SetorTI[] | null>(null);
+  const recarregar = useCallback(() => {
+    pb.send<{ itens: SetorTI[] }>("/api/ti/setores", {}).then((r) => setSetores(r.itens)).catch(() => setSetores([]));
+  }, []);
+  useEffect(recarregar, [recarregar]);
+  return { setores, recarregar };
 }
 
-/** Senha provisória mostrada uma única vez, com botão de copiar. */
-function CartaoSenha({ r, aoFechar }: { r: RespostaUsuario; aoFechar: () => void }) {
+/* ------------------------------------------------------------------ */
+/* Senha provisória: aparece UMA vez, com copiar e imprimir bilhete     */
+/* ------------------------------------------------------------------ */
+
+function JanelaSenha({ r, nova, aoFechar }: { r: RespostaPessoa; nova: boolean; aoFechar: () => void }) {
   const [copiado, setCopiado] = useState(false);
-  const texto = `Dino Desk\nE-mail: ${r.usuario.email}\nSenha provisória: ${r.senha_provisoria}`;
+  const login = r.usuario.matricula || r.usuario.email;
+  const texto = `Dino Desk (${enderecoDoSistema()})\nMatrícula: ${login}\nSenha provisória: ${r.senha_provisoria}\nNo primeiro acesso, você vai criar a sua própria senha.`;
   async function copiar() {
     try {
       await navigator.clipboard.writeText(texto);
       setCopiado(true);
     } catch {
-      // http sem HTTPS pode bloquear a área de transferência: a senha continua visível na tela
+      // sem HTTPS o navegador pode bloquear a área de transferência: a senha continua na tela
     }
   }
   return (
-    <div role="status" className="rounded-2xl bg-campo-50 p-5 ring-1 ring-ok/30">
-      <p className="font-semibold text-ok">Pronto: {r.usuario.nome}</p>
-      <p className="mt-1 text-sm text-tinta-2">Passe a senha para a pessoa. Ela aparece só agora.</p>
-      <dl className="mt-3 space-y-1">
-        <div className="flex gap-2"><dt className="text-tinta-2">E-mail:</dt><dd className="font-semibold break-all">{r.usuario.email}</dd></div>
-        <div className="flex items-baseline gap-2">
-          <dt className="text-tinta-2">Senha:</dt>
-          <dd className="font-display text-2xl font-extrabold tracking-wide select-all">{r.senha_provisoria}</dd>
+    <PainelRapido
+      idTitulo="titulo-senha"
+      largura="max-w-md"
+      titulo={nova ? `Conta criada: ${r.usuario.nome}` : `Nova senha: ${r.usuario.nome}`}
+      subtitulo={<p className="mt-0.5 text-sm text-tinta-2">Entregue estes dados à pessoa. A senha aparece só agora.</p>}
+      aoTentarFechar={aoFechar}
+      rodape={
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+          <button type="button" onClick={() => window.print()} className="btn-secundario">
+            <Printer className="size-5" aria-hidden="true" /> Imprimir
+          </button>
+          <button type="button" onClick={copiar} className="btn-secundario">
+            {copiado ? <Check className="size-5" aria-hidden="true" /> : <Copy className="size-5" aria-hidden="true" />}
+            {copiado ? "Copiado" : "Copiar"}
+          </button>
+          <button type="button" onClick={aoFechar} className="btn-primario col-span-2">Pronto</button>
         </div>
-      </dl>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" onClick={copiar} className="btn-secundario">
-          {copiado ? <Check className="size-5" aria-hidden="true" /> : <Copy className="size-5" aria-hidden="true" />}
-          {copiado ? "Copiado" : "Copiar e-mail e senha"}
-        </button>
-        <button type="button" onClick={aoFechar} className="btn px-3 text-tinta-2 hover:text-tinta">Fechar</button>
+      }
+    >
+      {/* bilhete: é o que sai na impressão (o resto da tela some no print) */}
+      <div className="bilhete-senha space-y-3 rounded-xl bg-fundo p-4 ring-1 ring-linha">
+        <p className="text-sm text-tinta-2">Dino Desk · {enderecoDoSistema()}</p>
+        <div>
+          <p className="text-sm text-tinta-2">{r.usuario.matricula ? "Matrícula" : "E-mail"}</p>
+          <p className="font-display text-2xl font-extrabold">{login}</p>
+        </div>
+        <div>
+          <p className="text-sm text-tinta-2">Senha provisória</p>
+          <p className="font-mono text-3xl font-bold tracking-wider select-all">{r.senha_provisoria}</p>
+        </div>
+        <p className="text-sm">No primeiro acesso, a pessoa cria a própria senha.</p>
       </div>
+    </PainelRapido>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Formulário de pessoa (criar e editar)                                */
+/* ------------------------------------------------------------------ */
+
+type DadosPessoa = {
+  nome: string; matricula: string; email: string; setor: string; ramal: string;
+  papel: "solicitante" | "tecnico"; admin: boolean; bloqueado: boolean;
+};
+
+function Campo({ id, rotulo, opcional, ajuda, children }: { id: string; rotulo: string; opcional?: boolean; ajuda?: ReactNode; children: ReactNode }) {
+  return (
+    <div>
+      <label htmlFor={id} className="rotulo">
+        {rotulo} {opcional && <span className="font-normal text-tinta-2">(opcional)</span>}
+      </label>
+      {children}
+      {ajuda && <p className="ajuda">{ajuda}</p>}
     </div>
   );
 }
 
-function NovoUsuario({ setores, aoCriar }: { setores: Setor[]; aoCriar: (r: RespostaUsuario) => void }) {
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [setor, setSetor] = useState("");
-  const [ramal, setRamal] = useState("");
-  const [papel, setPapel] = useState<"solicitante" | "tecnico">("solicitante");
-  const [erro, setErro] = useState("");
-  const [salvando, setSalvando] = useState(false);
-
-  async function criar(e: FormEvent) {
-    e.preventDefault();
-    setErro("");
-    setSalvando(true);
-    try {
-      const r = await pb.send<RespostaUsuario>("/api/ti/usuarios", {
-        method: "POST",
-        body: { nome, email, setor, ramal, papel },
-      });
-      aoCriar(r);
-      setNome(""); setEmail(""); setSetor(""); setRamal(""); setPapel("solicitante");
-    } catch (err) {
-      setErro(mensagemErro(err));
-    } finally {
-      setSalvando(false);
-    }
-  }
-
-  return (
-    <form onSubmit={criar} className="space-y-4 rounded-2xl bg-superficie p-5 ring-1 ring-linha md:p-6">
-      <h2 className="flex items-center gap-2 text-xl font-bold">
-        <UserPlus className="size-6 text-acento" aria-hidden="true" /> Novo usuário
-      </h2>
-      <div>
-        <label htmlFor="u-nome" className="rotulo">Nome</label>
-        <input id="u-nome" required className="campo" value={nome} onChange={(e) => setNome(e.target.value)} autoComplete="off" />
-      </div>
-      <div>
-        <label htmlFor="u-email" className="rotulo">E-mail</label>
-        <input id="u-email" type="email" required className="campo" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" />
-      </div>
-      <div>
-        <label htmlFor="u-setor" className="rotulo">Setor</label>
-        <select id="u-setor" className="campo" value={setor} onChange={(e) => setSetor(e.target.value)}>
-          <option value="">Escolha o setor</option>
-          {setores.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-        </select>
-      </div>
-      <div>
-        <label htmlFor="u-ramal" className="rotulo">Ramal da sala <span className="font-normal text-tinta-2">(opcional)</span></label>
-        <input id="u-ramal" inputMode="numeric" maxLength={20} className="campo" value={ramal} onChange={(e) => setRamal(e.target.value)} autoComplete="off" />
-      </div>
-      <fieldset>
-        <legend className="rotulo">Perfil</legend>
-        <div className="grid grid-cols-2 gap-2">
-          {([["solicitante", "Servidor"], ["tecnico", "Técnico do TI"]] as const).map(([v, r]) => (
-            <label key={v} className="opcao justify-center text-center">
-              <input type="radio" name="papel" className="sr-only" checked={papel === v} onChange={() => setPapel(v)} />
-              {r}
-            </label>
-          ))}
-        </div>
-        {papel === "tecnico" && <p className="ajuda">Técnico vê a fila, todos os chamados e pode criar usuários.</p>}
-      </fieldset>
-      {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
-      <button className="btn-primario w-full" disabled={salvando}>
-        {salvando ? "Criando..." : "Criar e gerar senha"}
-      </button>
-    </form>
-  );
-}
-
-/** Edição rápida de setor e ramal, dentro da lista. */
-function EditarUsuario({ u, setores, aoSalvar, aoCancelar }: {
-  u: UsuarioTI;
-  setores: Setor[];
-  aoSalvar: () => void;
-  aoCancelar: () => void;
+function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, aoSenha }: {
+  /** sem pessoa = criar */
+  pessoa?: PessoaTI;
+  setorInicial?: string;
+  setores: SetorTI[];
+  eu: string;
+  aoFechar: () => void;
+  aoSalvo: (msg: string) => void;
+  aoSenha: (r: RespostaPessoa, nova: boolean) => void;
 }) {
-  const [setor, setSetor] = useState(u.setor);
-  const [ramal, setRamal] = useState(u.ramal);
-  const [erro, setErro] = useState("");
+  const inicial: DadosPessoa = {
+    nome: pessoa?.nome ?? "",
+    matricula: pessoa?.matricula ?? "",
+    email: pessoa?.email ?? "",
+    setor: pessoa?.setor ?? setorInicial ?? "",
+    ramal: pessoa?.ramal ?? "",
+    papel: pessoa?.papel ?? "solicitante",
+    admin: pessoa?.admin ?? false,
+    bloqueado: pessoa?.bloqueado ?? false,
+  };
+  const [d, setD] = useState(inicial);
   const [salvando, setSalvando] = useState(false);
+  const [saindo, setSaindo] = useState(false);
+  const [confirmarSenha, setConfirmarSenha] = useState(false);
+  const [erro, setErro] = useState("");
+  const editando = !!pessoa;
+  const souEu = pessoa?.id === eu;
+  const mudados = (Object.keys(inicial) as (keyof DadosPessoa)[]).filter((k) => d[k] !== inicial[k]);
+  const muda = <K extends keyof DadosPessoa>(k: K, v: DadosPessoa[K]) => { setSaindo(false); setD((x) => ({ ...x, [k]: v })); };
+  const setorEscolhido = setores.find((s) => s.id === d.setor);
+  const opcoesSetor = setores.filter((s) => s.ativo || s.id === d.setor);
 
-  async function salvar(e: FormEvent) {
-    e.preventDefault();
+  async function salvar(e?: FormEvent) {
+    e?.preventDefault();
     setErro("");
     setSalvando(true);
     try {
-      await pb.send(`/api/ti/usuarios/${u.id}`, { method: "PATCH", body: { setor, ramal } });
-      aoSalvar();
+      if (editando) {
+        if (!mudados.length) return aoFechar();
+        const corpo: Partial<DadosPessoa> = {};
+        for (const k of mudados) (corpo as Record<string, unknown>)[k] = d[k];
+        await pb.send(`/api/ti/usuarios/${pessoa.id}`, { method: "PATCH", body: corpo });
+        aoSalvo(`${d.nome}: alterações salvas.`);
+        aoFechar();
+      } else {
+        const r = await pb.send<RespostaPessoa>("/api/ti/usuarios", { method: "POST", body: d });
+        aoSalvo(`Conta de ${r.usuario.nome} criada.`);
+        aoFechar();
+        aoSenha(r, true);
+      }
+    } catch (err) {
+      setErro(mensagemErro(err));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function novaSenha() {
+    if (!pessoa) return;
+    setErro("");
+    try {
+      const r = await pb.send<RespostaPessoa>(`/api/ti/usuarios/${pessoa.id}/senha`, { method: "POST" });
+      aoSalvo(`Nova senha provisória gerada para ${pessoa.nome}.`);
+      aoFechar();
+      aoSenha(r, false);
+    } catch (err) {
+      setErro(mensagemErro(err));
+    }
+  }
+
+  const rodape = editando ? (
+    <>
+      {erro && <p role="alert" className="mb-2 font-semibold text-alerta">{erro}</p>}
+      <RodapeRascunho
+        mudancas={mudados.length}
+        saindo={saindo}
+        salvando={salvando}
+        rotuloSalvar="Salvar alterações"
+        aoSalvar={() => salvar()}
+        aoDescartar={() => setD(inicial)}
+        aoContinuar={() => setSaindo(false)}
+        aoSairSemSalvar={aoFechar}
+        semMudancas={<div className="flex justify-end"><button type="button" className="btn-secundario" onClick={aoFechar}>Fechar</button></div>}
+      />
+    </>
+  ) : saindo ? (
+    <RodapeRascunho
+      mudancas={1}
+      saindo
+      salvando={false}
+      rotuloSalvar=""
+      aoSalvar={() => {}}
+      aoDescartar={() => {}}
+      aoContinuar={() => setSaindo(false)}
+      aoSairSemSalvar={aoFechar}
+      semMudancas={null}
+    />
+  ) : (
+    <>
+      {erro && <p role="alert" className="mb-2 font-semibold text-alerta">{erro}</p>}
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+        <button type="button" className="btn-secundario" onClick={aoFechar}>Cancelar</button>
+        <button type="submit" form="form-pessoa" className="btn-primario" disabled={salvando}>
+          {salvando ? "Criando..." : "Criar e gerar senha"}
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <PainelRapido
+      idTitulo="titulo-pessoa"
+      largura="max-w-lg md:max-w-2xl"
+      titulo={editando ? pessoa.nome : "Nova pessoa"}
+      subtitulo={
+        <p className="mt-0.5 text-sm text-tinta-2">
+          {editando
+            ? <>Matrícula {pessoa.matricula || "—"}{pessoa.ficticio ? " · conta de teste" : ""}</>
+            : "A pessoa entra com a matrícula e uma senha provisória, e cria a própria senha no primeiro acesso."}
+        </p>
+      }
+      aoTentarFechar={() => {
+        if (salvando) return;
+        if (editando ? !mudados.length : !d.nome && !d.matricula) return aoFechar();
+        setSaindo((s) => !s);
+      }}
+      rodape={rodape}
+    >
+      <form id="form-pessoa" onSubmit={salvar} className="grid gap-4 md:grid-cols-2">
+        <div className="md:col-span-2">
+          <Campo id="p-nome" rotulo="Nome completo">
+            <input id="p-nome" required className="campo" value={d.nome} onChange={(e) => muda("nome", e.target.value)} autoComplete="off" autoFocus={!editando} />
+          </Campo>
+        </div>
+        <Campo id="p-matricula" rotulo="Matrícula" ajuda="É o login. Só números, até 8 dígitos.">
+          <input
+            id="p-matricula" required inputMode="numeric" maxLength={8} pattern="[0-9]{1,8}"
+            className="campo font-display text-lg tracking-wider" value={d.matricula}
+            onChange={(e) => muda("matricula", e.target.value.replace(/\D/g, "").slice(0, 8))} autoComplete="off"
+          />
+        </Campo>
+        <Campo id="p-setor" rotulo="Setor">
+          <select id="p-setor" className="campo" value={d.setor} onChange={(e) => muda("setor", e.target.value)}>
+            <option value="">Sem setor</option>
+            {opcoesSetor.map((s) => <option key={s.id} value={s.id}>{s.nome}{s.ativo ? "" : " (inativo)"}</option>)}
+          </select>
+        </Campo>
+        <Campo id="p-email" rotulo="E-mail" opcional ajuda="Se tiver, a pessoa recebe os avisos do chamado por e-mail.">
+          <input id="p-email" type="email" className="campo" value={d.email} onChange={(e) => muda("email", e.target.value)} autoComplete="off" />
+        </Campo>
+        <Campo
+          id="p-ramal" rotulo="Ramal próprio" opcional
+          ajuda={setorEscolhido?.ramal ? `Em branco, usa o do setor: ${setorEscolhido.ramal}.` : "Só se for diferente do ramal do setor."}
+        >
+          <input id="p-ramal" inputMode="numeric" maxLength={20} className="campo" value={d.ramal} onChange={(e) => muda("ramal", e.target.value)} autoComplete="off" />
+        </Campo>
+
+        <fieldset className="md:col-span-2">
+          <legend className="rotulo">Tipo de conta</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {([
+              ["solicitante", "Servidor", "Abre e acompanha os próprios chamados"],
+              ["tecnico", "Técnico do TI", "Atende a fila, registra e resolve"],
+            ] as const).map(([v, r, ajuda]) => (
+              <label key={v} className="opcao">
+                <input type="radio" name="papel" className="sr-only" checked={d.papel === v} disabled={souEu} onChange={() => { muda("papel", v); if (v === "solicitante") muda("admin", false); }} />
+                <span>
+                  {r}
+                  <span className="block text-sm font-normal text-tinta-2">{ajuda}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          {d.papel === "tecnico" && (
+            <label className="mt-2 flex cursor-pointer items-start gap-3 rounded-xl p-3 ring-1 ring-linha hover:ring-acento">
+              <input type="checkbox" className="mt-1 size-5 accent-acento" checked={d.admin} disabled={souEu} onChange={(e) => muda("admin", e.target.checked)} />
+              <span>
+                <span className="flex items-center gap-1.5 font-semibold"><ShieldCheck className="size-4 text-acento" aria-hidden="true" /> Administrador do TI</span>
+                <span className="block text-sm text-tinta-2">Cria setores e contas, gera senhas e bloqueia acessos.</span>
+              </span>
+            </label>
+          )}
+          {souEu && <p className="ajuda">Você não pode mudar o seu próprio tipo de conta.</p>}
+        </fieldset>
+
+        {editando && (
+          <section className="space-y-2 md:col-span-2" aria-labelledby="sec-acesso">
+            <RotuloSecao id="sec-acesso" alterado={d.bloqueado !== inicial.bloqueado}>Acesso</RotuloSecao>
+            <div className="flex flex-col gap-3 rounded-xl p-3 ring-1 ring-linha sm:flex-row sm:items-center">
+              <p className="flex-1 text-sm">
+                {pessoa.trocar_senha
+                  ? <><b>Senha provisória:</b> a pessoa ainda não criou a própria senha.</>
+                  : <><b>Senha própria</b> já criada.</>}
+              </p>
+              {confirmarSenha ? (
+                <span className="flex gap-2">
+                  <button type="button" className="btn-primario min-h-10 px-3 text-sm" onClick={novaSenha}>Gerar agora</button>
+                  <button type="button" className="btn min-h-10 px-2 text-sm text-tinta-2" onClick={() => setConfirmarSenha(false)}>Cancelar</button>
+                </span>
+              ) : (
+                <button type="button" className="btn-secundario min-h-10 px-3 text-sm" onClick={() => setConfirmarSenha(true)} disabled={mudados.length > 0} title={mudados.length ? "Salve ou descarte as alterações antes" : undefined}>
+                  <KeyRound className="size-4" aria-hidden="true" /> Nova senha provisória
+                </button>
+              )}
+            </div>
+            {!souEu && (
+              <label className={`flex cursor-pointer items-start gap-3 rounded-xl p-3 ring-1 ${d.bloqueado ? "bg-brasa-50 ring-alerta" : "ring-linha hover:ring-acento"}`}>
+                <input type="checkbox" className="mt-1 size-5 accent-acento" checked={d.bloqueado} onChange={(e) => muda("bloqueado", e.target.checked)} />
+                <span>
+                  <span className="flex items-center gap-1.5 font-semibold"><Ban className="size-4" aria-hidden="true" /> Bloquear acesso</span>
+                  <span className="block text-sm text-tinta-2">A pessoa não consegue entrar (ex.: saiu da Prefeitura). Os chamados dela continuam no histórico.</span>
+                </span>
+              </label>
+            )}
+          </section>
+        )}
+      </form>
+    </PainelRapido>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Formulário de setor                                                  */
+/* ------------------------------------------------------------------ */
+
+function JanelaSetor({ setor, aoFechar, aoSalvo }: { setor?: SetorTI; aoFechar: () => void; aoSalvo: (msg: string) => void }) {
+  const inicial = { nome: setor?.nome ?? "", predio: setor?.predio ?? "", ramal: setor?.ramal ?? "", ativo: setor?.ativo ?? true };
+  const [d, setD] = useState(inicial);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+  const muda = <K extends keyof typeof inicial>(k: K, v: (typeof inicial)[K]) => setD((x) => ({ ...x, [k]: v }));
+
+  async function salvar(e?: FormEvent) {
+    e?.preventDefault();
+    setErro("");
+    setSalvando(true);
+    try {
+      if (setor) {
+        await pb.send(`/api/ti/setores/${setor.id}`, { method: "PATCH", body: d });
+        aoSalvo(`Setor ${d.nome} atualizado.`);
+      } else {
+        const r = await pb.send<{ criado: boolean; setor: SetorTI }>("/api/ti/setores", { method: "POST", body: d });
+        aoSalvo(r.criado ? `Setor ${r.setor.nome} criado.` : `O setor ${r.setor.nome} já existia.`);
+      }
+      limparCache("setores");
+      aoFechar();
     } catch (err) {
       setErro(mensagemErro(err));
     } finally {
@@ -143,159 +360,357 @@ function EditarUsuario({ u, setores, aoSalvar, aoCancelar }: {
   }
 
   return (
-    <form onSubmit={salvar} className="mt-3 grid w-full gap-3 sm:grid-cols-[minmax(0,1fr)_8rem_auto] sm:items-end">
-      <div>
-        <label htmlFor={`setor-${u.id}`} className="rotulo text-sm">Setor</label>
-        <select id={`setor-${u.id}`} className="campo" value={setor} onChange={(e) => setSetor(e.target.value)}>
-          <option value="">Sem setor</option>
-          {setores.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-        </select>
-      </div>
-      <div>
-        <label htmlFor={`ramal-${u.id}`} className="rotulo text-sm">Ramal</label>
-        <input id={`ramal-${u.id}`} inputMode="numeric" maxLength={20} className="campo" value={ramal} onChange={(e) => setRamal(e.target.value)} />
-      </div>
-      <div className="flex gap-2">
-        <button className="btn-primario" disabled={salvando}>{salvando ? "Salvando..." : "Salvar"}</button>
-        <button type="button" className="btn px-3 text-tinta-2" onClick={aoCancelar}>Cancelar</button>
-      </div>
-      {erro && <p role="alert" className="font-semibold text-alerta sm:col-span-3">{erro}</p>}
-    </form>
+    <PainelRapido
+      idTitulo="titulo-setor"
+      largura="max-w-md"
+      titulo={setor ? `Setor ${setor.nome}` : "Novo setor"}
+      aoTentarFechar={aoFechar}
+      rodape={
+        <>
+          {erro && <p role="alert" className="mb-2 font-semibold text-alerta">{erro}</p>}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+            <button type="button" className="btn-secundario" onClick={aoFechar}>Cancelar</button>
+            <button type="submit" form="form-setor" className="btn-primario" disabled={salvando}>{salvando ? "Salvando..." : setor ? "Salvar" : "Criar setor"}</button>
+          </div>
+        </>
+      }
+    >
+      <form id="form-setor" onSubmit={salvar} className="space-y-4">
+        <Campo id="s-nome" rotulo="Nome do setor">
+          <input id="s-nome" required className="campo" value={d.nome} onChange={(e) => muda("nome", e.target.value)} autoFocus placeholder="Ex.: Tributação" />
+        </Campo>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Campo id="s-ramal" rotulo="Ramal" opcional ajuda="Vale para todas as pessoas do setor.">
+            <input id="s-ramal" inputMode="numeric" maxLength={20} className="campo font-display text-lg" value={d.ramal} onChange={(e) => muda("ramal", e.target.value)} />
+          </Campo>
+          <Campo id="s-predio" rotulo="Prédio" opcional>
+            <input id="s-predio" className="campo" value={d.predio} onChange={(e) => muda("predio", e.target.value)} placeholder="Ex.: Paço Municipal" />
+          </Campo>
+        </div>
+        {setor && (
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl p-3 ring-1 ring-linha hover:ring-acento">
+            <input type="checkbox" className="mt-1 size-5 accent-acento" checked={d.ativo} onChange={(e) => muda("ativo", e.target.checked)} />
+            <span>
+              <span className="font-semibold">Setor ativo</span>
+              <span className="block text-sm text-tinta-2">Desmarque se o setor deixou de existir: ele some da lista de escolha, mas o histórico fica.</span>
+            </span>
+          </label>
+        )}
+      </form>
+    </PainelRapido>
   );
 }
 
-/** Gestão de contas pelo TI: criar usuário e gerar nova senha provisória. */
-export function Usuarios() {
-  const [setores, setSetores] = useState<Setor[]>([]);
-  const [lista, setLista] = useState<UsuarioTI[] | null>(null);
+/* ------------------------------------------------------------------ */
+/* Abas                                                                 */
+/* ------------------------------------------------------------------ */
+
+function Selos({ p }: { p: PessoaTI }) {
+  return (
+    <>
+      {p.papel === "tecnico" && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-mar-50 px-2 py-0.5 text-xs font-bold text-acento">
+          {p.admin && <ShieldCheck className="size-3.5" aria-hidden="true" />}{p.admin ? "Admin do TI" : "Técnico"}
+        </span>
+      )}
+      {p.bloqueado && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-brasa-50 px-2 py-0.5 text-xs font-bold text-alerta">
+          <Lock className="size-3.5" aria-hidden="true" /> Bloqueado
+        </span>
+      )}
+      {!p.bloqueado && p.trocar_senha && (
+        <span className="rounded-full bg-sol-50 px-2 py-0.5 text-xs font-bold text-tinta ring-1 ring-sol" title="Ainda não criou a própria senha">
+          Senha provisória
+        </span>
+      )}
+      <SeloTeste ficticio={p.ficticio} />
+    </>
+  );
+}
+
+function AbaPessoas({ setores, admin, setorFiltro, aoFiltrarSetor, recarregarTudo, versao, aoEditar, aoNova }: {
+  setores: SetorTI[];
+  admin: boolean;
+  setorFiltro: string;
+  aoFiltrarSetor: (id: string) => void;
+  recarregarTudo: number;
+  versao: number;
+  aoEditar: (p: PessoaTI) => void;
+  aoNova: () => void;
+}) {
+  const [lista, setLista] = useState<PessoaTI[] | null>(null);
+  const [total, setTotal] = useState(0);
   const [q, setQ] = useState("");
   const [esconderTeste, setEsconderTeste] = useState(false);
   const pag = usePaginacao("usuarios", 25);
-  const [total, setTotal] = useState(0);
-  const [resultado, setResultado] = useState<RespostaUsuario | null>(null);
-  const [confirmando, setConfirmando] = useState("");
-  const [editando, setEditando] = useState("");
-  const [erro, setErro] = useState("");
-
-  useEffect(() => {
-    pb.collection("setores").getFullList<Setor>({ sort: "nome" }).then(setSetores).catch(() => {});
-  }, []);
 
   const carregar = useCallback(async () => {
-    const query: Record<string, string> = {};
+    const query: Record<string, string> = { pagina: String(pag.pagina), por_pagina: String(pag.porPagina) };
     if (q.trim()) query.q = q.trim();
+    if (setorFiltro) query.setor = setorFiltro;
     if (esconderTeste) query.ocultar_teste = "1";
-    // paginado no servidor: só a página pedida vem do banco
-    query.pagina = String(pag.pagina);
-    query.por_pagina = String(pag.porPagina);
     try {
-      const r = await pb.send<{ itens: UsuarioTI[]; total: number; pagina: number }>("/api/ti/usuarios", { query });
+      const r = await pb.send<{ itens: PessoaTI[]; total: number; pagina: number }>("/api/ti/usuarios", { query, requestKey: "pessoas" });
       setLista(r.itens);
       setTotal(r.total);
       if (r.pagina !== pag.pagina) pag.setPagina(r.pagina);
-    } catch {
-      setLista([]);
+    } catch (err) {
+      if (!(err as { isAbort?: boolean })?.isAbort) setLista([]);
     }
-  }, [q, esconderTeste, pag.pagina, pag.porPagina]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [q, setorFiltro, esconderTeste, pag.pagina, pag.porPagina, recarregarTudo, versao]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const t = window.setTimeout(carregar, 250);
+    const t = window.setTimeout(carregar, 200);
     return () => window.clearTimeout(t);
   }, [carregar]);
 
-  function mostrar(r: RespostaUsuario) {
-    setResultado(r);
-    setConfirmando("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    carregar();
-  }
+  return (
+    <section className="space-y-3" aria-label="Pessoas">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
+        <label className="relative flex-1">
+          <span className="sr-only">Pesquisar pessoa</span>
+          <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
+          <input type="search" className="campo pl-12" placeholder="Nome, matrícula ou e-mail" value={q} onChange={(e) => { setQ(e.target.value); pag.voltarAoInicio(); }} />
+        </label>
+        <label className="md:w-56">
+          <span className="sr-only">Filtrar por setor</span>
+          <select className="campo" value={setorFiltro} onChange={(e) => { aoFiltrarSetor(e.target.value); pag.voltarAoInicio(); }}>
+            <option value="">Todos os setores</option>
+            {setores.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+          </select>
+        </label>
+        {admin && (
+          <button type="button" className="btn-primario" onClick={aoNova}>
+            <UserPlus className="size-5" aria-hidden="true" /> Nova pessoa
+          </button>
+        )}
+      </div>
+      <label className="flex w-fit cursor-pointer items-center gap-2 text-sm font-semibold text-tinta-2">
+        <input type="checkbox" className="size-5 accent-acento" checked={esconderTeste} onChange={(e) => { setEsconderTeste(e.target.checked); pag.voltarAoInicio(); }} />
+        Esconder contas de teste
+      </label>
 
-  async function novaSenha(u: UsuarioTI) {
-    setErro("");
-    try {
-      mostrar(await pb.send<RespostaUsuario>(`/api/ti/usuarios/${u.id}/senha`, { method: "POST" }));
-    } catch (err) {
-      setErro(mensagemErro(err));
-    }
-  }
+      {lista === null ? (
+        <p className="text-tinta-2">Carregando...</p>
+      ) : lista.length === 0 ? (
+        <div className="rounded-2xl bg-superficie p-8 text-center ring-1 ring-linha">
+          <p className="font-semibold">Ninguém encontrado.</p>
+          {admin && setorFiltro && <button type="button" className="btn-secundario mt-3" onClick={aoNova}><UserPlus className="size-5" aria-hidden="true" /> Adicionar pessoa neste setor</button>}
+        </div>
+      ) : (
+        <ul className="divide-y divide-linha overflow-hidden rounded-2xl bg-superficie ring-1 ring-linha">
+          {lista.map((p) => {
+            const ramal = p.ramal || p.setor_ramal;
+            const conteudo = (
+              <>
+                <Avatar id={p.id} nome={p.nome} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
+                    <span className={p.bloqueado ? "text-tinta-2 line-through" : ""}>{p.nome || "(sem nome)"}</span>
+                    <Selos p={p} />
+                  </span>
+                  <span className="mt-0.5 flex flex-wrap gap-x-3 text-sm text-tinta-2">
+                    <span>Mat. <b className="font-display text-tinta">{p.matricula || "—"}</b></span>
+                    {p.setor_nome && <span className="inline-flex items-center gap-1"><Building2 className="size-3.5" aria-hidden="true" />{p.setor_nome}</span>}
+                    {ramal && <span className="inline-flex items-center gap-1"><Phone className="size-3.5" aria-hidden="true" />{ramal}{!p.ramal && " (setor)"}</span>}
+                    {p.email && <span className="truncate">{p.email}</span>}
+                  </span>
+                </span>
+                {admin && <Pencil className="size-4 shrink-0 text-tinta-2" aria-hidden="true" />}
+              </>
+            );
+            return (
+              <li key={p.id}>
+                {admin ? (
+                  <button type="button" onClick={() => aoEditar(p)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-fundo" aria-label={`Editar ${p.nome}`}>
+                    {conteudo}
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-3 px-4 py-3">{conteudo}</div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {lista && lista.length > 0 && (
+        <Paginacao pagina={pag.pagina} porPagina={pag.porPagina} total={total} aoMudarPagina={pag.setPagina} aoMudarPorPagina={pag.setPorPagina} rotulo="pessoas" />
+      )}
+    </section>
+  );
+}
+
+function AbaSetores({ setores, admin, aoEditar, aoNovo, aoVerPessoas, aoAdicionarPessoa }: {
+  setores: SetorTI[];
+  admin: boolean;
+  aoEditar: (s: SetorTI) => void;
+  aoNovo: () => void;
+  aoVerPessoas: (s: SetorTI) => void;
+  aoAdicionarPessoa: (s: SetorTI) => void;
+}) {
+  const [mostrarInativos, setMostrarInativos] = useState(false);
+  const visiveis = setores.filter((s) => s.ativo || mostrarInativos);
+  const inativos = setores.length - setores.filter((s) => s.ativo).length;
+  return (
+    <section className="space-y-3" aria-label="Setores">
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="flex-1 text-tinta-2">
+          O ramal do setor vale para todas as pessoas dele (dá para pôr um ramal próprio na pessoa).
+        </p>
+        {inativos > 0 && (
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-tinta-2">
+            <input type="checkbox" className="size-5 accent-acento" checked={mostrarInativos} onChange={(e) => setMostrarInativos(e.target.checked)} />
+            Mostrar inativos ({inativos})
+          </label>
+        )}
+        {admin && (
+          <button type="button" className="btn-primario" onClick={aoNovo}>
+            <Plus className="size-5" aria-hidden="true" /> Novo setor
+          </button>
+        )}
+      </div>
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {visiveis.map((s) => (
+          <li key={s.id} className={`flex flex-col rounded-2xl bg-superficie p-4 ring-1 ring-linha ${s.ativo ? "" : "opacity-60"}`}>
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-lg font-bold">{s.nome}</p>
+                <p className="text-sm text-tinta-2">{s.predio || "Prédio não informado"}{s.ativo ? "" : " · inativo"}</p>
+              </div>
+              {admin && (
+                <button type="button" onClick={() => aoEditar(s)} className="grid size-10 place-items-center rounded-full text-tinta-2 hover:bg-fundo hover:text-tinta" aria-label={`Editar setor ${s.nome}`}>
+                  <Pencil className="size-4" />
+                </button>
+              )}
+            </div>
+            <div className="mt-3 flex items-end justify-between gap-2">
+              <p className="text-sm text-tinta-2">
+                Ramal
+                <span className={`block font-display text-2xl font-extrabold ${s.ramal ? "text-tinta" : "text-tinta-2"}`}>{s.ramal || "—"}</span>
+              </p>
+              <button type="button" onClick={() => aoVerPessoas(s)} className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-acento hover:bg-mar-50">
+                <Users className="size-4" aria-hidden="true" /> {s.pessoas} {s.pessoas === 1 ? "pessoa" : "pessoas"}
+              </button>
+            </div>
+            {admin && s.ativo && (
+              <button type="button" onClick={() => aoAdicionarPessoa(s)} className="btn-secundario mt-3 min-h-10 text-sm">
+                <UserPlus className="size-4" aria-hidden="true" /> Adicionar pessoa
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Página                                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Pessoas e setores. Só o ADMINISTRADOR DO TI cria e edita (setores, contas, senhas, bloqueio);
+ * os outros técnicos consultam. Não existe "criar conta" público: a conta nasce aqui,
+ * com matrícula e senha provisória que a pessoa troca no primeiro acesso.
+ */
+export function Usuarios() {
+  const { usuario } = useAuth();
+  const admin = ehAdmin(usuario);
+  const eu = usuario?.id ?? "";
+  const [params, setParams] = useSearchParams();
+  const aba = params.get("aba") === "setores" ? "setores" : "pessoas";
+  const setorFiltro = params.get("setor") ?? "";
+  const { setores, recarregar } = useSetoresTI();
+  const [versao, setVersao] = useState(0);
+  const [aviso, setAviso] = useState("");
+  const [pessoa, setPessoa] = useState<{ p?: PessoaTI; setor?: string } | null>(null);
+  const [setor, setSetor] = useState<{ s?: SetorTI } | null>(null);
+  const [senha, setSenha] = useState<{ r: RespostaPessoa; nova: boolean } | null>(null);
+
+  const irPara = (novaAba: "pessoas" | "setores", setorId = "") => {
+    const p = new URLSearchParams();
+    if (novaAba === "setores") p.set("aba", "setores");
+    if (setorId) p.set("setor", setorId);
+    setParams(p, { replace: true });
+  };
+  const depoisDeSalvar = (msg: string) => { setAviso(msg); setVersao((v) => v + 1); recarregar(); };
+  const totalPessoas = (setores ?? []).reduce((n, s) => n + s.pessoas, 0);
+
+  const aba_ = (id: "pessoas" | "setores", rotulo: string, Icone: typeof Users, n?: number) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={aba === id}
+      onClick={() => irPara(id)}
+      className={`flex min-h-11 items-center gap-2 rounded-lg px-4 font-semibold ${aba === id ? "bg-mar-700 text-white" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
+    >
+      <Icone className="size-4" aria-hidden="true" /> {rotulo}
+      {n !== undefined && <span className="font-display">{n}</span>}
+    </button>
+  );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Usuários</h1>
-        <p className="mt-1 text-tinta-2">Crie a conta do servidor e passe a senha provisória. Esqueceu a senha? Gere uma nova.</p>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">Pessoas e setores</h1>
+          <p className="mt-1 text-tinta-2">
+            {admin
+              ? "Crie setores e contas. Cada pessoa entra com a matrícula e uma senha provisória."
+              : "Consulta. Só o administrador do TI cria e edita contas e setores."}
+          </p>
+        </div>
+        <div role="tablist" aria-label="O que ver" className="flex gap-1 rounded-xl bg-superficie p-1 ring-1 ring-linha">
+          {aba_("pessoas", "Pessoas", Users)}
+          {aba_("setores", "Setores", Building2, setores?.filter((s) => s.ativo).length)}
+        </div>
       </div>
 
-      {resultado?.senha_provisoria && <CartaoSenha r={resultado} aoFechar={() => setResultado(null)} />}
+      {aviso && (
+        <p role="status" className="flex items-start gap-2 rounded-xl bg-campo-50 p-4 font-semibold ring-1 ring-ok/30">
+          <Check className="size-5 shrink-0 text-ok" aria-hidden="true" />
+          <span className="flex-1">{aviso}</span>
+          <button type="button" className="text-sm text-tinta-2" onClick={() => setAviso("")}>Fechar</button>
+        </p>
+      )}
 
-      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
-        <NovoUsuario setores={setores} aoCriar={mostrar} />
+      {setores === null ? (
+        <p className="text-tinta-2">Carregando...</p>
+      ) : aba === "pessoas" ? (
+        <AbaPessoas
+          setores={setores}
+          admin={admin}
+          setorFiltro={setorFiltro}
+          aoFiltrarSetor={(id) => irPara("pessoas", id)}
+          recarregarTudo={totalPessoas}
+          versao={versao}
+          aoEditar={(p) => setPessoa({ p })}
+          aoNova={() => setPessoa({ setor: setorFiltro })}
+        />
+      ) : (
+        <AbaSetores
+          setores={setores}
+          admin={admin}
+          aoEditar={(s) => setSetor({ s })}
+          aoNovo={() => setSetor({})}
+          aoVerPessoas={(s) => irPara("pessoas", s.id)}
+          aoAdicionarPessoa={(s) => setPessoa({ setor: s.id })}
+        />
+      )}
 
-        <section className="space-y-3" aria-label="Lista de usuários">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label className="relative flex-1">
-              <span className="sr-only">Pesquisar usuário</span>
-              <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
-              <input type="search" className="campo pl-12" placeholder="Nome ou e-mail" value={q} onChange={(e) => { setQ(e.target.value); pag.voltarAoInicio(); }} />
-            </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-tinta-2">
-              <input type="checkbox" className="size-5 accent-acento" checked={esconderTeste} onChange={(e) => { setEsconderTeste(e.target.checked); pag.voltarAoInicio(); }} />
-              Esconder contas de teste
-            </label>
-          </div>
-          {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
-          {lista === null ? (
-            <p className="text-tinta-2">Carregando...</p>
-          ) : lista.length === 0 ? (
-            <p className="text-tinta-2">Nenhum usuário encontrado.</p>
-          ) : (
-            <ul className="divide-y divide-linha rounded-2xl bg-superficie ring-1 ring-linha">
-              {lista.map((u) => (
-                <li key={u.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2 font-semibold">
-                      {u.nome || "(sem nome)"}
-                      {u.papel === "tecnico" && <span className="rounded-full bg-mar-50 px-2 py-0.5 text-xs font-semibold text-acento">TI</span>}
-                      <SeloTeste ficticio={u.ficticio} />
-                    </p>
-                    <p className="truncate text-sm text-tinta-2">
-                      {u.email}{u.setor_nome ? ` · ${u.setor_nome}` : ""}{u.ramal ? ` · ramal ${u.ramal}` : ""}
-                    </p>
-                  </div>
-                  {editando !== u.id && (
-                    <button type="button" className="btn-secundario min-h-10 px-3 text-sm" onClick={() => { setEditando(u.id); setConfirmando(""); }}>
-                      <Pencil className="size-4" aria-hidden="true" /> Editar
-                    </button>
-                  )}
-                  {confirmando === u.id ? (
-                    <span className="flex items-center gap-2">
-                      <button type="button" className="btn-primario min-h-10 px-3 text-sm" onClick={() => novaSenha(u)}>Gerar nova senha</button>
-                      <button type="button" className="btn min-h-10 px-2 text-sm text-tinta-2" onClick={() => setConfirmando("")}>Cancelar</button>
-                    </span>
-                  ) : (
-                    <button type="button" className="btn-secundario min-h-10 px-3 text-sm" onClick={() => setConfirmando(u.id)}>
-                      <KeyRound className="size-4" aria-hidden="true" /> Nova senha
-                    </button>
-                  )}
-                  {editando === u.id && (
-                    <EditarUsuario u={u} setores={setores} aoCancelar={() => setEditando("")} aoSalvar={() => { setEditando(""); carregar(); }} />
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-          {lista && lista.length > 0 && (
-            <Paginacao
-              pagina={pag.pagina}
-              porPagina={pag.porPagina}
-              total={total}
-              aoMudarPagina={pag.setPagina}
-              aoMudarPorPagina={pag.setPorPagina}
-              rotulo="usuários"
-            />
-          )}
-        </section>
-      </div>
+      {pessoa && setores && (
+        <JanelaPessoa
+          pessoa={pessoa.p}
+          setorInicial={pessoa.setor}
+          setores={setores}
+          eu={eu}
+          aoFechar={() => setPessoa(null)}
+          aoSalvo={depoisDeSalvar}
+          aoSenha={(r, nova) => { setSenha({ r, nova }); if (nova) irPara("pessoas", r.usuario.setor); }}
+        />
+      )}
+      {setor && <JanelaSetor setor={setor.s} aoFechar={() => setSetor(null)} aoSalvo={depoisDeSalvar} />}
+      {senha && <JanelaSenha r={senha.r} nova={senha.nova} aoFechar={() => setSenha(null)} />}
     </div>
   );
 }

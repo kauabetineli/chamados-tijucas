@@ -31,9 +31,10 @@ Guia para o Departamento de TI. Tempo estimado: 30 minutos.
 | Settings > Application | Nome do app: `Dino Desk`. URL: `http://IP-do-PC` (usada no link do e-mail) |
 | Settings > Mail settings | Ligar o SMTP com uma conta de e-mail da Prefeitura, para os avisos aos servidores |
 | Settings > Backups | Ligar o backup automático (ex.: `0 3 * * *`, manter 7) |
-| Coleção `users` | Depois que os 3 técnicos criarem conta pelo sistema, mudar o `papel` deles para `tecnico` |
+| Coleção `users` | Criar a conta do **primeiro técnico** (matrícula, `papel = tecnico`, `admin` marcado, `trocar_senha` marcado). Daí em diante o admin cria setores e contas pela tela **Pessoas e setores** |
 
-Opcional: na coleção `users`, campo `email`, é possível restringir o cadastro ao domínio de e-mail da Prefeitura.
+Não existe cadastro público: só o administrador do TI cria contas (login pela matrícula; e-mail é opcional).
+Pela CLI: `node ferramentas/dino.mjs usuario:criar --real --nome "..." --matricula 12345 --papel tecnico --admin`.
 
 ## 4. Avisos no celular dos técnicos (ntfy)
 

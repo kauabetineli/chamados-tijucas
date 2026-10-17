@@ -75,21 +75,24 @@ ferramenta("listar_chamados", {
 ferramenta("criar_setor", {
   titulo: "Criar setor",
   descricao: "Cria um setor (se já existir com o mesmo nome, devolve o existente).",
-  entrada: { nome: z.string(), predio: z.string().optional() },
+  entrada: { nome: z.string(), predio: z.string().optional(), ramal: z.string().max(20).optional().describe("ramal do setor") },
 }, (a) => op.criarSetor(dino, a));
 
 ferramenta("criar_usuario", {
   titulo: "Criar usuário",
   descricao:
-    "Cria um usuário. Por padrão é FICTÍCIO (dado de teste, e-mail @teste.dinodesk gerado se faltar). " +
-    "Use ficticio=false SOMENTE quando o usuário humano pedir uma conta real; nesse caso nome e e-mail são obrigatórios. " +
-    "Sem senha, o servidor gera uma provisória e devolve em senha_provisoria. O setor pode ser o nome; se não existir, é criado.",
+    "Cria um usuário. Por padrão é FICTÍCIO (dado de teste: matrícula 9xxxxxxx e e-mail @teste.dinodesk gerados se faltarem). " +
+    "Use ficticio=false SOMENTE quando o usuário humano pedir uma conta real; nesse caso nome e matrícula são obrigatórios (e-mail é opcional). " +
+    "O login é a MATRÍCULA. Sem senha, o servidor gera uma provisória aleatória (senha_provisoria) e a pessoa cria a própria no primeiro acesso. " +
+    "O setor pode ser o nome; se não existir, é criado.",
   entrada: {
     nome: z.string().optional(),
-    email: z.string().optional(),
+    matricula: z.string().regex(/^[0-9]{1,8}$/).optional().describe("só números, até 8 dígitos; é o login"),
+    email: z.string().optional().describe("opcional"),
+    admin: z.boolean().optional().describe("administrador do TI (só para papel tecnico)"),
     setor: z.string().optional().describe("nome ou id do setor"),
     papel: z.enum(["solicitante", "tecnico"]).optional(),
-    ramal: z.string().max(20).optional().describe("ramal da sala (nunca celular pessoal)"),
+    ramal: z.string().max(20).optional().describe("ramal próprio, só se diferente do ramal do setor (nunca celular pessoal)"),
     senha: z.string().min(8).optional(),
     ficticio: z.boolean().optional().describe("padrão true"),
   },

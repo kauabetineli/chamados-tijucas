@@ -27,7 +27,7 @@ Use as ferramentas prontas do projeto. **Não escreva scripts novos** nem chame 
      Nunca invente e-mail para conta real. Entregue a `senha_provisoria` devolvida.
    - "limpar / apagar testes" → `limpar_ficticios` primeiro **sem** confirmar (mostra quantos), depois `confirmar: true`.
 3. **Responda curto**: o que foi criado (totais de `info`), 1 ou 2 logins para testar
-   (e-mail de um servidor e de um técnico fictício + `Teste@1234`) e onde olhar (Fila em `/ti`, Painel em `/ti/painel`).
+   (matrícula ou e-mail de um servidor e de um técnico fictício + `Teste@1234`) e onde olhar (Fila em `/ti`, Painel em `/ti/painel`).
 
 ## Bom saber
 

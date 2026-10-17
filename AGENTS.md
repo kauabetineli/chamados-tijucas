@@ -62,7 +62,7 @@ Credenciais do superusuário em `ferramentas/.env`. Primeira vez: `cd ferramenta
 |---|---|---|
 | "como está o sistema?" | `info` | `info` |
 | "cria 15 usuários de teste" | `criar_usuarios_ficticios` | `usuarios:ficticios --quantidade 15 --tecnicos 2` |
-| "cria a conta da Maria do RH" (REAL) | `criar_usuario` com `ficticio: false` | `usuario:criar --nome ... --email ... --setor RH --real` |
+| "cria a conta da Maria do RH" (REAL) | `criar_usuario` com `ficticio: false` | `usuario:criar --nome ... --matricula 12345 --setor RH --real` |
 | "abre um chamado de impressora com foto" | `abrir_chamado` | `chamado:abrir --categoria Impressora --fotos 1` |
 | "enche o sistema para eu ver as telas" | `popular` | `popular --chamados 30` |
 | "simula o movimento" | `simular_rodadas` | `simular --minutos 10` (contínuo) |
@@ -97,9 +97,11 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 
 ## Modelo de dados (resumo)
 
-- `users` (auth): name, email, setor → setores, papel (`solicitante` | `tecnico`), ramal (da sala, só o TI edita), ficticio.
+- `users` (auth): name, **matricula** (login, até 8 dígitos, única), email (opcional), setor → setores,
+  papel (`solicitante` | `tecnico`), admin (admin do TI), ramal (próprio, opcional), trocar_senha, bloqueado, ficticio.
+  **Não há cadastro público**: só o admin do TI cria contas (`POST /api/ti/usuarios`); a pessoa só troca a própria senha.
   O PocketBase ESCONDE o e-mail de outros usuários; o TI usa `GET /api/ti/usuarios`.
-- `setores`: nome, predio, ativo. `categorias`: nome, icone (lucide), ordem, ativa.
+- `setores`: nome, predio, ramal (do setor), ativo (desativar em vez de apagar). `categorias`: nome, icone (lucide), ordem, ativa.
 - `chamados`: protocolo (2026-00001), descricao, categoria, solicitante | solicitante_nome, setor (o lugar do chamado; `local` é legado e não é usado),
   impacto (`so_eu`|`setor`|`publico`) → prioridade (`normal`|`alta`|`urgente`, `baixa` só pelo TI), peso,
   status (`aberto`|`em_andamento`|`resolvido`), origem (`sistema`|`whatsapp`|`ligacao`|`presencial`),

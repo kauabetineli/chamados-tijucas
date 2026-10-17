@@ -1,13 +1,18 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { TelaAcesso } from "../components/TelaAcesso";
+import { lembrarSenhaDoLogin } from "../lib/auth";
 import { destinoSeguro, mensagemErro, pb } from "../lib/pb";
 
+/**
+ * Login pela MATRÍCULA (ou e-mail, para quem tiver). Não existe "criar conta":
+ * o administrador do TI cria a conta e entrega uma senha provisória.
+ */
 export function Entrar() {
   const navegar = useNavigate();
   const [params] = useSearchParams();
   const voltar = params.get("voltar");
-  const [email, setEmail] = useState("");
+  const [identidade, setIdentidade] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [entrando, setEntrando] = useState(false);
@@ -17,7 +22,10 @@ export function Entrar() {
     setErro("");
     setEntrando(true);
     try {
-      const { record } = await pb.collection("users").authWithPassword(email.trim(), senha, { expand: "setor" });
+      const id = identidade.trim();
+      // matrícula é só número; com @ é e-mail (em minúsculas, como o TI cadastra)
+      const { record } = await pb.collection("users").authWithPassword(id.includes("@") ? id.toLowerCase() : id, senha, { expand: "setor" });
+      if (record.trocar_senha) lembrarSenhaDoLogin(senha);
       navegar(destinoSeguro(voltar) ?? (record.papel === "tecnico" ? "/ti" : "/"), { replace: true });
     } catch (err) {
       setErro(mensagemErro(err));
@@ -30,8 +38,19 @@ export function Entrar() {
     <TelaAcesso titulo="Entrar">
       <form onSubmit={entrar} className="space-y-5">
         <div>
-          <label htmlFor="email" className="rotulo">E-mail</label>
-          <input id="email" type="email" autoComplete="email" required className="campo" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <label htmlFor="identidade" className="rotulo">Matrícula</label>
+          <input
+            id="identidade"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            className="campo"
+            placeholder="Ex.: 12345"
+            value={identidade}
+            onChange={(e) => setIdentidade(e.target.value)}
+          />
+          <p className="ajuda">Quem tem e-mail cadastrado também pode entrar com ele.</p>
         </div>
         <div>
           <label htmlFor="senha" className="rotulo">Senha</label>
@@ -39,10 +58,9 @@ export function Entrar() {
         </div>
         {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
         <button className="btn-primario w-full" disabled={entrando}>{entrando ? "Entrando..." : "Entrar"}</button>
-        <p className="text-center">
-          Primeiro acesso? <Link to={`/cadastro${voltar ? `?voltar=${encodeURIComponent(voltar)}` : ""}`} className="font-semibold text-acento underline underline-offset-4">Criar conta</Link>
+        <p className="text-center text-sm text-tinta-2">
+          Ainda não tem acesso ou esqueceu a senha? Fale com o Departamento de TI.
         </p>
-        <p className="text-center text-sm text-tinta-2">Esqueceu a senha? Fale com o Departamento de TI.</p>
       </form>
     </TelaAcesso>
   );

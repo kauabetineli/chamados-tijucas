@@ -16,6 +16,11 @@ function ehTecnico(auth) {
   return !!auth && auth.collection().name === "users" && auth.getString("papel") === "tecnico";
 }
 
+// administrador do TI: técnico com "admin" (cria setores e contas, troca senhas, bloqueia)
+function ehAdmin(auth) {
+  return ehTecnico(auth) && auth.getBool("admin");
+}
+
 function ehUsuario(auth) {
   return !!auth && auth.collection().name === "users";
 }
@@ -93,6 +98,7 @@ module.exports = {
   ROTULO_STATUS,
   ROTULO_PRIORIDADE,
   ehTecnico,
+  ehAdmin,
   ehUsuario,
   pesoDe,
   proximoProtocolo,

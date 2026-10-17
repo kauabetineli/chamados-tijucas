@@ -25,7 +25,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return <Ctx.Provider value={{ usuario, sair: () => pb.authStore.clear() }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ usuario, sair: () => { senhaDoLogin = ""; pb.authStore.clear(); } }}>{children}</Ctx.Provider>;
+}
+
+// Senha digitada no login, guardada SÓ na memória (some ao recarregar a página):
+// se a conta está com senha provisória, a tela "Crie a sua senha" não precisa pedir de novo.
+let senhaDoLogin = "";
+export function lembrarSenhaDoLogin(senha: string) {
+  senhaDoLogin = senha;
+}
+export function senhaLembrada() {
+  return senhaDoLogin;
 }
 
 export function useAuth() {

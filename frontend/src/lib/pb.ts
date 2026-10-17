@@ -14,6 +14,8 @@ export type Origem = "sistema" | "whatsapp" | "ligacao" | "presencial";
 export interface Setor extends RecordModel {
   nome: string;
   predio: string;
+  /** ramal do setor, cadastrado pelo admin do TI */
+  ramal: string;
   ativo: boolean;
 }
 
@@ -29,8 +31,15 @@ export interface Usuario extends RecordModel {
   name: string;
   setor: string;
   papel: Papel | "";
-  /** ramal da sala, cadastrado pelo TI */
+  /** matrícula (até 8 dígitos): é o login. O e-mail é opcional */
+  matricula: string;
+  /** ramal próprio, se for diferente do ramal do setor (cadastrado pelo TI) */
   ramal: string;
+  /** administrador do TI: cria setores e contas, troca senhas */
+  admin?: boolean;
+  /** conta nova ou senha trocada pelo TI: precisa escolher a própria senha antes de usar */
+  trocar_senha?: boolean;
+  bloqueado?: boolean;
   ficticio?: boolean;
   expand?: { setor?: Setor };
 }
@@ -92,6 +101,16 @@ export function ehTecnico(u: Usuario | null) {
   return u?.papel === "tecnico";
 }
 
+/** Administrador do TI (cria setores e contas). */
+export function ehAdmin(u: Usuario | null) {
+  return ehTecnico(u) && !!u?.admin;
+}
+
+/** Ramal para falar com a pessoa: o próprio, senão o do setor. */
+export function ramalDe(u?: Usuario | null, setor?: Setor | null) {
+  return u?.ramal || u?.expand?.setor?.ramal || setor?.ramal || "";
+}
+
 export function nomeSolicitante(c: Chamado) {
   return c.expand?.solicitante?.name || c.solicitante_nome || "Sem nome";
 }
@@ -121,6 +140,8 @@ export function mensagemErro(err: unknown): string {
 
 const ROTULO_CAMPO: Record<string, string> = {
   email: "E-mail",
+  matricula: "Matrícula",
+  oldPassword: "Senha provisória",
   password: "Senha",
   passwordConfirm: "Confirmação da senha",
   name: "Nome",
@@ -138,7 +159,8 @@ const ERRO_POR_CODIGO: Record<string, string> = {
 
 function traduzir(msg: string) {
   const mapa: Record<string, string> = {
-    "Failed to authenticate.": "E-mail ou senha incorretos.",
+    "Failed to authenticate.": "Matrícula ou senha incorretas.",
+    "Missing or invalid old password.": "não confere.",
     "Cannot be blank.": "preencha este campo.",
     "Value must be unique.": "já está em uso.",
     "The value must be a valid email address.": "e-mail inválido.",

@@ -177,6 +177,12 @@
 .animar-chegada { animation: chegou 420ms cubic-bezier(.2,.8,.2,1) both; }
 
 @media print {
+  /* bilhete da senha provisória: só ele sai no papel */
+  body:has(.bilhete-senha) * { visibility: hidden; }
+  body:has(.bilhete-senha) .bilhete-senha,
+  body:has(.bilhete-senha) .bilhete-senha * { visibility: visible; }
+  body:has(.bilhete-senha) .bilhete-senha { position: fixed; top: 0; left: 0; width: 100mm; }
+
   /* impressão sempre no tema claro */
   :root.dark {
     color-scheme: light;

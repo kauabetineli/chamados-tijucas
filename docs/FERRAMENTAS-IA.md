@@ -39,8 +39,9 @@ node dino.mjs limpar                                  # mostra quanto apagaria
 node dino.mjs limpar --confirmar                      # apaga todos os dados fictícios
 ```
 
-Todos os usuários fictícios entram com a senha **`Teste@1234`**. Os e-mails aparecem no `popular`
-e em `node dino.mjs usuarios --ficticios sim`.
+Todos os usuários fictícios entram com a senha **`Teste@1234`** (sem precisar trocar). O login é a **matrícula**
+(fictícias têm 8 dígitos e começam com 9) ou o e-mail; aparecem no `popular` e em `node dino.mjs usuarios --ficticios sim`.
+Conta real: `usuario:criar --real --nome "..." --matricula 12345` (devolve a senha provisória; a pessoa troca no 1º acesso).
 
 Dica: deixe o `simular` rodando num terminal e abra o sistema como técnico em outro navegador.
 A fila vai mudando sozinha, como num dia de trabalho.

@@ -9,7 +9,7 @@ import { SeloStatus, SeloTeste } from "../components/Selos";
 import { SenhaFila } from "../components/SenhaFila";
 import { useAuth } from "../lib/auth";
 import { dataHora, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS } from "../lib/formato";
-import { EXPAND_CHAMADO, ehTecnico, mensagemErro, nomeSolicitante, pb, type Chamado as TChamado, type Status } from "../lib/pb";
+import { EXPAND_CHAMADO, ehTecnico, mensagemErro, nomeSolicitante, pb, type Chamado as TChamado, type Status, ramalDe } from "../lib/pb";
 import { useRealtime } from "../lib/useRealtime";
 
 const ETAPAS: Status[] = ["aberto", "em_andamento", "resolvido"];
@@ -116,7 +116,7 @@ export function Chamado() {
           <section className="space-y-4">
             <p className="text-lg whitespace-pre-wrap">{c.descricao}</p>
             <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-              {tecnico && <Dado termo="Quem pediu" valor={nomeSolicitante(c) + (c.expand?.solicitante?.ramal ? ` (ramal ${c.expand.solicitante.ramal})` : "")} />}
+              {tecnico && <Dado termo="Quem pediu" valor={nomeSolicitante(c) + (ramalDe(c.expand?.solicitante, c.expand?.setor) ? ` (ramal ${ramalDe(c.expand?.solicitante, c.expand?.setor)})` : "")} />}
               <Dado termo="Setor" valor={c.expand?.setor?.nome} />
               <Dado termo="Quem é afetado" valor={ROTULO_IMPACTO[c.impacto]} />
               {tecnico && <Dado termo="Como chegou" valor={ROTULO_ORIGEM[c.origem]} />}

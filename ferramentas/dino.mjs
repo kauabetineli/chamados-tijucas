@@ -17,8 +17,8 @@ Consultas
   chamados   [--status aberto|em_andamento|resolvido] [--ficticios sim|nao] [--limite 20]
 
 Criação
-  setor:criar    --nome "Tributos" [--predio "Paço Municipal"]
-  usuario:criar  [--nome "Maria"] [--email maria@x] [--setor Engenharia] [--ramal 2134] [--papel tecnico]
+  setor:criar    --nome "Tributos" [--predio "Paço Municipal"] [--ramal 2045]
+  usuario:criar  [--nome "Maria"] [--matricula 12345] [--email maria@x] [--setor Engenharia] [--ramal 2134] [--papel tecnico] [--admin]
                  [--senha ...] [--real]        (sem --real a conta é FICTÍCIA)
   usuarios:ficticios --quantidade 10 [--tecnicos 2] [--senha Teste@1234]
   chamado:abrir  [--solicitante email] [--categoria Impressora] [--impacto so_eu|setor|publico]
@@ -69,9 +69,9 @@ async function main() {
     categorias: () => op.listarCategorias(dino),
     usuarios: () => op.listarUsuarios(dino, { ficticios: simNao(o.ficticios), papel: o.papel, busca: o.busca }),
     chamados: () => op.listarChamados(dino, { status: o.status, ficticios: simNao(o.ficticios), limite: num(o.limite, 20) }),
-    "setor:criar": () => op.criarSetor(dino, { nome: o.nome, predio: o.predio }),
+    "setor:criar": () => op.criarSetor(dino, { nome: o.nome, predio: o.predio, ramal: o.ramal }),
     "usuario:criar": () => op.criarUsuario(dino, {
-      nome: o.nome, email: o.email, setor: o.setor, papel: o.papel, ramal: o.ramal, senha: o.senha, ficticio: !o.real,
+      nome: o.nome, matricula: o.matricula, email: o.email, setor: o.setor, papel: o.papel, admin: !!o.admin, ramal: o.ramal, senha: o.senha, ficticio: !o.real,
     }, log),
     "usuarios:ficticios": () => op.criarUsuariosFicticios(dino, {
       quantidade: num(o.quantidade, 10), tecnicos: num(o.tecnicos, 0), senha: o.senha,

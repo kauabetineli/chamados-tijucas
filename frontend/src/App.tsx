@@ -3,11 +3,11 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation, useSearchParams } 
 import { Layout } from "./components/Layout";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { destinoSeguro, ehTecnico } from "./lib/pb";
-import { Cadastro } from "./pages/Cadastro";
 import { Chamado } from "./pages/Chamado";
 import { Entrar } from "./pages/Entrar";
 import { MeusChamados } from "./pages/MeusChamados";
 import { NovoChamado } from "./pages/NovoChamado";
+import { TrocarSenha } from "./pages/TrocarSenha";
 import { Fila } from "./pages/ti/Fila";
 import { Historico } from "./pages/ti/Historico";
 import { Painel } from "./pages/ti/Painel";
@@ -23,6 +23,8 @@ function Protegida({ children }: { children: ReactNode }) {
     // guarda o destino (ex.: /novo, vindo do QR code) para depois do login
     return <Navigate to={`/entrar?voltar=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
   }
+  // senha provisória: nada do sistema antes de escolher a própria senha
+  if (usuario.trocar_senha) return <TrocarSenha />;
   return children;
 }
 
@@ -48,7 +50,8 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/entrar" element={<SoVisitante><Entrar /></SoVisitante>} />
-          <Route path="/cadastro" element={<SoVisitante><Cadastro /></SoVisitante>} />
+          {/* contas são criadas pelo TI: o antigo "criar conta" volta para o login */}
+          <Route path="/cadastro" element={<Navigate to="/entrar" replace />} />
           <Route element={<Protegida><Layout /></Protegida>}>
             <Route index element={<Inicio />} />
             <Route path="novo" element={<NovoChamado />} />

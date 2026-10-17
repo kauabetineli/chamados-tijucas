@@ -89,12 +89,16 @@ const COMENTARIOS_SOLICITANTE = [
 export const sortear = (lista) => lista[Math.floor(Math.random() * lista.length)];
 export const chance = (p) => Math.random() < p;
 
-/** Nome e e-mail fictícios únicos (sufixo aleatório evita colisão entre rodadas). */
+/**
+ * Nome, e-mail e matrícula fictícios únicos (sufixo aleatório evita colisão entre rodadas).
+ * Matrícula fictícia tem 8 dígitos e começa com 9: não colide com as reais (hoje com 5 dígitos).
+ */
 export function pessoaFalsa() {
   const nome = sortear(NOMES), sobrenome = sortear(SOBRENOMES);
   const base = `${nome}.${sobrenome}`.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const sufixo = Math.random().toString(36).slice(2, 6);
-  return { nome: `${nome} ${sobrenome}`, email: `${base}.${sufixo}@${DOMINIO_TESTE}` };
+  const matricula = "9" + String(Math.floor(Math.random() * 1e7)).padStart(7, "0");
+  return { nome: `${nome} ${sobrenome}`, email: `${base}.${sufixo}@${DOMINIO_TESTE}`, matricula };
 }
 
 /** Impacto com a distribuição de um dia comum: a maioria "só eu". */

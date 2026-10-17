@@ -46,31 +46,31 @@ export async function listarUsuarios(dino, { ficticios, papel, busca, limite = 5
   const f = [];
   if (ficticios !== undefined) f.push(`ficticio = ${ficticios ? "true" : "false"}`);
   if (papel) f.push(`papel = ${aspas(papel)}`);
-  if (busca) f.push(`(name ~ ${aspas(busca)} || email ~ ${aspas(busca)})`);
+  if (busca) f.push(`(name ~ ${aspas(busca)} || email ~ ${aspas(busca)} || matricula ~ ${aspas(busca)})`);
   const u = await dino.todos("users", { filtro: f.join(" && "), ordem: "name", expand: "setor" });
   return {
     total: u.length,
     usuarios: u.slice(0, limite).map((x) => ({
-      id: x.id, nome: x.name, email: x.email, papel: x.papel || "solicitante",
-      setor: x.expand?.setor?.nome || "", ramal: x.ramal || "", ficticio: !!x.ficticio,
+      id: x.id, nome: x.name, matricula: x.matricula || "", email: x.email, papel: x.papel || "solicitante", admin: !!x.admin,
+      setor: x.expand?.setor?.nome || "", ramal: x.ramal || x.expand?.setor?.ramal || "", ficticio: !!x.ficticio,
     })),
   };
 }
 
 // ---------- resolução de referências (aceita id, nome, e-mail ou protocolo) ----------
 
-async function acharSetor(dino, ref, { criar = true } = {}) {
+async function acharSetor(dino, ref, { criar = true, ramal = "" } = {}) {
   if (!ref) return null;
   const porId = await dino.todos("setores", { filtro: `id = ${aspas(ref)} || nome = ${aspas(ref)}` });
   if (porId[0]) return porId[0];
   if (!criar) throw new ErroDino(`Setor "${ref}" não encontrado.`);
   const predio = SETORES.find(([n]) => n === ref)?.[1] || "";
-  return (await dino.req("POST", "/api/ti/setores", { corpo: { nome: ref, predio } })).setor;
+  return (await dino.req("POST", "/api/ti/setores", { corpo: { nome: ref, predio, ramal } })).setor;
 }
 
 async function acharUsuario(dino, ref) {
-  const u = await dino.todos("users", { filtro: `id = ${aspas(ref)} || email = ${aspas(ref)}` });
-  if (!u[0]) throw new ErroDino(`Usuário "${ref}" não encontrado (use id ou e-mail).`);
+  const u = await dino.todos("users", { filtro: `id = ${aspas(ref)} || email = ${aspas(ref)} || matricula = ${aspas(ref)}` });
+  if (!u[0]) throw new ErroDino(`Usuário "${ref}" não encontrado (use id, matrícula ou e-mail).`);
   return u[0];
 }
 
@@ -99,28 +99,30 @@ async function tecnicoFicticio(dino, ref) {
 
 // ---------- criação ----------
 
-export async function criarSetor(dino, { nome, predio = "" }) {
-  return dino.req("POST", "/api/ti/setores", { corpo: { nome, predio } });
+export async function criarSetor(dino, { nome, predio = "", ramal = "" }) {
+  return dino.req("POST", "/api/ti/setores", { corpo: { nome, predio, ramal } });
 }
 
 /**
  * Cria um usuário. Fictício por padrão (ficticio: false cria uma conta REAL).
- * Sem senha, o servidor gera uma provisória e devolve em senha_provisoria.
+ * A MATRÍCULA é o login (até 8 dígitos); e-mail é opcional.
+ * Sem senha, o servidor gera uma provisória aleatória (senha_provisoria) e a pessoa troca no primeiro acesso.
  */
-export async function criarUsuario(dino, { nome, email, setor, papel = "solicitante", ramal, senha, ficticio = true }, log = silencio) {
+export async function criarUsuario(dino, { nome, matricula, email, setor, papel = "solicitante", admin = false, ramal, senha, ficticio = true }, log = silencio) {
   if (ficticio) {
     await exigirAmbienteDeTeste(dino);
     const p = pessoaFalsa();
     nome ||= p.nome;
     email ||= p.email;
-    ramal ??= ramalFalso();
+    matricula ||= p.matricula;
   }
-  if (!nome || !email) throw new ErroDino("Informe nome e e-mail.");
-  const s = await acharSetor(dino, setor || (papel === "tecnico" ? SETOR_TI : ""));
+  if (!nome || !matricula) throw new ErroDino("Informe nome e matrícula (só números, até 8 dígitos).");
+  // setor criado agora para dado de teste ganha um ramal fictício; para conta real, o admin preenche depois
+  const s = await acharSetor(dino, setor || (papel === "tecnico" ? SETOR_TI : ""), { ramal: ficticio ? ramalFalso() : "" });
   const r = await dino.req("POST", "/api/ti/usuarios", {
-    corpo: { nome, email, setor: s?.id || "", papel, ramal, senha, ficticio },
+    corpo: { nome, matricula: String(matricula), email: email || "", setor: s?.id || "", papel, admin, ramal, senha, ficticio },
   });
-  log(`+ ${ficticio ? "usuário fictício" : "usuário"}: ${r.usuario.nome} <${r.usuario.email}> (${r.usuario.papel}${r.usuario.setor_nome ? ", " + r.usuario.setor_nome : ""})`);
+  log(`+ ${ficticio ? "usuário fictício" : "usuário"}: ${r.usuario.nome} (mat. ${r.usuario.matricula}) (${r.usuario.papel}${r.usuario.admin ? ", admin" : ""}${r.usuario.setor_nome ? ", " + r.usuario.setor_nome : ""})`);
   return r;
 }
 
