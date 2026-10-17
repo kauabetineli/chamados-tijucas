@@ -1,0 +1,6 @@
+{
+  "ambiente": "teste",
+  "ntfy_topico": "",
+  "ntfy_servidor": "https://ntfy.sh",
+  "avisar_ficticios": false
+}

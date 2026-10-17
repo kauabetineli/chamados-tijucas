@@ -58,6 +58,7 @@ function agora() {
 function notificarSolicitante(app, chamado, assunto, mensagem) {
   try {
     if (!app.settings().smtp.enabled) return;
+    if (chamado.getBool("ficticio")) return; // e-mail de teste não existe
     const id = chamado.getString("solicitante");
     if (!id) return;
     const usuario = app.findRecordById("users", id);

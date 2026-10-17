@@ -49,6 +49,7 @@ routerAdd("POST", "/api/chamados/{id}/reabrir", (e) => {
   e.app.save(c);
   R.registrar(e.app, c.id, e.auth.id, "status", "Status: Resolvido → Aberto (reaberto pelo solicitante)", false);
   R.registrar(e.app, c.id, e.auth.id, "comentario", motivo, false);
+  require(`${__hooks}/lib/avisos.js`).avisarTecnicos(e.app, c, "Chamado reaberto", "O solicitante disse que o problema continua.");
   return e.json(200, { ok: true });
 }, $apis.requireAuth("users"));
 
@@ -104,3 +105,26 @@ routerAdd("GET", "/api/painel/resumo", (e) => {
     por_dia: porDia.map((r) => ({ dia: r.dia, total: r.total })),
   });
 }, $apis.requireAuth());
+
+// Chamados em aberto da mesma categoria no setor de quem está abrindo (ou dele mesmo).
+// Usado para avisar "já existe um chamado sobre isso" e evitar duplicados.
+// Devolve só protocolo, status e data: nada de descrição de colegas.
+routerAdd("GET", "/api/chamados/semelhantes", (e) => {
+  const categoria = e.request.url.query().get("categoria");
+  if (!categoria) return e.json(200, { itens: [] });
+  const setor = e.auth.getString("setor");
+  const dono = setor ? "(setor = {:s} || solicitante = {:u})" : "solicitante = {:u}";
+  const lista = e.app.findRecordsByFilter(
+    "chamados", `status != 'resolvido' && categoria = {:c} && ${dono}`, "-created", 5, 0,
+    { c: categoria, s: setor, u: e.auth.id },
+  );
+  return e.json(200, {
+    itens: lista.filter((r) => !!r).map((r) => ({
+      id: r.id,
+      protocolo: r.getString("protocolo"),
+      status: r.getString("status"),
+      created: r.getString("created"),
+      meu: r.getString("solicitante") === e.auth.id,
+    })),
+  });
+}, $apis.requireAuth("users"));

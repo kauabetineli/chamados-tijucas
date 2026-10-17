@@ -56,6 +56,13 @@ onRecordCreateRequest((e) => {
     } catch (_) {}
   }
 
+  // fictício (dado de teste) = herdado do solicitante; nunca vem do corpo da requisição
+  let ficticio = false;
+  if (rec.getString("solicitante")) {
+    try { ficticio = e.app.findRecordById("users", rec.getString("solicitante")).getBool("ficticio"); } catch (_) {}
+  }
+  rec.set("ficticio", ficticio);
+
   if (!superuser) rec.set("registrado_por", auth.id);
   rec.set("confirmado", false);
   rec.set("peso", R.pesoDe(rec.getString("prioridade")));
@@ -67,6 +74,18 @@ onRecordCreateRequest((e) => {
     ? "Chamado aberto pelo sistema."
     : `Chamado registrado pelo TI (origem: ${rec.getString("origem")}).`;
   R.registrar(e.app, rec.id, superuser ? "" : auth.id, "sistema", quem, false);
+
+  // vídeo anexado: o servidor comprime em segundo plano (pb_hooks/videos.pb.js)
+  const V = require(`${__hooks}/lib/videos.js`);
+  if (V.videosPendentes(rec).length) {
+    rec.set("midia_pendente", true);
+    e.app.save(rec);
+  }
+
+  // aviso no celular dos técnicos (ntfy) quando um servidor abre chamado pelo sistema
+  if (rec.getString("origem") === "sistema") {
+    require(`${__hooks}/lib/avisos.js`).avisarTecnicos(e.app, rec, "Novo chamado");
+  }
 }, "chamados");
 
 // ---------- atualizar chamado (somente técnicos, pela regra da coleção) ----------
@@ -78,7 +97,7 @@ onRecordUpdateRequest((e) => {
   const superuser = e.hasSuperuserAuth();
 
   // campos que não mudam depois da abertura
-  for (const campo of ["protocolo", "registrado_por", "solicitante", "origem"]) {
+  for (const campo of ["protocolo", "registrado_por", "solicitante", "origem", "ficticio"]) {
     rec.set(campo, antes.get(campo));
   }
 
@@ -130,6 +149,8 @@ onRecordUpdateRequest((e) => {
     let nome = "";
     try { nome = e.app.findRecordById("users", rec.getString("responsavel")).getString("name"); } catch (_) {}
     R.registrar(e.app, rec.id, autor, "atribuicao", `Responsável: ${nome || "técnico"}`, false);
+  } else if (antes.getString("responsavel") && !rec.getString("responsavel")) {
+    R.registrar(e.app, rec.id, autor, "atribuicao", "Devolvido para a fila, sem responsável", false);
   }
 }, "chamados");
 
@@ -150,8 +171,10 @@ onRecordCreateRequest((e) => {
   if (!tecnico && chamado.getString("solicitante") !== auth.id) {
     throw new ForbiddenError("Você só pode comentar nos seus chamados.");
   }
-  if (!rec.getString("texto").trim()) {
-    throw new BadRequestError("Escreva a mensagem.");
+  // mensagem pode ser só imagem (print), sem texto
+  const temImagem = rec.getUnsavedFiles("anexos").length > 0;
+  if (!rec.getString("texto").trim() && !temImagem) {
+    throw new BadRequestError("Escreva a mensagem ou anexe uma imagem.");
   }
   rec.set("autor", auth.id);
   rec.set("tipo", "comentario");
@@ -160,6 +183,11 @@ onRecordCreateRequest((e) => {
   e.next();
 
   if (tecnico && !rec.getBool("interno")) {
-    R.notificarSolicitante(e.app, chamado, "O TI respondeu seu chamado", `Mensagem do TI: “${rec.getString("texto")}”`);
+    const texto = rec.getString("texto").trim();
+    R.notificarSolicitante(e.app, chamado, "O TI respondeu seu chamado",
+      texto ? `Mensagem do TI: “${texto}”${temImagem ? " (com imagem)" : ""}` : "O TI mandou uma imagem no seu chamado.");
+  }
+  if (!tecnico) {
+    require(`${__hooks}/lib/avisos.js`).avisarTecnicos(e.app, chamado, "Nova mensagem no chamado", "O solicitante respondeu.");
   }
 }, "interacoes");
