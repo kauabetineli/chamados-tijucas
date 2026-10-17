@@ -1,6 +1,6 @@
 import { AlertTriangle, ChevronDown, Clock, GripVertical, Hourglass, MoreVertical, User, Wrench } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Avatar, SeloLivre } from "../../components/Avatar";
 import { Bloco, EsqueletoCartoes } from "../../components/Esqueleto";
 import { IconeCategoria } from "../../components/Icone";
@@ -16,6 +16,7 @@ import { atrasado, cargaDaEquipe, esperaCurta, horasEsperando, organizarFila } f
 import { paraData, resumo, ROTULO_AGUARDANDO, ROTULO_ORIGEM } from "../../lib/formato";
 import { EXPAND_CHAMADO, mensagemErro, nomeSolicitante, pb, type Chamado, type Usuario } from "../../lib/pb";
 import { useRealtime } from "../../lib/useRealtime";
+import { ehVisao, VISOES, type Visao } from "../../lib/numeros";
 import { LinkChamado, useVerChamado } from "../../lib/verChamado";
 import { avisar } from "../../lib/avisos";
 
@@ -337,6 +338,18 @@ export function Fila() {
   const [chamados, setChamados] = useState<Chamado[] | null>(null);
   const [pegando, setPegando] = useState("");
   const [filtro, setFiltro] = useState("");
+  // visão rápida (/ti?visao=atendendo|livres|espera): barra lateral, abas do celular e menu do ícone Fila
+  const [params, setParams] = useSearchParams();
+  const visao: Visao | null = ehVisao(params.get("visao")) ? (params.get("visao") as Visao) : null;
+  function irParaVisao(v: Visao | null) {
+    const p = new URLSearchParams(params);
+    if (v) p.set("visao", v); else p.delete("visao");
+    setParams(p);
+    setFiltro("");
+    pag.voltarAoInicio();
+  }
+  // filtro por colega (faixa Equipe) e visão não se misturam: escolher um desliga o outro
+  useEffect(() => { if (visao) setFiltro(""); }, [visao]);
   const [menu, setMenu] = useState<Chamado | null>(null);
   const [acoes, setAcoes] = useState<Chamado | null>(null);
   const [arrastando, setArrastando] = useState("");
@@ -460,7 +473,15 @@ export function Fila() {
     const p = Math.min(pag.pagina, Math.max(1, Math.ceil(l.length / pag.porPagina)));
     return l.slice((p - 1) * pag.porPagina, p * pag.porPagina);
   };
-  const listaPaginada = filtro ? filtrados : depois;
+  // listas das visões
+  const livresFila = fila.filter((c) => !c.responsavel);
+  const ordemEspera = { solicitante: 0, peca: 1, terceiro: 2 } as const;
+  const esperaOrdenada = [...esperando].sort((a, b) =>
+    (ordemEspera[a.aguardando_motivo || "terceiro"] - ordemEspera[b.aguardando_motivo || "terceiro"])
+    || (a.aguardando_desde || "").localeCompare(b.aguardando_desde || ""));
+  const listaVisao = visao === "atendendo" ? atendendo : visao === "livres" ? livresFila : visao === "espera" ? esperaOrdenada : [];
+  const totalVisao: Record<Visao, number> = { atendendo: atendendo.length, livres: livresFila.length, espera: esperando.length };
+  const listaPaginada = visao ? listaVisao : filtro ? filtrados : depois;
   const rodape = listaPaginada.length > 10 && (
     <Paginacao
       pagina={Math.min(pag.pagina, Math.max(1, Math.ceil(listaPaginada.length / (pag.porPagina || 1))))}
@@ -490,6 +511,31 @@ export function Fila() {
       <VisaoTI />
       </div>
 
+      {/* celular: abas das visões (no PC elas ficam na barra lateral) */}
+      <div role="tablist" aria-label="Visões da fila" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden">
+        {[{ id: null, rotulo: "Tudo", Icone: null }, ...VISOES].map((v) => {
+          const ativa = visao === v.id;
+          return (
+            <button
+              key={v.id ?? "tudo"}
+              type="button"
+              role="tab"
+              aria-selected={ativa}
+              // a aba escolhida fica à vista (sem rolar a página: só a faixa)
+              ref={(el) => { if (ativa && el?.parentElement) el.parentElement.scrollLeft = el.offsetLeft - 16; }}
+              onClick={() => irParaVisao(v.id as Visao | null)}
+              className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold ring-1 ${
+                ativa ? "bg-mar-700 text-white ring-transparent" : "bg-superficie text-tinta-2 ring-linha"
+              }`}
+            >
+              {v.Icone && <v.Icone className="size-4" aria-hidden="true" />}
+              {v.rotulo}
+              {v.id && chamados !== null && <span className="font-display">{totalVisao[v.id as Visao]}</span>}
+            </button>
+          );
+        })}
+      </div>
+
       {/* no PC o mural fica na barra lateral */}
       <MuralAvisos className="md:hidden" />
 
@@ -500,7 +546,11 @@ export function Fila() {
           carga={carga}
           livres={livres}
           filtro={filtro}
-          aoFiltrar={(f) => { setFiltro(f); pag.voltarAoInicio(); }}
+          aoFiltrar={(f) => {
+            if (visao) { const p = new URLSearchParams(params); p.delete("visao"); setParams(p); }
+            setFiltro(f);
+            pag.voltarAoInicio();
+          }}
           arrastando={!!arrastando}
           aoSoltar={soltar}
         />
@@ -509,6 +559,21 @@ export function Fila() {
 
       {chamados === null ? (
         <EsqueletoCartoes quantos={5} rotulo="Carregando a fila..." />
+      ) : visao ? (
+        <>
+          <Secao titulo={VISOES.find((v) => v.id === visao)!.rotulo} total={listaVisao.length}>
+            {visao === "espera" && listaVisao.length > 0 && (
+              <li className="-mt-1 text-sm text-tinta-2">Fora da fila e da sua carga. "Resposta" volta sozinho quando a pessoa responder.</li>
+            )}
+            {visao === "livres" && listaVisao.length > 0 && (
+              <li className="-mt-1 text-sm text-tinta-2">Sem responsável, na ordem da fila (prioridade, depois chegada).</li>
+            )}
+            {listaVisao.length
+              ? fatia(listaVisao).map((c) => cartao(c, visao === "atendendo"))
+              : <li className="rounded-2xl bg-superficie p-6 text-center text-tinta-2 ring-1 ring-linha">{VISOES.find((v) => v.id === visao)!.vazio}</li>}
+          </Secao>
+          {rodape}
+        </>
       ) : filtro ? (
         <>
           <Secao titulo={nomeFiltro} total={filtrados.length}>

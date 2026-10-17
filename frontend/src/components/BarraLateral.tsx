@@ -1,12 +1,11 @@
 import {
   BarChart3, ChevronsLeft, ChevronsRight, ClipboardList, History, ListOrdered, Plus, SquarePen, Table2, Users,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent as KE, type PointerEvent as PE } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as KE, type PointerEvent as PE } from "react";
 import { Link, NavLink, useLocation, useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
-import { atrasado } from "../lib/fila";
-import { ehAdmin, ehTecnico, pb, type Chamado } from "../lib/pb";
-import { useRealtime } from "../lib/useRealtime";
+import { VISOES, type Numeros } from "../lib/numeros";
+import { ehAdmin, ehTecnico } from "../lib/pb";
 import { Avatar } from "./Avatar";
 import { BotaoTema } from "./BotaoTema";
 import { MuralAvisos } from "./MuralAvisos";
@@ -22,36 +21,7 @@ function gravar(chave: string, valor: string) {
   try { localStorage.setItem(chave, valor); } catch { /* ok */ }
 }
 
-/** Números ao vivo da barra: fila (aguardando e atrasados) para o TI; em aberto para o servidor. */
-function useNumeros() {
-  const { usuario } = useAuth();
-  const tecnico = ehTecnico(usuario);
-  const [n, setN] = useState<{ fila: number; atrasados: number; meus: number } | null>(null);
-  const carregar = useCallback(async () => {
-    if (!usuario) return;
-    if (tecnico) {
-      const abertos = await pb.collection("chamados").getFullList<Chamado>({
-        filter: 'status = "aberto"', fields: "id,created,prioridade,status", requestKey: "lateral-fila",
-      });
-      setN({ fila: abertos.length, atrasados: abertos.filter((c) => atrasado(c)).length, meus: 0 });
-    } else {
-      const r = await pb.collection("chamados").getList(1, 1, {
-        filter: pb.filter('solicitante = {:u} && (status != "resolvido" || confirmado = false)', { u: usuario.id }),
-        fields: "id", requestKey: "lateral-meus",
-      });
-      setN({ fila: 0, atrasados: 0, meus: r.totalItems });
-    }
-  }, [usuario, tecnico]);
-  useEffect(() => {
-    carregar().catch(() => {});
-    const t = window.setInterval(() => carregar().catch(() => {}), 60_000); // "atrasado" muda com o tempo
-    return () => window.clearInterval(t);
-  }, [carregar]);
-  useRealtime("chamados", () => carregar().catch(() => {}));
-  return n;
-}
-
-type Item = { para: string; rotulo: string; Icone: typeof Plus; ativo: boolean; numero?: number; alerta?: number; so?: "admin" };
+type Item = { para: string; rotulo: string; Icone: typeof Plus; ativo: boolean; numero?: number; alerta?: number; destaque?: number; so?: "admin" };
 
 /**
  * Barra lateral do PC (md+). Recolhe para só ícones e muda de largura arrastando a borda direita
@@ -59,12 +29,11 @@ type Item = { para: string; rotulo: string; Icone: typeof Plus; ativo: boolean; 
  * Define --largura-lateral no <html> para o painel do chamado e os avisos rápidos não ficarem por baixo dela.
  * No celular não aparece (lá ficam o topo e a barra de baixo, em Layout.tsx).
  */
-export function BarraLateral() {
+export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
   const { usuario } = useAuth();
   const tecnico = ehTecnico(usuario);
   const caminho = useLocation().pathname;
   const [params] = useSearchParams();
-  const numeros = useNumeros();
 
   const [largura, setLargura] = useState(() => {
     const v = Number(ler(CHAVE_LARGURA));
@@ -128,9 +97,10 @@ export function BarraLateral() {
   };
 
   const aba = params.get("aba");
+  const visao = params.get("visao");
   const itens: Item[] = tecnico
     ? [
-        { para: "/ti", rotulo: "Fila", Icone: ListOrdered, ativo: caminho === "/ti", numero: numeros?.fila, alerta: numeros?.atrasados },
+        { para: "/ti", rotulo: "Fila", Icone: ListOrdered, ativo: caminho === "/ti" && !visao, numero: numeros?.fila, alerta: numeros?.atrasados },
         { para: "/ti/chamados", rotulo: "Todos os chamados", Icone: Table2, ativo: caminho === "/ti/chamados" },
         { para: "/ti/registrar", rotulo: "Registrar pedido", Icone: SquarePen, ativo: caminho === "/ti/registrar" },
         { para: "/ti/historico", rotulo: "Histórico", Icone: History, ativo: caminho === "/ti/historico" },
@@ -138,7 +108,7 @@ export function BarraLateral() {
         { para: "/ti/usuarios", rotulo: ehAdmin(usuario) ? "Pessoas e setores" : "Pessoas", Icone: Users, ativo: caminho === "/ti/usuarios" },
       ]
     : [
-        { para: "/", rotulo: "Meus chamados", Icone: ClipboardList, ativo: caminho === "/" && aba !== "historico", numero: numeros?.meus },
+        { para: "/", rotulo: "Meus chamados", Icone: ClipboardList, ativo: caminho === "/" && aba !== "historico", numero: numeros?.meus, destaque: numeros?.precisaDeVoce },
         { para: "/?aba=historico", rotulo: "Histórico", Icone: History, ativo: caminho === "/" && aba === "historico" },
       ];
 
@@ -167,8 +137,8 @@ export function BarraLateral() {
       {/* navegação */}
       <nav aria-label="Principal" className={`shrink-0 space-y-0.5 ${recolhida ? "px-2" : "px-3"}`}>
         {itens.map((i) => (
+          <div key={i.para}>
           <NavLink
-            key={i.para}
             to={i.para}
             title={recolhida ? i.rotulo : undefined}
             aria-current={i.ativo ? "page" : undefined}
@@ -181,13 +151,48 @@ export function BarraLateral() {
             {!recolhida && i.numero !== undefined && (
               <span className="flex items-center gap-1.5">
                 {!!i.alerta && <span className="rounded-full bg-brasa-50 px-1.5 text-xs font-bold text-alerta" title={`${i.alerta} atrasado(s)`}>{i.alerta}</span>}
+                {!!i.destaque && (
+                  <span className="rounded-full bg-mar-700 px-1.5 text-xs font-bold text-white" title={`${i.destaque} precisa(m) de você`}>
+                    {i.destaque}<span className="sr-only"> precisam de você</span>
+                  </span>
+                )}
                 <span className="font-display text-base">{i.numero}</span>
               </span>
             )}
-            {recolhida && !!i.numero && (
-              <span className={`absolute top-1 right-1 grid min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold text-white ${i.alerta ? "bg-brasa" : "bg-mar-700"}`}>{i.numero}</span>
+            {recolhida && !!(i.destaque || i.numero) && (
+              <span className={`absolute top-1 right-1 grid min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold text-white ${i.alerta ? "bg-brasa" : "bg-mar-700"}`}>
+                {i.destaque || i.numero}
+              </span>
             )}
           </NavLink>
+          {/* visões da Fila: subitens (só com o menu aberto) */}
+          {tecnico && i.para === "/ti" && !recolhida && (
+            <ul className="mt-0.5 mb-1 ml-5 space-y-0.5 border-l border-linha pl-2">
+              {VISOES.map((v) => {
+                const ativa = caminho === "/ti" && visao === v.id;
+                const total = numeros?.[v.id === "atendendo" ? "atendendo" : v.id === "livres" ? "livres" : "espera"];
+                return (
+                  <li key={v.id}>
+                    <Link
+                      to={`/ti?visao=${v.id}`}
+                      aria-current={ativa ? "page" : undefined}
+                      className={`flex min-h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm font-semibold ${ativa ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
+                    >
+                      <v.Icone className="size-4 shrink-0" aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate">{v.rotulo}</span>
+                      {v.id === "espera" && !!numeros?.esperaResposta && (
+                        <span className="rounded-full bg-mar-50 px-1.5 text-xs font-bold text-acento" title={`${numeros.esperaResposta} aguardando resposta de quem pediu`}>
+                          {numeros.esperaResposta} resp.
+                        </span>
+                      )}
+                      {total !== undefined && <span className="font-display">{total}</span>}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          </div>
         ))}
       </nav>
 

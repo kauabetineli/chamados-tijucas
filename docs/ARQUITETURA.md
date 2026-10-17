@@ -121,6 +121,15 @@ estamos vendo". Serve para o servidor não abrir 10 chamados do mesmo problema (
 publica com prazo (1 h, 4 h, fim do dia, 3 dias ou até encerrar); o aviso some sozinho e fica registrado.
 No celular o mural aparece no topo de Meus chamados e da Fila.
 
+## Visões rápidas da Fila
+
+`/ti?visao=atendendo|livres|espera` mostra só uma parte da Fila (os seus em atendimento, os livres na ordem da fila,
+os seus em espera com "Resposta" primeiro). É a mesma tela, então voltar e salvar o link funcionam; `?ver=` continua
+sendo o painel do chamado. Acesso: subitens de "Fila" na barra lateral (PC), abas no topo da Fila (celular) e, no
+celular, tocar de novo no ícone Fila (a setinha indica) abre um menu com as visões. Visão e filtro por colega
+(faixa Equipe) não se misturam: escolher um desliga o outro. Os números vêm de `lib/numeros.ts` (uma consulta só,
+no Layout). Para o servidor, o "Meus chamados" mostra em destaque quantos chamados precisam dele (responder ou confirmar).
+
 ## Em espera, avaliação, respostas prontas e números (piloto)
 
 - **Em espera** (`status = "aguardando"`, migration 0009): o técnico não consegue avançar porque falta uma **peça**, uma
