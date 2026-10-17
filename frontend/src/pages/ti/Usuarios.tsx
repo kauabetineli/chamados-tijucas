@@ -8,6 +8,7 @@ import { PainelRapido, RodapeRascunho, RotuloSecao } from "../../components/Pain
 import { Paginacao, usePaginacao } from "../../components/Paginacao";
 import { SeloTeste } from "../../components/Selos";
 import { useAuth } from "../../lib/auth";
+import { avisar } from "../../lib/avisos";
 import { limparCache } from "../../lib/cache";
 import { ehAdmin, mensagemErro, pb } from "../../lib/pb";
 
@@ -622,7 +623,6 @@ export function Usuarios() {
   const setorFiltro = params.get("setor") ?? "";
   const { setores, recarregar } = useSetoresTI();
   const [versao, setVersao] = useState(0);
-  const [aviso, setAviso] = useState("");
   const [pessoa, setPessoa] = useState<{ p?: PessoaTI; setor?: string } | null>(null);
   const [setor, setSetor] = useState<{ s?: SetorTI } | null>(null);
   const [senha, setSenha] = useState<{ r: RespostaPessoa; nova: boolean } | null>(null);
@@ -633,7 +633,7 @@ export function Usuarios() {
     if (setorId) p.set("setor", setorId);
     setParams(p, { replace: true });
   };
-  const depoisDeSalvar = (msg: string) => { setAviso(msg); setVersao((v) => v + 1); recarregar(); };
+  const depoisDeSalvar = (msg: string) => { avisar(msg); setVersao((v) => v + 1); recarregar(); };
   const totalPessoas = (setores ?? []).reduce((n, s) => n + s.pessoas, 0);
 
   const aba_ = (id: "pessoas" | "setores", rotulo: string, Icone: typeof Users, n?: number) => (
@@ -666,13 +666,6 @@ export function Usuarios() {
         </div>
       </div>
 
-      {aviso && (
-        <p role="status" className="flex items-start gap-2 rounded-xl bg-campo-50 p-4 font-semibold ring-1 ring-ok/30">
-          <Check className="size-5 shrink-0 text-ok" aria-hidden="true" />
-          <span className="flex-1">{aviso}</span>
-          <button type="button" className="text-sm text-tinta-2" onClick={() => setAviso("")}>Fechar</button>
-        </p>
-      )}
 
       {setores === null ? (
         <p className="text-tinta-2">Carregando...</p>

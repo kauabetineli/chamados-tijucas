@@ -1,10 +1,10 @@
-import { CheckCircle2, MessageCircle, Phone, UserRound, X } from "lucide-react";
+import { MessageCircle, Phone, UserRound, X } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router";
 import { SeletorAnexos } from "../../components/Anexos";
 import { EscolhaCategoria, EscolhaImpacto } from "../../components/CamposChamado";
 import { ProgressoEnvio } from "../../components/ProgressoEnvio";
 import { criarComProgresso } from "../../lib/envio";
+import { avisar } from "../../lib/avisos";
 import { mensagemErro, pb, type Chamado, type Impacto, type Origem, type Setor, type Usuario } from "../../lib/pb";
 
 const ORIGENS: { valor: Origem; rotulo: string; Icone: typeof Phone }[] = [
@@ -35,7 +35,6 @@ export function Registrar() {
   const [salvando, setSalvando] = useState(false);
   const [progresso, setProgresso] = useState<number | null>(null);
   const [preparandoAnexo, setPreparandoAnexo] = useState(false);
-  const [ultimo, setUltimo] = useState<Chamado | null>(null);
 
   useEffect(() => {
     pb.collection("setores").getFullList<Setor>({ sort: "nome" }).then(setSetores).catch(() => {});
@@ -85,7 +84,10 @@ export function Registrar() {
       if (resolvido) { d.append("diagnostico", diagnostico); d.append("solucao", solucao); }
       arquivos.forEach((f) => d.append("anexos", f));
       const c = await criarComProgresso<Chamado>("chamados", d, setProgresso);
-      setUltimo(c);
+      avisar(`Registrado como ${c.protocolo}. ${c.status === "resolvido" ? "Já entrou no histórico." : "Já está na fila."}`, {
+        link: { para: `/ti/chamado/${c.id}`, rotulo: "Abrir" },
+        duracao: 6000,
+      });
       limpar();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -103,15 +105,6 @@ export function Registrar() {
         <p className="mt-1 text-tinta-2">Para o que chegou por WhatsApp, ligação ou no corredor. Leva menos de um minuto.</p>
       </div>
 
-      {ultimo && (
-        <div role="status" className="flex items-start gap-3 rounded-2xl bg-campo-50 p-4 text-ok">
-          <CheckCircle2 className="mt-0.5 size-6 shrink-0" aria-hidden="true" />
-          <p className="font-semibold">
-            Registrado como <Link to={`/ti/chamado/${ultimo.id}`} className="underline underline-offset-4">{ultimo.protocolo}</Link>.
-            {ultimo.status === "resolvido" ? " Já entrou no histórico." : " Já está na fila."}
-          </p>
-        </div>
-      )}
 
       <fieldset>
         <legend className="rotulo text-lg">Como chegou?</legend>

@@ -94,6 +94,9 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
     `text-noite` para escuro fixo. Nunca `bg-white`, `bg-black`, `text-black`, `text-mar-700` ou hexadecimal no componente.
     O `npm run build` roda `scripts/verificar-tema.mjs` e **falha** se achar cor fixa. Exceção consciente: comentário
     `tema-fixo` na linha (ou até 2 acima). Confira a tela nos dois temas (botão de tema no topo, ou o tema do aparelho).
+12. **Confirmação de ação = aviso rápido**: `avisar("2026-00012 agora está com Hugo.")` (`frontend/src/lib/avisos.ts`).
+    Some sozinho no canto da tela, sem botão para fechar obrigatório. Não crie faixas de aviso fixas na página.
+    Erro de formulário continua perto do campo (`role="alert"`); erro de ação rápida: `avisar(msg, { tipo: "erro" })`.
 
 ## Modelo de dados (resumo)
 

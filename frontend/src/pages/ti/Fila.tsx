@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, Clock, GripVertical, MoreVertical, User, Wrench, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock, GripVertical, MoreVertical, User, Wrench } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { Avatar, SeloLivre } from "../../components/Avatar";
@@ -14,6 +14,7 @@ import { atrasado, cargaDaEquipe, esperaCurta, horasEsperando, organizarFila } f
 import { resumo, ROTULO_ORIGEM } from "../../lib/formato";
 import { EXPAND_CHAMADO, mensagemErro, nomeSolicitante, pb, type Chamado, type Usuario } from "../../lib/pb";
 import { useRealtime } from "../../lib/useRealtime";
+import { avisar } from "../../lib/avisos";
 
 const TIPO_ARRASTE = "application/x-dinodesk-chamado";
 const primeiroNome = (n?: string) => (n || "").trim().split(/\s+/)[0] || "Técnico";
@@ -319,7 +320,6 @@ export function Fila() {
   const tecnicos = useTecnicos();
   const [chamados, setChamados] = useState<Chamado[] | null>(null);
   const [pegando, setPegando] = useState("");
-  const [aviso, setAviso] = useState("");
   const [filtro, setFiltro] = useState("");
   const [menu, setMenu] = useState<Chamado | null>(null);
   const [acoes, setAcoes] = useState<Chamado | null>(null);
@@ -364,27 +364,26 @@ export function Fila() {
   }, [fila.length]);
 
   async function comecar(c: Chamado) {
-    setAviso("");
     setPegando(c.id);
     try {
       // outro técnico pode ter pegado no mesmo instante
       const atual = await pb.collection("chamados").getOne<Chamado>(c.id);
       if (atual.status !== "aberto" || (atual.responsavel && atual.responsavel !== eu)) {
-        setAviso(`O ${c.protocolo} acabou de ser pego por outro técnico. A fila foi atualizada.`);
+        avisar(`O ${c.protocolo} acabou de ser pego por outro técnico. A fila foi atualizada.`, { tipo: "info" });
         await carregar();
         return;
       }
       await pb.collection("chamados").update(c.id, { status: "em_andamento", responsavel: eu });
       navegar(`/ti/chamado/${c.id}`);
     } catch (err) {
-      setAviso(mensagemErro(err));
+      avisar(mensagemErro(err), { tipo: "erro" });
     } finally {
       setPegando("");
     }
   }
 
   function depoisDeSalvar(msg: string, id: string) {
-    setAviso(msg);
+    avisar(msg);
     carregar().then(() => setRealce(id)).catch(() => {});
   }
 
@@ -403,11 +402,11 @@ export function Fila() {
     try {
       await atribuir(c, tecnicoId);
       const nome = tecnicoId === eu ? "você" : primeiroNome(tecnicos.find((t) => t.id === tecnicoId)?.name);
-      setAviso(tecnicoId ? `${c.protocolo} agora está com ${nome}.` : `${c.protocolo} voltou para a fila.`);
+      avisar(tecnicoId ? `${c.protocolo} agora está com ${nome}.` : `${c.protocolo} voltou para a fila.`);
       await carregar();
       setRealce(c.id);
     } catch (err) {
-      setAviso(mensagemErro(err));
+      avisar(mensagemErro(err), { tipo: "erro" });
     }
   }
 
@@ -480,12 +479,6 @@ export function Fila() {
         />
       )}
 
-      {aviso && (
-        <p role="status" className="flex items-start gap-2 rounded-xl bg-sol-50 p-4 font-semibold ring-1 ring-sol">
-          <span className="flex-1">{aviso}</span>
-          <button type="button" onClick={() => setAviso("")} className="text-tinta-2" aria-label="Fechar aviso"><X className="size-5" /></button>
-        </p>
-      )}
 
       {chamados === null ? (
         <p className="text-tinta-2">Carregando a fila...</p>

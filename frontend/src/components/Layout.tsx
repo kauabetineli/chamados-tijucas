@@ -1,6 +1,7 @@
 import { BarChart3, ClipboardList, History, ListOrdered, LogOut, Plus, SquarePen, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useAuth } from "../lib/auth";
+import { Avisos } from "./Avisos";
 import { BotaoTema } from "./BotaoTema";
 import { ehTecnico } from "../lib/pb";
 
@@ -68,6 +69,7 @@ export function Layout() {
 
       <main className={`mx-auto w-full flex-1 px-4 pt-5 pb-8 ${largura}`}>
         <Outlet />
+        <Avisos />
       </main>
 
       {/* barra inferior no celular */}
