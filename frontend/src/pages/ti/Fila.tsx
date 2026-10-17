@@ -309,7 +309,7 @@ function Secao({ titulo, total, children }: { titulo: string; total: number; chi
  * Fila do técnico, organizada pela pergunta "o que eu faço agora?":
  * faixa da equipe (carga de cada um, filtro e alvo para arrastar), o que estou atendendo,
  * o MEU PRÓXIMO (primeiro da fila que é meu ou livre), o resto da fila numerado
- * (os meus destacados) e o que está em atendimento com os colegas.
+ * (os meus destacados). O que já está com um colega NÃO aparece sem filtro: fica na fila dele (toque no nome na Equipe).
  * Cada cartão mostra o dono; tocar nele atribui (eu, colega ou de volta para a fila).
  */
 export function Fila() {
@@ -349,7 +349,11 @@ export function Fila() {
   }, []);
 
   const lista = chamados ?? [];
-  const { atendendo, comOutros, fila, proximo, depois } = organizarFila(lista, eu);
+  const { atendendo, comOutros, fila, proximo, depois: depoisTodos } = organizarFila(lista, eu);
+  // sem filtro, a fila mostra só o que é meu ou está livre: o que já está com um colega fica na fila DELE
+  // (para ver, toque no nome dele na faixa da Equipe). A posição (1º, 2º...) continua a da fila geral.
+  const depois = depoisTodos.filter((c) => !c.responsavel || c.responsavel === eu);
+  const comColegas = depoisTodos.length - depois.length + comOutros.length;
   const { carga, livres } = cargaDaEquipe(lista);
   const atrasados = fila.filter((c) => atrasado(c)).length;
   const posicao = (c: Chamado) => (c.status === "aberto" ? fila.indexOf(c) + 1 : undefined);
@@ -510,7 +514,12 @@ export function Fila() {
 
           {depois.length > 0 && <Secao titulo="Depois na fila" total={depois.length}>{fatia(depois).map((c) => cartao(c, c.responsavel === eu))}</Secao>}
           {!filtro && rodape}
-          {comOutros.length > 0 && <Secao titulo="Em atendimento com colegas" total={comOutros.length}>{comOutros.map((c) => cartao(c))}</Secao>}
+          {comColegas > 0 && (
+            <p className="rounded-xl border-2 border-dashed border-linha px-4 py-3 text-sm text-tinta-2">
+              <b className="font-display text-base text-tinta">{comColegas}</b> {comColegas === 1 ? "chamado está" : "chamados estão"} com colegas
+              (aguardando ou em atendimento) e não aparecem aqui. Para ver, toque no nome da pessoa em <b>Equipe</b>, lá em cima.
+            </p>
+          )}
         </>
       )}
 
