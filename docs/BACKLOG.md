@@ -51,3 +51,12 @@ com o TI e pelo menos 2 setores, meta de **50% dos chamados registrados no siste
 ## Ideias do grupo e da Prefeitura
 
 <!-- Colem aqui as ideias novas antes de virar tarefa -->
+
+### Decididas: não fazer por enquanto
+
+- **Mover chamado de posição na fila à mão** (adiada em 17/10). A fila segue a regra fixa "prioridade, depois chegada"
+  (objetivo específico da AC2). Mexer livremente traria de volta a ordem "na memória" (problema 2 do diagnóstico),
+  faria a senha do solicitante pular sem explicação (problema 1) e abriria espaço para favorecimento sem registro.
+  Os casos reais já se resolvem com prioridade, começar qualquer chamado (o "Seu próximo" é sugestão) e, a fazer,
+  "Aguardando" e lembrete. **Se o piloto mostrar necessidade:** ação "Passar à frente" só pelo menu ⋮, com motivo
+  obrigatório, registro na linha do tempo e contagem no Painel.
