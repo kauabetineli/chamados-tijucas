@@ -3,6 +3,7 @@ backend/pocketbase
 backend/pocketbase.exe
 backend/pb_data/
 backend/pb_public/
+backend/bin/
 backend/LICENSE.md
 backend/CHANGELOG.md
 
@@ -19,3 +20,12 @@ dinodesk-*.zip
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+backend/config.json
+
+# ferramentas de IA/CLI
+ferramentas/node_modules/
+ferramentas/.env
+
+# gerados por ferramentas/configurar.mjs (modelos em ferramentas/modelos/)
+.mcp.json
+.claude/
