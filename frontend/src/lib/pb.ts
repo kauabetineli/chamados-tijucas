@@ -134,6 +134,7 @@ export function mensagemErro(err: unknown): string {
     response?: { message?: string; data?: Record<string, { code?: string; message?: string }> };
     message?: string;
   };
+  if (e?.status === 429) return "Muitas tentativas seguidas. Espere um minuto e tente de novo.";
   if (e?.status === 413) return "O arquivo é grande demais para enviar. Grave um vídeo mais curto (até 1 minuto).";
   const campos = e?.response?.data;
   if (campos && Object.keys(campos).length) {

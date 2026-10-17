@@ -1,4 +1,4 @@
-import { CheckCircle2, ClipboardList, ListOrdered, MessageCircle, Phone, Send, UserRound, X } from "lucide-react";
+import { CheckCircle2, ClipboardList, ListOrdered, MessageCircle, Phone, RotateCcw, Send, UserRound, X } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useAnexos } from "../../components/Anexos";
 import { useCategorias } from "../../components/CamposChamado";
@@ -53,6 +53,8 @@ export function Registrar() {
   const [progresso, setProgresso] = useState<number | null>(null);
   const [preparandoAnexo, setPreparandoAnexo] = useState(false);
   const anexos = useAnexos(setArquivos, setPreparandoAnexo);
+  // quem acabou de ser registrado: no corredor é comum a mesma pessoa pedir mais de uma coisa
+  const [ultimo, setUltimo] = useState<{ solicitante: Usuario | null; nome: string; setor: string; origem: Origem } | null>(null);
 
   useEffect(() => {
     pb.collection("setores").getFullList<Setor>({ sort: "nome", filter: "ativo = true" }).then(setSetores).catch(() => {});
@@ -108,6 +110,7 @@ export function Registrar() {
         link: { para: `/ti/chamado/${c.id}`, rotulo: "Abrir" },
         duracao: 6000,
       });
+      setUltimo({ solicitante, nome: solicitante?.name ?? busca.trim(), setor, origem });
       limpar();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -119,6 +122,15 @@ export function Registrar() {
   }
 
   const quemOk = !!solicitante || !!busca.trim();
+  function repetirPessoa() {
+    if (!ultimo) return;
+    setOrigem(ultimo.origem);
+    setSolicitante(ultimo.solicitante);
+    setBusca(ultimo.nome);
+    setSetor(ultimo.setor);
+    setSugestoes([]);
+  }
+  const nomeSetor = (id: string) => setores.find((x) => x.id === id)?.nome;
 
   return (
     <form onSubmit={registrar} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
@@ -132,6 +144,21 @@ export function Registrar() {
           {/* 1 */}
           <Passo n={1} id="r-quem" titulo="Quem pediu, e por onde?" feito={quemOk}>
             <div className="space-y-4">
+              {ultimo && !quemOk && (
+                <button
+                  type="button"
+                  onClick={repetirPessoa}
+                  className="flex min-h-12 w-full items-center gap-3 rounded-xl border-2 border-dashed border-linha px-3 py-2 text-left hover:border-acento hover:bg-mar-50"
+                >
+                  <RotateCcw className="size-5 shrink-0 text-acento" aria-hidden="true" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">Outro pedido de {ultimo.nome}</span>
+                    <span className="block truncate text-xs text-tinta-2">
+                      {[ROTULO_ORIGEM[ultimo.origem], nomeSetor(ultimo.setor)].filter(Boolean).join(" · ")}: preenche quem pediu, por onde e o setor
+                    </span>
+                  </span>
+                </button>
+              )}
               <div className="grid grid-cols-3 gap-1 rounded-xl bg-fundo p-1" role="radiogroup" aria-label="Como chegou">
                 {ORIGENS.map(({ valor, rotulo, Icone }) => (
                   <label key={valor} className={`${segmento(origem === valor)} flex-col gap-0.5 sm:flex-row sm:gap-2`}>

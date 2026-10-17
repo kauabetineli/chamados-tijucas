@@ -71,3 +71,4 @@ e rode `scripts\atualizar.ps1` como Administrador.
 | Abre no PC, mas não no celular | O celular está no Wi-Fi da Prefeitura (e não no 4G)? |
 | E-mails não chegam | Settings > Mail settings > "Send test email" |
 | Ver erros | Painel admin > Logs |
+| "Muitas tentativas seguidas" no login | É o limite de 10 tentativas por minuto por endereço (proteção contra adivinhar senha). Espere 1 minuto. Se muita gente entra pelo mesmo IP (proxy), ajuste em Settings > Rate limits |

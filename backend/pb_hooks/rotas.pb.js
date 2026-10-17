@@ -250,8 +250,13 @@ routerAdd("GET", "/api/chamados/{id}/solucoes-parecidas", (e) => {
     "chamados", "status = 'resolvido' && categoria = {:cat} && id != {:id} && solucao != ''", "-resolvido_em", 60, 0,
     { cat: c.getString("categoria"), id: c.id },
   ).filter((r) => !!r);
+  // palavras comuns que não dizem nada sobre o problema (já sem acento; as de até 3 letras já ficam de fora)
+  const COMUNS = new Set(("para pela pelo pelos pelas como esta estao esse essa isso este isto aqui quando desde "
+    + "hoje ontem agora mais muito muita pouco tudo todo toda todos todas nada fica ficou consigo consegue "
+    + "preciso precisa favor alguem algum alguma outro outra mesmo mesma sempre ainda depois antes porque "
+    + "entao tambem nosso nossa minha meus minhas dele dela seus suas onde qual quais sera seria").split(" "));
   const palavras = (t) => new Set(String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .split(/[^a-z0-9]+/).filter((w) => w.length > 3));
+    .split(/[^a-z0-9]+/).filter((w) => w.length > 3 && !COMUNS.has(w)));
   const base = palavras(c.getString("descricao"));
   const total = candidatos.length;
   const itens = candidatos

@@ -1,4 +1,4 @@
-import { History, Hourglass, Inbox, MessageCircleQuestion, Plus, Search, Wrench } from "lucide-react";
+import { CheckCircle2, History, Hourglass, Inbox, MessageCircleQuestion, Plus, Search, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { EsqueletoLinhas } from "../components/Esqueleto";
@@ -100,12 +100,13 @@ export function MeusChamados() {
   const naFila = chamados
     .filter((c) => c.status === "aberto")
     .sort((a, b) => (posicoes[a.id]?.a_frente ?? 0) - (posicoes[b.id]?.a_frente ?? 0));
-  // "aguardando" também é atendimento para quem pediu (o TI está com o chamado); quem precisa responder vem primeiro
-  const emAtendimento = chamados
-    .filter((c) => c.status === "em_andamento" || c.status === "aguardando")
-    .sort((a, b) => Number(b.aguardando_motivo === "solicitante") - Number(a.aguardando_motivo === "solicitante"));
+  // "Precisa de você": o que depende da PESSOA agora (responder o TI ou confirmar se deu certo). Vem no topo.
+  const responder = chamados.filter((c) => c.status === "aguardando" && c.aguardando_motivo === "solicitante");
   const paraConfirmar = chamados.filter((c) => c.status === "resolvido" && !c.confirmado);
-  const emAberto = naFila.length + emAtendimento.length + paraConfirmar.length;
+  // com o TI: em atendimento ou em espera de peça/terceiro
+  const emAtendimento = chamados.filter((c) => c.status === "em_andamento" || (c.status === "aguardando" && c.aguardando_motivo !== "solicitante"));
+  const precisaDeVoce = responder.length + paraConfirmar.length;
+  const emAberto = naFila.length + emAtendimento.length + precisaDeVoce;
 
   if (chamados.length === 0 && totalHistorico === 0 && historico !== null) {
     return (
@@ -162,9 +163,71 @@ export function MeusChamados() {
             </div>
           )}
 
+          {precisaDeVoce > 0 && (
+            <section aria-labelledby="t-voce" className="space-y-3">
+              <h2 id="t-voce" className="flex items-center gap-2 text-xl font-bold">
+                <span className="size-2.5 rounded-full bg-acento" aria-hidden="true" /> Precisa de você
+              </h2>
+              {responder.map((c) => (
+                <CartaoAcao
+                  key={c.id}
+                  c={c}
+                  selecionado={verId === c.id}
+                  Icone={MessageCircleQuestion}
+                  titulo="O TI precisa de uma resposta sua."
+                  acao="Responder"
+                  novidade={novidade(c)}
+                />
+              ))}
+              {paraConfirmar.map((c) => (
+                <CartaoAcao
+                  key={c.id}
+                  c={c}
+                  selecionado={verId === c.id}
+                  Icone={CheckCircle2}
+                  titulo="O TI marcou como resolvido. Deu certo?"
+                  acao="Confirmar"
+                  detalhe={c.solucao ? `Solução: ${resumo(c.solucao, 90)}` : undefined}
+                  novidade={novidade(c)}
+                />
+              ))}
+            </section>
+          )}
+
+          {emAtendimento.length > 0 && (
+            <section aria-labelledby="t-atend" className="space-y-3">
+              <h2 id="t-atend" className="text-xl font-bold">Com o TI</h2>
+              {emAtendimento.map((c) => {
+                const Icone = c.status === "aguardando" ? Hourglass : Wrench;
+                const quem = c.expand?.responsavel?.name ?? "Um técnico";
+                return (
+                  <LinkChamado
+                    key={c.id}
+                    id={c.id}
+                    para={`/chamado/${c.id}`}
+                    className={`flex items-start gap-3 rounded-2xl border-l-8 border-sol bg-superficie p-4 ring-1 ${verId === c.id ? "ring-2 ring-acento" : "ring-linha hover:ring-acento"}`}
+                  >
+                    <Icone className="mt-0.5 size-6 shrink-0 text-tinta" aria-hidden="true" />
+                    <span>
+                      <span className="block font-bold">
+                        {c.status === "aguardando" && c.aguardando_motivo
+                            ? `${quem} está aguardando ${ROTULO_AGUARDANDO[c.aguardando_motivo]}.`
+                            : `${quem} está cuidando do seu chamado.`}
+                      </span>
+                      <span className="block text-tinta-2">
+                        <span className="font-display font-bold text-tinta">{c.protocolo}</span> {resumo(c.descricao, 70)}
+                      </span>
+                      {novidade(c) && <SeloNovidade />}
+                    </span>
+                  </LinkChamado>
+                );
+              })}
+            </section>
+          )}
+
           {naFila.length > 0 && (
             <section aria-labelledby="t-fila" className="space-y-4">
-              <h2 id="t-fila" className="text-xl font-bold">Aguardando atendimento</h2>
+              <h2 id="t-fila" className="text-xl font-bold">Na fila</h2>
               {naFila.map((c) => (
                 <LinkChamado key={c.id} id={c.id} para={`/chamado/${c.id}`} className={`block rounded-[18px] focus-visible:outline-offset-4 ${verId === c.id ? "ring-4 ring-acento" : ""}`}>
                   <SenhaFila
@@ -183,49 +246,6 @@ export function MeusChamados() {
             </section>
           )}
 
-          {emAtendimento.length > 0 && (
-            <section aria-labelledby="t-atend" className="space-y-3">
-              <h2 id="t-atend" className="text-xl font-bold">Em atendimento</h2>
-              {emAtendimento.map((c) => {
-                const responder = c.status === "aguardando" && c.aguardando_motivo === "solicitante";
-                const Icone = responder ? MessageCircleQuestion : c.status === "aguardando" ? Hourglass : Wrench;
-                const quem = c.expand?.responsavel?.name ?? "Um técnico";
-                return (
-                  <LinkChamado
-                    key={c.id}
-                    id={c.id}
-                    para={`/chamado/${c.id}`}
-                    className={`flex items-start gap-3 rounded-2xl border-l-8 p-4 ring-1 ${responder ? "border-acento bg-mar-50" : "border-sol bg-superficie"} ${verId === c.id ? "ring-2 ring-acento" : "ring-linha hover:ring-acento"}`}
-                  >
-                    <Icone className={`mt-0.5 size-6 shrink-0 ${responder ? "text-acento" : "text-tinta"}`} aria-hidden="true" />
-                    <span>
-                      <span className="block font-bold">
-                        {responder
-                          ? "O TI precisa de uma resposta sua."
-                          : c.status === "aguardando" && c.aguardando_motivo
-                            ? `${quem} está aguardando ${ROTULO_AGUARDANDO[c.aguardando_motivo]}.`
-                            : `${quem} está cuidando do seu chamado.`}
-                      </span>
-                      <span className="block text-tinta-2">
-                        <span className="font-display font-bold text-tinta">{c.protocolo}</span> {resumo(c.descricao, 70)}
-                      </span>
-                      {responder && <span className="mt-1 block text-sm font-semibold text-acento">Abra o chamado e responda na conversa.</span>}
-                      {novidade(c) && <SeloNovidade />}
-                    </span>
-                  </LinkChamado>
-                );
-              })}
-            </section>
-          )}
-
-          {paraConfirmar.length > 0 && (
-            <section aria-labelledby="t-conf">
-              <h2 id="t-conf" className="text-xl font-bold">Resolvidos: confirme se deu certo</h2>
-              <ul className="divide-y divide-linha">
-                {paraConfirmar.map((c) => <LinhaChamado key={c.id} c={c} para={`/chamado/${c.id}`} novidade={novidade(c)} historico selecionado={verId === c.id} />)}
-              </ul>
-            </section>
-          )}
         </>
       ) : (
         <section aria-label="Histórico" className="space-y-3">
@@ -256,6 +276,36 @@ export function MeusChamados() {
         </section>
       )}
     </div>
+  );
+}
+
+/** Cartão do "Precisa de você": o que a pessoa tem que fazer, com o botão da ação à direita. */
+function CartaoAcao({ c, Icone, titulo, acao, detalhe, novidade, selecionado }: {
+  c: Chamado;
+  Icone: typeof Wrench;
+  titulo: string;
+  acao: string;
+  detalhe?: string;
+  novidade?: boolean;
+  selecionado?: boolean;
+}) {
+  return (
+    <LinkChamado
+      id={c.id}
+      para={`/chamado/${c.id}`}
+      className={`flex items-center gap-3 rounded-2xl border-l-8 border-acento bg-mar-50 p-4 ring-1 ${selecionado ? "ring-2 ring-acento" : "ring-linha hover:ring-acento"}`}
+    >
+      <Icone className="size-6 shrink-0 text-acento" aria-hidden="true" />
+      <span className="min-w-0 flex-1">
+        <span className="block font-bold">{titulo}</span>
+        <span className="block text-tinta-2">
+          <span className="font-display font-bold text-tinta">{c.protocolo}</span> {resumo(c.descricao, 70)}
+        </span>
+        {detalhe && <span className="mt-0.5 block truncate text-sm text-tinta-2">{detalhe}</span>}
+        {novidade && <SeloNovidade />}
+      </span>
+      <span className="hidden shrink-0 rounded-xl bg-mar-700 px-4 py-2 text-sm font-semibold text-white sm:inline-flex">{acao}</span>
+    </LinkChamado>
   );
 }
 

@@ -31,17 +31,36 @@ function pesoDe(prioridade) {
 }
 
 // Protocolo legível por ano: 2026-00001, 2026-00002...
+/**
+ * Próximo protocolo do ano ("2026-00042"). O número sai do contador dd_contadores numa instrução só
+ * (soma e devolve), então dois chamados ao mesmo tempo nunca recebem o mesmo número (migration 0012).
+ * Na primeira vez do ano, o contador começa do maior protocolo que já existe.
+ */
 function proximoProtocolo(app) {
   const ano = new Date().getFullYear();
   const prefixo = ano + "-";
-  const ultimos = app.findRecordsByFilter(
-    "chamados", "protocolo ~ {:p}", "-protocolo", 1, 0, { p: prefixo + "%" },
-  );
-  let n = 0;
-  if (ultimos.length && ultimos[0]) {
-    n = parseInt(ultimos[0].getString("protocolo").slice(prefixo.length), 10) || 0;
+  const nome = "protocolo-" + ano;
+  const db = app.db();
+
+  // ponto de partida: só é usado se o contador do ano ainda não existe
+  const ultimos = app.findRecordsByFilter("chamados", "protocolo ~ {:p}", "-protocolo", 1, 0, { p: prefixo + "%" });
+  let maior = 0;
+  if (ultimos.length && ultimos[0]) maior = parseInt(ultimos[0].getString("protocolo").slice(prefixo.length), 10) || 0;
+
+  const r = new DynamicModel({ valor: 0 });
+  db.newQuery(
+    `INSERT INTO dd_contadores (nome, valor) VALUES ({:nome}, {:inicial})
+     ON CONFLICT(nome) DO UPDATE SET valor = valor + 1
+     RETURNING valor`,
+  ).bind({ nome, inicial: maior + 1 }).one(r);
+
+  let n = r.valor;
+  // segurança: se alguém criou protocolo por fora do contador, pula os já usados
+  while (app.countRecords("chamados", $dbx.hashExp({ protocolo: prefixo + String(n).padStart(5, "0") })) > 0) {
+    db.newQuery("UPDATE dd_contadores SET valor = valor + 1 WHERE nome = {:nome} RETURNING valor").bind({ nome }).one(r);
+    n = r.valor;
   }
-  return prefixo + String(n + 1).padStart(5, "0");
+  return prefixo + String(n).padStart(5, "0");
 }
 
 function registrar(app, chamadoId, autorId, tipo, texto, interno) {

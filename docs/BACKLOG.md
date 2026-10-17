@@ -35,11 +35,16 @@ com o TI e pelo menos 2 setores, meta de **50% dos chamados registrados no siste
 
 ## Desejáveis (se der tempo)
 
-- [ ] Avaliação depois do atendimento (👍/👎), indicador para a AC5
-- [ ] Respostas prontas para o TI ("Reinicie o computador e me avise")
-- [ ] Aviso sonoro na fila quando chega chamado novo
-- [ ] Anexar foto também nos comentários
-- [ ] Tela de perfil (trocar setor e senha; o ramal é cadastrado pelo TI)
+- [x] Avaliação depois do atendimento (👍/👎), indicador para a AC5
+- [x] Respostas prontas para o TI, editáveis pela equipe
+- [ ] Aviso sonoro na fila quando chega chamado novo (opcional, começa desligado: o ntfy já avisa no celular)
+- [x] Anexar foto também nos comentários
+- [x] Tela de perfil
+- [x] Situação "Em espera" (peça, resposta, terceiro) e "Enviar e aguardar resposta"
+- [x] "Precisa de você" em Meus chamados; "Outro pedido da mesma pessoa" no Registrar
+- [x] Limite de tentativas de login; protocolo sem colisão
+- [ ] Encerrar sozinho resolvidos não confirmados após 7 dias (sem nota; Painel separa confirmação real da automática)
+- [ ] Resolver em lote os chamados de uma mesma queda (ligados a um aviso do mural)
 
 ## Depois do piloto (trabalhos futuros)
 

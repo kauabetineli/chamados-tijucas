@@ -29,7 +29,13 @@ QR code / link  →  site da Prefeitura (/dinodesk, página estática)  →  htt
 - Sem HTTPS (acesso por IP): o sistema funciona no navegador do celular, a câmera abre pelo campo de anexo,
   mas **não** dá para instalar como app (PWA) nem receber notificação push. Os avisos vão por e-mail.
 - Se o TI conseguir um subdomínio do domínio da Prefeitura apontando para o IP interno, dá para emitir um certificado
-  e ganhar HTTPS (melhoria pós-piloto).
+  e ganhar HTTPS (melhoria pós-piloto). **Limitação conhecida:** sem HTTPS, senha e conversa passam sem criptografia
+  na rede interna. Aceito para o piloto; registrar na AC4 e decidir com o Departamento de TI.
+- **Limite de tentativas de login** (migration 0011): 10 por minuto por endereço de rede; depois, o servidor responde 429
+  ("Muitas tentativas seguidas. Espere um minuto"). O próprio PC servidor (127.0.0.1) fica de fora (ferramentas, painel).
+  Se um dia todos acessarem por um proxy (um IP só), revise em Settings > Rate limits.
+- **Protocolo sem repetir** (migration 0012): o número sai da tabela `dd_contadores` numa instrução só (soma e devolve).
+  Antes era "último + 1" em dois passos, e dois chamados no mesmo instante podiam colidir no índice único.
 
 ## Modelo de dados
 
