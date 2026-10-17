@@ -141,7 +141,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
 
         {tecnico && (
           <aside className="md:col-start-2 md:row-span-2 md:row-start-1">
-            <div className={embutido ? "" : "md:sticky md:top-24"}>
+            <div className={embutido ? "" : "md:sticky md:top-6"}>
               <PainelTecnico chamado={c} aoMudar={carregar} />
             </div>
           </aside>

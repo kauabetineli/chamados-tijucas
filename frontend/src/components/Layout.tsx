@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router";
 import { useAuth } from "../lib/auth";
 import { Avisos } from "./Avisos";
 import { Avatar } from "./Avatar";
+import { BarraLateral } from "./BarraLateral";
 import { PainelChamado } from "./PainelChamado";
 import { BotaoTema } from "./BotaoTema";
 import { ehTecnico } from "../lib/pb";
@@ -32,31 +33,17 @@ export function Layout() {
   const largura = caminho === "/ti/chamados" ? "max-w-7xl" : focado ? "max-w-6xl" : "max-w-5xl";
 
   return (
-    <div className={`flex min-h-dvh flex-col md:pb-0 ${focado ? "" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
-      <header className="sticky top-0 z-20 print:hidden border-t-[6px] border-mar bg-superficie/95 backdrop-blur">
+    // PC: barra lateral à esquerda + conteúdo. Celular: topo + barra de baixo (a lateral não aparece).
+    <div className="md:flex">
+    <BarraLateral />
+    <div className={`flex min-h-dvh min-w-0 flex-1 flex-col md:pb-0 ${focado ? "" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
+      <header className="sticky top-0 z-20 print:hidden border-t-[6px] border-mar bg-superficie/95 backdrop-blur md:hidden">
         <div className={`mx-auto flex items-center gap-4 px-4 py-3 ${largura}`}>
           <NavLink to={itens[0].para} className="mr-auto flex items-center gap-2.5">
             <img src="/icone-simples.svg" alt="" className="size-10" />
             <span className="font-display text-2xl leading-none font-extrabold tracking-tight md:text-3xl">Dino Desk</span>
           </NavLink>
 
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">
-            {itens.map((i) => (
-              <NavLink
-                key={i.para}
-                to={i.para}
-                end={i.fim}
-                className={({ isActive: marcado }) => { const isActive = ativo(i, marcado); return (
-                  `flex items-center gap-2 rounded-lg px-3 py-2 font-semibold ${
-                    isActive ? "bg-mar-50 text-acento" : "text-tinta-2 hover:text-tinta"
-                  }`
-                ); }}
-              >
-                <i.Icone className="size-5" aria-hidden="true" />
-                {i.rotulo}
-              </NavLink>
-            ))}
-          </nav>
 
           <div className="flex items-center gap-1">
             <BotaoTema />
@@ -74,7 +61,7 @@ export function Layout() {
       </header>
 
       {/* com o painel do chamado aberto no PC, sobra espaço embaixo para a lista rolar inteira acima dele */}
-      <main className={`mx-auto w-full flex-1 px-4 pt-5 pb-8 ${largura}`} style={{ paddingBottom: "calc(2rem + var(--altura-painel, 0px))" }}>
+      <main className={`mx-auto w-full flex-1 px-4 pt-5 pb-8 md:px-8 md:pt-8 ${largura}`} style={{ paddingBottom: "calc(2rem + var(--altura-painel, 0px))" }}>
         <Outlet />
         <Avisos />
         <PainelChamado />
@@ -106,6 +93,7 @@ export function Layout() {
           ))}
         </ul>
       </nav>}
+    </div>
     </div>
   );
 }

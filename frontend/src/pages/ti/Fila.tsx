@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router";
 import { Avatar, SeloLivre } from "../../components/Avatar";
 import { Bloco, EsqueletoCartoes } from "../../components/Esqueleto";
 import { IconeCategoria } from "../../components/Icone";
+import { MuralAvisos } from "../../components/MuralAvisos";
 import { MenuAcoes } from "../../components/MenuAcoes";
 import { MenuAtribuir } from "../../components/MenuAtribuir";
 import { Paginacao, usePaginacao } from "../../components/Paginacao";
@@ -165,7 +166,7 @@ function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastand
   const ordem = [...tecnicos].sort((a, b) => (a.id === eu ? -1 : b.id === eu ? 1 : 0));
 
   return (
-    <div className={`sticky top-[70px] z-10 -mx-4 px-4 py-2 backdrop-blur ${arrastando ? "bg-mar-50/95" : "bg-fundo/95"}`}>
+    <div className={`sticky top-[70px] z-10 -mx-4 px-4 md:top-0 md:-mx-8 md:px-8 py-2 backdrop-blur ${arrastando ? "bg-mar-50/95" : "bg-fundo/95"}`}>
       <p className={`mb-1.5 text-sm font-semibold ${arrastando ? "text-acento" : "text-tinta-2"}`}>
         {arrastando ? "Solte na pessoa para atribuir" : "Equipe"}
       </p>
@@ -471,6 +472,9 @@ export function Fila() {
       </div>
       <VisaoTI />
       </div>
+
+      {/* no PC o mural fica na barra lateral */}
+      <MuralAvisos className="md:hidden" />
 
       {tecnicos.length > 0 && chamados !== null && (
         <FaixaEquipe

@@ -123,8 +123,8 @@ export function PainelChamado() {
     return (
       <section
         aria-label="Chamado aberto"
-        className="painel-sobe fixed inset-x-0 bottom-0 flex flex-col border-t-2 border-acento bg-superficie shadow-[0_-12px_32px_-12px_rgb(0_0_0/0.35)]"
-        style={{ height: altura, zIndex: 30 }}
+        className="painel-sobe fixed right-0 bottom-0 flex flex-col border-t-2 border-acento bg-superficie shadow-[0_-12px_32px_-12px_rgb(0_0_0/0.35)]"
+        style={{ height: altura, zIndex: 30, left: "var(--largura-lateral, 0px)" }}
       >
         {barra}
         {conteudo}

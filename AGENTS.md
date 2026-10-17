@@ -26,7 +26,7 @@ frontend/src/                React 19 + Vite + TypeScript + Tailwind v4 (tokens 
   pages/                     telas do servidor (MeusChamados, NovoChamado, Chamado)
   pages/ti/                  telas do TI (Fila, TodosChamados = tabela com filtros, Registrar, Historico, Painel, Usuarios, QrCodes)
   features/novo-chamado/     abertura de chamado em ETAPAS modulares (etapas.tsx); celular = passo a passo, PC = painel
-  components/                peças reutilizadas (Anexos, Selos, Layout...)
+  components/                peças reutilizadas (Anexos, Selos, Layout, BarraLateral, PainelChamado, MuralAvisos...)
   lib/pb.ts                  cliente PocketBase, TIPOS das coleções, mensagemErro()
 ferramentas/                 CLI + servidor MCP para gerar dados de teste e operar o sistema (ver abaixo)
 scripts/                     PowerShell de instalação/backup/atualização no PC servidor (ASCII + CRLF)
@@ -113,6 +113,8 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
   impacto (`so_eu`|`setor`|`publico`) → prioridade (`normal`|`alta`|`urgente`, `baixa` só pelo TI), peso,
   status (`aberto`|`em_andamento`|`resolvido`), origem (`sistema`|`whatsapp`|`ligacao`|`presencial`),
   responsavel, registrado_por, anexos (até 5, 250 MB), diagnostico, solucao, confirmado, midia_pendente, ficticio.
+- `avisos`: mural "Avisos do TI" (texto, tipo `info`|`problema`, ate = some sozinho depois, autor). Técnico publica e
+  encerra (encerrar = `ate` vira agora; não se apaga). Aparece na barra lateral (PC) e no topo de Meus chamados/Fila (celular).
 - `interacoes`: chamado, autor, tipo (`comentario`|`status`|`prioridade`|`atribuicao`|`sistema`), texto, interno,
   anexos (até 4 imagens por mensagem; mensagem pode ser só imagem).
 

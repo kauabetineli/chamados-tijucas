@@ -28,6 +28,7 @@ Padrão: `GET /api/collections/{c}/records?filter=...&sort=...&expand=...&page=1
 | `chamados` | o próprio solicitante; técnicos veem todos | qualquer logado | técnicos | superusuário |
 | `interacoes` | solicitante vê as não internas do seu chamado; técnicos veem todas | logado (hook confere se pode) | ninguém | ninguém |
 | `users` | a própria conta; técnicos veem todas (sem e-mail: use `/api/ti/usuarios`) | **ninguém** (só admin do TI pela rota `/api/ti/usuarios`) | só a própria senha | superusuário |
+| `avisos` | qualquer logado (o front filtra `ate = "" \|\| ate > agora`) | técnico, com `autor` = ele mesmo | técnico (encerrar = `ate` vira agora) | ninguém |
 | `setores`, `categorias` | todos | superusuário (setor: admin do TI por `/api/ti/setores`) | idem | superusuário |
 
 ### Abrir chamado (multipart)

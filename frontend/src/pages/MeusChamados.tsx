@@ -2,6 +2,7 @@ import { History, Inbox, Plus, Search, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { EsqueletoLinhas } from "../components/Esqueleto";
+import { MuralAvisos } from "../components/MuralAvisos";
 import { LinhaChamado } from "../components/LinhaChamado";
 import { Paginacao, usePaginacao } from "../components/Paginacao";
 import { SenhaFila } from "../components/SenhaFila";
@@ -144,6 +145,9 @@ export function MeusChamados() {
           {aba_("historico", "Histórico", History, totalHistorico)}
         </div>
       </div>
+
+      {/* no PC o mural fica na barra lateral */}
+      <MuralAvisos className="md:hidden" />
 
       {aba === "abertos" ? (
         <>

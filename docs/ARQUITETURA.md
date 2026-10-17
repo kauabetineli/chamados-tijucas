@@ -102,6 +102,19 @@ fecha o painel. No PC a alça muda a altura (lembrada no aparelho) e a lista rol
 uma folha quase da altura da tela que fecha arrastando para baixo. Ctrl+clique abre a página inteira.
 Use `<LinkChamado id para>` em toda lista nova de chamados.
 
+## Barra lateral e Avisos do TI
+
+No PC o menu fica numa **barra lateral** (`components/BarraLateral.tsx`): ganha a altura que o topo ocupava (o painel
+do chamado precisa dela) e mostra números ao vivo (Fila: aguardando e atrasados; servidor: em aberto). A pessoa
+**arrasta a borda direita** para mudar a largura (200–380 px, duplo clique volta ao padrão; setas do teclado também),
+e pode **recolher** para só ícones (começa recolhida em telas com menos de 1280 px). As duas escolhas ficam no aparelho.
+A largura vai para `--largura-lateral`, usada pelo painel do chamado. No celular continua o topo + barra de baixo.
+
+Na lateral fica o mural **Avisos do TI** (coleção `avisos`, migration `1760000008`): "Internet do Paço instável, já
+estamos vendo". Serve para o servidor não abrir 10 chamados do mesmo problema (problema 1 do diagnóstico). O técnico
+publica com prazo (1 h, 4 h, fim do dia, 3 dias ou até encerrar); o aviso some sozinho e fica registrado.
+No celular o mural aparece no topo de Meus chamados e da Fila.
+
 ## Perfil
 
 Clicar no próprio nome (topo) abre `/perfil`: dados que o TI cadastrou (matrícula, setor, ramal, e-mail),
