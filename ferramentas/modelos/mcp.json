@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "dino-desk": {
+      "command": "node",
+      "args": ["ferramentas/mcp.mjs"]
+    }
+  }
+}

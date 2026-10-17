@@ -1,0 +1,16 @@
+{
+  "name": "dinodesk-ferramentas",
+  "private": true,
+  "version": "1.0.0",
+  "description": "CLI e servidor MCP do Dino Desk: gerar dados de teste e operar o sistema por IA ou linha de comando",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dino": "node dino.mjs",
+    "mcp": "node mcp.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "zod": "4.6.7"
+  }
+}
