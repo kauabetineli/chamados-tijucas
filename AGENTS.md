@@ -38,6 +38,7 @@ docs/                        ARQUITETURA, API, FERRAMENTAS-IA, IMPLANTACAO, DADO
 ```bash
 # Windows, tudo de uma vez (instala, sobe PocketBase + front, abre o navegador; rodar de novo = reiniciar)
 iniciar.bat            # parar.bat para parar
+reiniciar.bat          # reinicia os dois sem abrir outra aba; "reiniciar.bat backend" ou "reiniciar.bat front" para um só
 # backend (Linux/macOS: ./pocketbase; Windows: .\pocketbase.exe)
 cd backend && ./pocketbase serve                       # http://127.0.0.1:8090  admin: /_/
 # front com recarga
@@ -80,8 +81,8 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 3. Mudou o banco? **Migration nova** em `backend/pb_migrations` (`<timestamp>_descricao.js`) com `migrate(up, down)`.
 4. Hooks do PocketBase (JSVM/goja): `require(`${__hooks}/lib/x.js`)` **dentro** do handler, nunca no topo.
    Não há `async`/`fetch`: use `$http.send`, `$os`, `$security`, `$dbx`. Filtros com parâmetros: `"campo = {:v}", { v }`.
-5. No Windows o PocketBase **não recarrega** `pb_hooks` sozinho: reinicie (`iniciar.bat` de novo) depois de editar.
-6. Tailwind v4: depois de criar arquivos novos com classes novas, o `npm run dev` aberto pode não gerar as classes. Reinicie.
+5. No Windows o PocketBase **não recarrega** `pb_hooks` sozinho: depois de editar, `reiniciar.bat backend`.
+6. Tailwind v4: depois de criar arquivos novos com classes novas, o `npm run dev` aberto pode não gerar as classes: `reiniciar.bat front`.
 7. Interface: frases curtas, voz ativa, sem jargão ("chamado", não "ticket"). Mobile first; alvo de toque >= 48 px.
 8. Sem HTTPS (o servidor é um PC na rede, acessado por IP): nada de PWA, push, câmera via getUserMedia ou clipboard garantido.
    Foto/vídeo pelo celular usam `<input type="file" capture>`.

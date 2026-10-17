@@ -4,8 +4,9 @@
 # - se ja estiver rodando, reinicia (util depois de editar pb_hooks, que no Windows nao recarrega sozinho);
 # - abre o navegador quando tudo estiver no ar.
 # Opcoes:  -Parar (so para tudo)   -SemNavegador
+#          -Somente backend|front (reinicia so um dos dois; usado pelo reiniciar.bat)
 
-param([switch]$Parar, [switch]$SemNavegador)
+param([switch]$Parar, [switch]$SemNavegador, [ValidateSet("tudo", "backend", "front")][string]$Somente = "tudo")
 $ErrorActionPreference = "Stop"
 
 $raiz = Split-Path -Parent $PSScriptRoot
@@ -42,13 +43,22 @@ function Abrir-Janela([string]$titulo, [string]$pasta, [string]$comando) {
 Write-Host ""
 Write-Host "Dino Desk - ambiente de desenvolvimento" -ForegroundColor Cyan
 
-# para o que estiver rodando (reinicio)
-Parar-Porta 8090
-Parar-Porta 5173
-# fecha as janelas abertas por uma execucao anterior
-Get-Process powershell -ErrorAction SilentlyContinue |
-  Where-Object { $_.MainWindowTitle -like "Dino Desk - *" } |
-  Stop-Process -Force -ErrorAction SilentlyContinue
+$fazBackend = $Somente -ne "front"
+$fazFront = $Somente -ne "backend"
+
+# para o que estiver rodando (reinicio) e fecha as janelas abertas por uma execucao anterior
+if ($fazBackend) {
+  Parar-Porta 8090
+  Get-Process powershell -ErrorAction SilentlyContinue |
+    Where-Object { $_.MainWindowTitle -like "Dino Desk - PocketBase*" } |
+    Stop-Process -Force -ErrorAction SilentlyContinue
+}
+if ($fazFront) {
+  Parar-Porta 5173
+  Get-Process powershell -ErrorAction SilentlyContinue |
+    Where-Object { $_.MainWindowTitle -like "Dino Desk - front*" } |
+    Stop-Process -Force -ErrorAction SilentlyContinue
+}
 if ($Parar) { Write-Host "Tudo parado."; exit 0 }
 
 # pre-requisitos
@@ -76,17 +86,21 @@ if (-not (Test-Path (Join-Path $backend "bin\ffmpeg.exe"))) {
 }
 
 # sobe o PocketBase e espera responder
-Write-Host "Iniciando o PocketBase..."
-Abrir-Janela "Dino Desk - PocketBase (8090)" $backend ".\pocketbase.exe serve"
-if (-not (Esperar-Url "http://127.0.0.1:8090/api/health" 30)) {
-  throw "O PocketBase nao respondeu. Veja a mensagem de erro na janela dele."
+if ($fazBackend) {
+  Write-Host "Iniciando o PocketBase..."
+  Abrir-Janela "Dino Desk - PocketBase (8090)" $backend ".\pocketbase.exe serve"
+  if (-not (Esperar-Url "http://127.0.0.1:8090/api/health" 30)) {
+    throw "O PocketBase nao respondeu. Veja a mensagem de erro na janela dele."
+  }
 }
 
 # sobe o front
-Write-Host "Iniciando o front..."
-Abrir-Janela "Dino Desk - front (5173)" $frontend "npm run dev -- --strictPort"
-if (-not (Esperar-Url "http://localhost:5173" 60)) {
-  throw "O front nao respondeu. Veja a mensagem de erro na janela dele."
+if ($fazFront) {
+  Write-Host "Iniciando o front..."
+  Abrir-Janela "Dino Desk - front (5173)" $frontend "npm run dev -- --strictPort"
+  if (-not (Esperar-Url "http://localhost:5173" 60)) {
+    throw "O front nao respondeu. Veja a mensagem de erro na janela dele."
+  }
 }
 
 $ip = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
@@ -99,7 +113,7 @@ Write-Host "  Sistema:       http://localhost:5173"
 if ($ip) { Write-Host "  Pelo celular:  http://${ip}:5173  (mesma rede Wi-Fi)" }
 Write-Host "  Painel admin:  http://127.0.0.1:8090/_/"
 Write-Host ""
-Write-Host "Editou pb_hooks ou migrations? Rode iniciar.bat de novo para reiniciar."
+Write-Host "Editou pb_hooks ou migrations? reiniciar.bat backend (ou reiniciar.bat para os dois)."
 Write-Host "Para parar: parar.bat (ou feche as duas janelas)."
 
 if (-not $SemNavegador) { Start-Process "http://localhost:5173" }
