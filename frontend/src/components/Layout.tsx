@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardList, History, ListOrdered, LogOut, Plus, SquarePen, Users } from "lucide-react";
+import { BarChart3, ClipboardList, History, ListOrdered, Plus, SquarePen, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useAuth } from "../lib/auth";
 import { Avisos } from "./Avisos";
@@ -22,7 +22,7 @@ const TECNICO: Item[] = [
 ];
 
 export function Layout() {
-  const { usuario, sair } = useAuth();
+  const { usuario } = useAuth();
   const itens = ehTecnico(usuario) ? TECNICO : SOLICITANTE;
   // no passo a passo de novo chamado a barra de baixo some: o único botão no rodapé é o da etapa
   const caminho = useLocation().pathname;
@@ -60,7 +60,7 @@ export function Layout() {
 
           <div className="flex items-center gap-1">
             <BotaoTema />
-            {/* o próprio nome leva ao perfil */}
+            {/* o próprio nome leva ao perfil (é lá que fica o "Sair da conta") */}
             <NavLink
               to="/perfil"
               className={({ isActive }) => `flex min-h-10 items-center gap-2 rounded-full py-1 pr-1 pl-1 sm:pr-3 ${isActive ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
@@ -69,10 +69,6 @@ export function Layout() {
               {usuario && <Avatar id={usuario.id} nome={usuario.name} tamanho="sm" />}
               <span className="hidden max-w-40 truncate text-sm font-semibold sm:block">{usuario?.name}</span>
             </NavLink>
-            <button onClick={sair} className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-semibold text-tinta-2 hover:text-tinta">
-              <LogOut className="size-5" aria-hidden="true" />
-              Sair
-            </button>
           </div>
         </div>
       </header>
