@@ -45,27 +45,17 @@ export function Layout() {
     <div className="md:flex">
     <BarraLateral numeros={numeros} />
     <div className={`flex min-h-dvh min-w-0 flex-1 flex-col md:pb-0 ${focado ? "" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
-      {/* celular: topo FINO (dino pequeno + avatar), para sobrar tela para o conteúdo. O nome "Dino Desk" fica
-          na tela de entrar, na aba do navegador e na barra lateral do PC. O tema fica em Perfil. */}
-      <header className="sticky top-0 z-20 print:hidden border-t-[3px] border-mar bg-superficie/95 backdrop-blur md:hidden">
-        <div className={`mx-auto flex h-12 items-center gap-3 px-4 ${largura}`}>
-          <NavLink to={itens[0].para} className="mr-auto flex items-center" aria-label="Dino Desk: início">
-            <img src="/icone-simples.svg" alt="" className="size-8" />
-          </NavLink>
-          {/* o avatar leva ao perfil (é lá que ficam o tema e o "Sair da conta") */}
-          <NavLink
-            to="/perfil"
-            className={({ isActive }) => `flex min-h-10 items-center gap-2 rounded-full p-1 sm:pr-3 ${isActive ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
-            aria-label="Meu perfil"
-          >
-            {usuario && <Avatar id={usuario.id} nome={usuario.name} tamanho="sm" />}
-            <span className="hidden max-w-40 truncate text-sm font-semibold sm:block">{usuario?.name}</span>
-          </NavLink>
-        </div>
-      </header>
 
       {/* com o painel do chamado aberto no PC, sobra espaço embaixo para a lista rolar inteira acima dele */}
-      <main className={`mx-auto w-full flex-1 px-4 pt-5 pb-8 md:px-8 md:pt-8 ${largura}`} style={{ paddingBottom: "calc(2rem + var(--altura-painel, 0px))" }}>
+      {/* celular: SEM barra no topo (a tela toda é do conteúdo, como no app). Só o avatar no canto, na altura do
+          título da página, rolando junto; ele leva ao Perfil (tema e "Sair da conta"). O nome "Dino Desk" fica na
+          tela de entrar, na aba do navegador e na barra lateral do PC. */}
+      <main className={`relative mx-auto w-full flex-1 px-4 pt-5 pb-8 md:px-8 md:pt-8 max-md:[&_h1]:pr-12 ${largura}`} style={{ paddingBottom: "calc(2rem + var(--altura-painel, 0px))" }}>
+        {caminho !== "/perfil" && !focado && usuario && (
+          <NavLink to="/perfil" aria-label="Meu perfil" className="absolute top-5 right-4 z-10 rounded-full ring-2 ring-superficie print:hidden md:hidden">
+            <Avatar id={usuario.id} nome={usuario.name} tamanho="sm" />
+          </NavLink>
+        )}
         <Outlet />
         <Avisos />
         <PainelChamado />
