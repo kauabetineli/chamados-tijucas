@@ -252,7 +252,7 @@ export function MeusChamados() {
           <label className="relative block">
             <span className="sr-only">Pesquisar no histórico</span>
             <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
-            <input type="search" className="campo pl-12" placeholder="Protocolo ou palavra do problema" value={busca} onChange={(e) => { setBusca(e.target.value); pag.voltarAoInicio(); }} />
+            <input type="search" enterKeyHint="search" className="campo pl-12" placeholder="Protocolo ou palavra do problema" value={busca} onChange={(e) => { setBusca(e.target.value); pag.voltarAoInicio(); }} />
           </label>
           {historico === null ? (
             <EsqueletoLinhas quantos={4} />

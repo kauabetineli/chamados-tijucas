@@ -2,9 +2,11 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- jeito de app no celular: sem zoom de pinça na tela (as fotos têm zoom próprio; o tamanho do texto fica em Meu perfil)
+         e o teclado encolhe a tela em vez de cobrir o botão de baixo. No PC o zoom do navegador (Ctrl +) continua. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#00658C" />
-    <!-- tema escuro antes da primeira pintura (sem piscar branco). Mesma regra de src/lib/tema.ts -->
+    <!-- tema escuro e tamanho do texto antes da primeira pintura (sem piscar). Mesma regra de src/lib/tema.ts e src/lib/tamanhoTexto.ts -->
     <script>
       (function () {
         try {
@@ -14,6 +16,8 @@
             document.documentElement.classList.add("dark");
             document.querySelector('meta[name="theme-color"]').setAttribute("content", "#0c1613");
           }
+          var tx = localStorage.getItem("dinodesk:texto");
+          if (tx === "grande" || tx === "maior") document.documentElement.dataset.texto = tx;
         } catch (e) {}
       })();
     </script>

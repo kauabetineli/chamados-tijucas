@@ -60,6 +60,7 @@ export function Historico() {
           <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
           <input
             type="search"
+            enterKeyHint="search"
             className="campo pl-12"
             placeholder="Ex.: spooler, senha bloqueada, 2026-00012"
             value={q}

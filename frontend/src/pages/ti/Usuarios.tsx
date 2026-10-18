@@ -472,7 +472,7 @@ function AbaPessoas({ setores, admin, setorFiltro, aoFiltrarSetor, recarregarTud
         <label className="relative flex-1">
           <span className="sr-only">Pesquisar pessoa</span>
           <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
-          <input type="search" className="campo pl-12" placeholder="Nome, matrícula ou e-mail" value={q} onChange={(e) => { setQ(e.target.value); pag.voltarAoInicio(); }} />
+          <input type="search" enterKeyHint="search" className="campo pl-12" placeholder="Nome, matrícula ou e-mail" value={q} onChange={(e) => { setQ(e.target.value); pag.voltarAoInicio(); }} />
         </label>
         <label className="md:w-56">
           <span className="sr-only">Filtrar por setor</span>

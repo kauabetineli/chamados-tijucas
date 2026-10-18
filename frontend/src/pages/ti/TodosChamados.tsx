@@ -209,7 +209,7 @@ export function TodosChamados() {
       <div className="space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
         {/* celular: uma linha que rola para o lado; PC: quebra linha */}
         {/* py-1/-my-1: folga para o contorno arredondado não ser cortado pela rolagem */}
-        <div className="-mx-4 -my-1 flex gap-2 overflow-x-auto px-4 py-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label="Situação">
+        <div className="sem-barra -mx-4 -my-1 flex gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label="Situação">
           {SITUACOES.map((s) => (
             <button
               key={s.valor}
@@ -230,6 +230,7 @@ export function TodosChamados() {
             <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
             <input
               type="search"
+            enterKeyHint="search"
               className="campo min-h-11 py-2 pl-10 text-sm"
               placeholder="Protocolo, descrição, quem pediu ou solução"
               value={busca}

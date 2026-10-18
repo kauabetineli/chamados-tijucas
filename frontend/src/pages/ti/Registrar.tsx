@@ -175,6 +175,14 @@ export function Registrar() {
                       id="quem"
                       className="campo pr-12"
                       autoComplete="off"
+                      enterKeyHint="next"
+                      // Enter: escolhe a primeira pessoa sugerida (ou vai para o setor), sem enviar o formulário pela metade
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter") return;
+                        e.preventDefault();
+                        if (sugestoes[0]) escolher(sugestoes[0]);
+                        document.getElementById("setor")?.focus();
+                      }}
                       placeholder="Ex.: Maria ou 12345"
                       value={busca}
                       onChange={(e) => { setBusca(e.target.value); setSolicitante(null); }}

@@ -106,6 +106,7 @@ function EditorRespostas({ lista, aoMudar, aoFechar }: { lista: RespostaPronta[]
                 <label htmlFor={`resp-${r.id}`} className="sr-only">Texto da resposta</label>
                 <input
                   id={`resp-${r.id}`}
+                  enterKeyHint="done"
                   className="campo min-h-10 flex-1 py-1.5"
                   value={texto}
                   maxLength={MAX}
@@ -144,6 +145,7 @@ function EditorRespostas({ lista, aoMudar, aoFechar }: { lista: RespostaPronta[]
         <label htmlFor="resp-nova" className="sr-only">Nova resposta pronta</label>
         <input
           id="resp-nova"
+          enterKeyHint="done"
           className="campo min-h-10 flex-1 py-1.5"
           placeholder="Nova resposta, ex.: Já resolvi, pode testar?"
           value={nova}

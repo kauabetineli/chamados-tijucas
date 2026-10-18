@@ -1,8 +1,10 @@
 import { Building2, CheckCircle2, Circle, KeyRound, LogOut, Mail, Phone, ShieldCheck, Wrench } from "lucide-react";
+import { irParaProximo } from "../lib/jeitoDeApp";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Avatar } from "../components/Avatar";
 import { BotaoTema } from "../components/BotaoTema";
+import { useTamanhoTexto, type TamanhoTexto } from "../lib/tamanhoTexto";
 import { useAuth } from "../lib/auth";
 import { avisar } from "../lib/avisos";
 import { ehAdmin, ehTecnico, mensagemErro, pb, ramalDe, type Usuario } from "../lib/pb";
@@ -98,16 +100,16 @@ function TrocarMinhaSenha({ u }: { u: Usuario }) {
       <h2 className="text-lg font-bold">Trocar minha senha</h2>
       <div>
         <label htmlFor="s-atual" className="rotulo">Senha atual</label>
-        <input id="s-atual" type="password" autoComplete="current-password" required className="campo" value={atual} onChange={(e) => setAtual(e.target.value)} />
+        <input id="s-atual" type="password" enterKeyHint="next" onKeyDown={irParaProximo} autoComplete="current-password" required className="campo" value={atual} onChange={(e) => setAtual(e.target.value)} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="s-nova" className="rotulo">Nova senha</label>
-          <input id="s-nova" type="password" autoComplete="new-password" required className="campo" value={nova} onChange={(e) => setNova(e.target.value)} />
+          <input id="s-nova" type="password" enterKeyHint="next" onKeyDown={irParaProximo} autoComplete="new-password" required className="campo" value={nova} onChange={(e) => setNova(e.target.value)} />
         </div>
         <div>
           <label htmlFor="s-conf" className="rotulo">Repita a nova senha</label>
-          <input id="s-conf" type="password" autoComplete="new-password" required className="campo" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} />
+          <input id="s-conf" type="password" enterKeyHint="go" autoComplete="new-password" required className="campo" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} />
         </div>
       </div>
       <ul className="space-y-1 text-sm" aria-label="Regras da senha">
@@ -176,6 +178,8 @@ export function Perfil() {
 
       <TrocarMinhaSenha u={u} />
 
+      <TamanhoDoTexto />
+
       <section className="flex flex-wrap items-center justify-between gap-3 border-t border-linha pt-5">
         <span className="flex items-center gap-2 text-sm font-semibold text-tinta-2">Tema da tela <BotaoTema /></span>
         <button type="button" onClick={sair} className="btn-perigo">
@@ -183,5 +187,35 @@ export function Perfil() {
         </button>
       </section>
     </div>
+  );
+}
+
+/** Tamanho do texto da tela inteira (no lugar do zoom de pinça). Vale só neste aparelho. */
+function TamanhoDoTexto() {
+  const { tamanho, mudar } = useTamanhoTexto();
+  const opcoes: { id: TamanhoTexto; rotulo: string; letra: string }[] = [
+    { id: "normal", rotulo: "Normal", letra: "text-base" },
+    { id: "grande", rotulo: "Grande", letra: "text-xl" },
+    { id: "maior", rotulo: "Maior", letra: "text-2xl" },
+  ];
+  return (
+    <section aria-labelledby="t-texto" className="space-y-2">
+      <h2 id="t-texto" className="text-lg font-bold">Tamanho do texto</h2>
+      <div role="radiogroup" aria-labelledby="t-texto" className="grid grid-cols-3 gap-1 rounded-xl bg-superficie p-1 ring-1 ring-linha">
+        {opcoes.map((o) => (
+          <label
+            key={o.id}
+            className={`flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-lg px-2 font-semibold ${
+              tamanho === o.id ? "bg-mar-700 text-white" : "text-tinta-2 hover:bg-fundo hover:text-tinta"
+            }`}
+          >
+            <input type="radio" name="tamanho-texto" className="sr-only" checked={tamanho === o.id} onChange={() => mudar(o.id)} />
+            <span className={`font-display leading-none font-extrabold ${o.letra}`} aria-hidden="true">A</span>
+            <span className="text-xs">{o.rotulo}</span>
+          </label>
+        ))}
+      </div>
+      <p className="text-sm text-tinta-2">Deixa a tela inteira maior ou menor. Vale só neste aparelho.</p>
+    </section>
   );
 }

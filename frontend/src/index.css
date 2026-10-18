@@ -74,8 +74,21 @@
   html {
     font-size: 17px;
     -webkit-tap-highlight-color: transparent;
-    /* toque responde na hora (sem a espera do zoom de toque duplo); a pinça continua funcionando */
-    touch-action: manipulation;
+    /* toque responde na hora e sem zoom de pinça/toque duplo na tela (as fotos têm zoom próprio, Visualizador.tsx) */
+    touch-action: pan-x pan-y;
+    /* sem "puxar para atualizar" e sem o efeito elástico: o sistema já se atualiza sozinho em tempo real */
+    overscroll-behavior: none;
+  }
+  /* "Tamanho do texto" (Meu perfil): tudo é medido em rem, então a tela inteira cresce junto, como no celular */
+  html[data-texto="grande"] { font-size: 19px; }
+  html[data-texto="maior"] { font-size: 21px; }
+  body { overscroll-behavior: none; }
+
+  /* barras de rolagem discretas nas áreas internas (painel do chamado, janelas, barra lateral);
+     a da página continua a padrão do navegador */
+  body * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-linha) transparent;
   }
 
   /* Jeito de aplicativo no celular: segurar botão, link, menu ou foto não abre o menu do navegador
@@ -203,4 +216,10 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+}
+
+/* faixas que rolam para o lado (abas, chips): sem barra de rolagem, como num app */
+@utility sem-barra {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }

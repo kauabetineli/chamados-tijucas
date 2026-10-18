@@ -121,6 +121,18 @@ estamos vendo". Serve para o servidor não abrir 10 chamados do mesmo problema (
 publica com prazo (1 h, 4 h, fim do dia, 3 dias ou até encerrar); o aviso some sozinho e fica registrado.
 No celular o mural aparece no topo de Meus chamados e da Fila.
 
+## Jeito de aplicativo no celular
+
+- Sem zoom de pinça na tela (`viewport` + `touch-action: pan-x pan-y`; no iPhone, `gesturestart` cancelado em
+  `lib/jeitoDeApp.ts`). As fotos têm zoom próprio (Visualizador). Para quem enxerga pouco: **Meu perfil > Tamanho do texto**
+  (Normal/Grande/Maior, `html[data-texto]`, tudo em rem). No PC o zoom do navegador continua.
+- Sem "puxar para atualizar" nem efeito elástico (`overscroll-behavior: none`): o sistema já se atualiza em tempo real.
+- Teclado encolhe a tela (`interactive-widget=resizes-content`) em vez de cobrir o botão de baixo.
+- Faixas que rolam para o lado usam a classe `sem-barra`; áreas internas têm barra fina na cor do tema.
+- Enter do teclado: `enterKeyHint` ("Próximo", "Ir", "Buscar") e `irParaProximo` passa para o campo seguinte.
+- Segurar botão/link/foto não abre o menu do navegador (só no toque). No PC, arrastar link/foto para outra aba continua
+  (o TI usa para ver anexos maiores).
+
 ## Visões rápidas da Fila
 
 `/ti?visao=atendendo|livres|espera` mostra só uma parte da Fila (os seus em atendimento, os livres na ordem da fila,

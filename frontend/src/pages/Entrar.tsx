@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { irParaProximo } from "../lib/jeitoDeApp";
 import { useNavigate, useSearchParams } from "react-router";
 import { TelaAcesso } from "../components/TelaAcesso";
 import { lembrarSenhaDoLogin } from "../lib/auth";
@@ -42,6 +43,8 @@ export function Entrar() {
           <input
             id="identidade"
             autoComplete="username"
+            enterKeyHint="next"
+            onKeyDown={irParaProximo}
             autoCapitalize="none"
             spellCheck={false}
             required
@@ -54,7 +57,7 @@ export function Entrar() {
         </div>
         <div>
           <label htmlFor="senha" className="rotulo">Senha</label>
-          <input id="senha" type="password" autoComplete="current-password" required className="campo" value={senha} onChange={(e) => setSenha(e.target.value)} />
+          <input id="senha" type="password" enterKeyHint="go" autoComplete="current-password" required className="campo" value={senha} onChange={(e) => setSenha(e.target.value)} />
         </div>
         {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
         <button className="btn-primario w-full" disabled={entrando}>{entrando ? "Entrando..." : "Entrar"}</button>
