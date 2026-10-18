@@ -55,19 +55,21 @@
 /* Modo escuro: só os tokens mudam; os componentes continuam iguais.
    Contraste conferido para WCAG AA (texto normal >= 4,5:1 sobre fundo e superfície). */
 :root.dark {
+  /* escuro = PRETO neutro (o mesmo do app nativo): as cores de Tijucas ficam só nos destaques.
+     Fundo preto puro (economiza bateria em tela AMOLED); cartões um pouco mais claros para separar bem no monitor. */
   color-scheme: dark;
-  --color-fundo: #0c1613;
-  --color-superficie: #15231f;
-  --color-tinta: #e4eeea;
-  --color-tinta-2: #a3b8b1;
-  --color-linha: #2c3f39;
+  --color-fundo: #000000;
+  --color-superficie: #161616;
+  --color-tinta: #f2f2f2;
+  --color-tinta-2: #a3a3a3;
+  --color-linha: #2c2c2c;
   --color-acento: #5ec4ee;
   --color-ok: #62d394;
   --color-alerta: #ff8f85;
-  --color-mar-50: #0f2b37;
-  --color-campo-50: #10301f;
-  --color-brasa-50: #3b1614;
-  --color-sol-50: #312b07;
+  --color-mar-50: #0b2531;
+  --color-campo-50: #0d2a1a;
+  --color-brasa-50: #361311;
+  --color-sol-50: #2b2706;
 }
 
 @layer base {

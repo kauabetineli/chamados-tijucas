@@ -14,7 +14,7 @@
           var escuro = t === "escuro" || (t !== "claro" && matchMedia("(prefers-color-scheme: dark)").matches);
           if (escuro) {
             document.documentElement.classList.add("dark");
-            document.querySelector('meta[name="theme-color"]').setAttribute("content", "#0c1613");
+            document.querySelector('meta[name="theme-color"]').setAttribute("content", "#000000");
           }
           var tx = localStorage.getItem("dinodesk:texto");
           if (tx === "grande" || tx === "maior") document.documentElement.dataset.texto = tx;

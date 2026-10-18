@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 export type Tema = "auto" | "claro" | "escuro";
 
 const CHAVE = "dinodesk:tema";
-const COR_BARRA = { claro: "#00658C", escuro: "#0c1613" }; // <meta name="theme-color"> (barra do navegador)
+const COR_BARRA = { claro: "#00658C", escuro: "#000000" }; // <meta name="theme-color"> (barra do navegador)
 const sistemaEscuro = () => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
 
 export function lerTema(): Tema {
