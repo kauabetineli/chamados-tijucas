@@ -39,7 +39,7 @@ e até 5 arquivos em `anexos` (imagem ou vídeo, 250 MB cada).
 
 O hook (`pb_hooks/chamados.pb.js`) completa o resto:
 - **servidor**: solicitante = quem está logado, origem `sistema`, prioridade pelo impacto (`so_eu` → normal, `setor` → alta, `publico` → urgente);
-- **técnico** (registro de pedido de fora): manda também `solicitante` (id) ou `solicitante_nome`, `origem`
+- **técnico** (registro de pedido de fora): manda também `solicitante` (id) ou `solicitante_nome` (os dois podem faltar se vier `setor`), `origem`
   (`whatsapp`|`ligacao`|`presencial`) e pode mandar `status: "resolvido"` (com `diagnostico` e `solucao` opcionais);
 - sempre: protocolo `AAAA-NNNNN`, setor do solicitante, `ficticio` copiado do solicitante, linha do tempo e aviso ntfy.
 

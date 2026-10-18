@@ -89,7 +89,7 @@ export function Registrar() {
   async function registrar(e: FormEvent) {
     e.preventDefault();
     setErro("");
-    if (!solicitante && !busca.trim()) return setErro("Diga quem pediu (passo 1).");
+    if (!solicitante && !busca.trim() && !setor) return setErro("Diga quem pediu ou escolha o setor (passo 1).");
     if (!categoria) return setErro("Escolha a categoria (passo 2).");
     if (!descricao.trim()) return setErro("Escreva o que foi pedido (passo 3).");
     if (resolvido && comRegistro && (!diagnostico.trim() || !solucao.trim())) return setErro("Preencha a causa e o que foi feito (passo 5), ou desmarque o registro no Histórico.");
@@ -123,7 +123,8 @@ export function Registrar() {
     }
   }
 
-  const quemOk = !!solicitante || !!busca.trim();
+  // nome é opcional quando o setor está escolhido ("ligaram da Obras", sem dizer quem)
+  const quemOk = !!solicitante || !!busca.trim() || !!setor;
   function repetirPessoa() {
     if (!ultimo) return;
     setOrigem(ultimo.origem);
@@ -171,7 +172,7 @@ export function Registrar() {
               </div>
               <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                 <div className="relative">
-                  <label htmlFor="quem" className="rotulo">Nome ou matrícula</label>
+                  <label htmlFor="quem" className="rotulo">Nome ou matrícula <span className="font-normal text-tinta-2">(opcional com o setor)</span></label>
                   <div className="relative">
                     <input
                       id="quem"

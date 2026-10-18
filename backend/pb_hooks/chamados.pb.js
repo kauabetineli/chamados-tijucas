@@ -24,8 +24,9 @@ onRecordCreateRequest((e) => {
     rec.set("status", "aberto");
   } else {
     // técnico: registra o que chegou por WhatsApp, ligação ou corredor
-    if (!rec.getString("solicitante") && !rec.getString("solicitante_nome").trim()) {
-      throw new BadRequestError("Informe quem pediu o atendimento.");
+    // quem pediu é opcional quando o setor é informado (ex.: "ligaram da Obras", sem dizer o nome)
+    if (!rec.getString("solicitante") && !rec.getString("solicitante_nome").trim() && !rec.getString("setor")) {
+      throw new BadRequestError("Informe quem pediu ou o setor.");
     }
     if (!rec.getString("origem")) rec.set("origem", "presencial");
     if (!rec.getString("prioridade")) {
