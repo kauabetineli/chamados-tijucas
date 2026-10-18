@@ -6,7 +6,6 @@ import { Avisos } from "./Avisos";
 import { Avatar } from "./Avatar";
 import { BarraLateral } from "./BarraLateral";
 import { PainelChamado } from "./PainelChamado";
-import { BotaoTema } from "./BotaoTema";
 import { ehTecnico } from "../lib/pb";
 import { useNumeros, VISOES, type Numeros } from "../lib/numeros";
 
@@ -46,26 +45,22 @@ export function Layout() {
     <div className="md:flex">
     <BarraLateral numeros={numeros} />
     <div className={`flex min-h-dvh min-w-0 flex-1 flex-col md:pb-0 ${focado ? "" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
-      <header className="sticky top-0 z-20 print:hidden border-t-[6px] border-mar bg-superficie/95 backdrop-blur md:hidden">
-        <div className={`mx-auto flex items-center gap-4 px-4 py-3 ${largura}`}>
-          <NavLink to={itens[0].para} className="mr-auto flex items-center gap-2.5">
-            <img src="/icone-simples.svg" alt="" className="size-10" />
-            <span className="font-display text-2xl leading-none font-extrabold tracking-tight md:text-3xl">Dino Desk</span>
+      {/* celular: topo FINO (dino pequeno + avatar), para sobrar tela para o conteúdo. O nome "Dino Desk" fica
+          na tela de entrar, na aba do navegador e na barra lateral do PC. O tema fica em Perfil. */}
+      <header className="sticky top-0 z-20 print:hidden border-t-[3px] border-mar bg-superficie/95 backdrop-blur md:hidden">
+        <div className={`mx-auto flex h-12 items-center gap-3 px-4 ${largura}`}>
+          <NavLink to={itens[0].para} className="mr-auto flex items-center" aria-label="Dino Desk: início">
+            <img src="/icone-simples.svg" alt="" className="size-8" />
           </NavLink>
-
-
-          <div className="flex items-center gap-1">
-            <BotaoTema />
-            {/* o próprio nome leva ao perfil (é lá que fica o "Sair da conta") */}
-            <NavLink
-              to="/perfil"
-              className={({ isActive }) => `flex min-h-10 items-center gap-2 rounded-full py-1 pr-1 pl-1 sm:pr-3 ${isActive ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
-              aria-label="Meu perfil"
-            >
-              {usuario && <Avatar id={usuario.id} nome={usuario.name} tamanho="sm" />}
-              <span className="hidden max-w-40 truncate text-sm font-semibold sm:block">{usuario?.name}</span>
-            </NavLink>
-          </div>
+          {/* o avatar leva ao perfil (é lá que ficam o tema e o "Sair da conta") */}
+          <NavLink
+            to="/perfil"
+            className={({ isActive }) => `flex min-h-10 items-center gap-2 rounded-full p-1 sm:pr-3 ${isActive ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
+            aria-label="Meu perfil"
+          >
+            {usuario && <Avatar id={usuario.id} nome={usuario.name} tamanho="sm" />}
+            <span className="hidden max-w-40 truncate text-sm font-semibold sm:block">{usuario?.name}</span>
+          </NavLink>
         </div>
       </header>
 
