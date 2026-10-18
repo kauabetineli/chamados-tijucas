@@ -116,7 +116,8 @@ No PC o menu fica numa **barra lateral** (`components/BarraLateral.tsx`): ganha 
 do chamado precisa dela) e mostra números ao vivo (Fila: aguardando e atrasados; servidor: em aberto). A pessoa
 **arrasta a borda direita** para mudar a largura (200–380 px, duplo clique volta ao padrão; setas do teclado também),
 e pode **recolher** para só ícones (começa recolhida em telas com menos de 1280 px). As duas escolhas ficam no aparelho.
-A largura vai para `--largura-lateral`, usada pelo painel do chamado. No celular continua o topo + barra de baixo.
+A largura vai para `--largura-lateral`, usada pelo painel do chamado. No celular não há barra no topo: só a barra de baixo. Técnico: Fila, Registrar, Histórico e **Você** (o avatar;
+lá dentro ficam Meus números, Painel, Pessoas e Configurações). Servidor: Meus chamados, Novo chamado e Você.
 
 Na lateral fica o mural **Avisos do TI** (coleção `avisos`, migration `1760000008`): "Internet do Paço instável, já
 estamos vendo". Serve para o servidor não abrir 10 chamados do mesmo problema (problema 1 do diagnóstico). O técnico

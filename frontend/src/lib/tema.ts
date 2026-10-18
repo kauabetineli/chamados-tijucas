@@ -28,7 +28,14 @@ export function aplicarTema(tema: Tema) {
 
 /** Tema atual e função para trocar (salva no aparelho). No "auto", acompanha a troca do sistema na hora. */
 export function useTema() {
-  const [tema, setTema] = useState<Tema>(lerTema);
+  const [tema, setTemaLocal] = useState<Tema>(lerTema);
+  // várias telas podem mostrar o tema ao mesmo tempo (barra lateral e Configurações): todas acompanham
+  useEffect(() => {
+    const ouvir = (e: Event) => setTemaLocal((e as CustomEvent<Tema>).detail);
+    window.addEventListener("dinodesk:tema", ouvir);
+    return () => window.removeEventListener("dinodesk:tema", ouvir);
+  }, []);
+  const setTema = (t: Tema) => { setTemaLocal(t); window.dispatchEvent(new CustomEvent<Tema>("dinodesk:tema", { detail: t })); };
 
   useEffect(() => {
     aplicarTema(tema);

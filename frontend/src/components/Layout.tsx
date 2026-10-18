@@ -1,4 +1,4 @@
-import { BarChart3, ChevronUp, ClipboardList, History, ListOrdered, Plus, SquarePen, Users } from "lucide-react";
+import { ChevronUp, ClipboardList, History, ListOrdered, Plus, SquarePen, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
@@ -9,19 +9,23 @@ import { PainelChamado } from "./PainelChamado";
 import { ehTecnico } from "../lib/pb";
 import { useNumeros, VISOES, type Numeros } from "../lib/numeros";
 
-type Item = { para: string; rotulo: string; Icone: typeof Plus; fim?: boolean; destaque?: boolean };
+// avatar: o item "Você" mostra a foto/iniciais da pessoa no lugar do ícone
+type Item = { para: string; rotulo: string; Icone: typeof Plus; fim?: boolean; destaque?: boolean; avatar?: boolean };
 
 const SOLICITANTE: Item[] = [
   { para: "/", rotulo: "Meus chamados", Icone: ClipboardList, fim: true },
   { para: "/novo", rotulo: "Novo chamado", Icone: Plus, destaque: true },
+  { para: "/perfil", rotulo: "Você", Icone: UserRound, avatar: true },
 ];
 const TECNICO: Item[] = [
   { para: "/ti", rotulo: "Fila", Icone: ListOrdered, fim: true },
   { para: "/ti/registrar", rotulo: "Registrar", Icone: SquarePen },
   { para: "/ti/historico", rotulo: "Histórico", Icone: History },
-  { para: "/ti/painel", rotulo: "Painel", Icone: BarChart3 },
-  { para: "/ti/usuarios", rotulo: "Pessoas", Icone: Users },
+  // Painel e Pessoas são eventuais no celular: ficam dentro de "Você" (no PC continuam na barra lateral)
+  { para: "/perfil", rotulo: "Você", Icone: UserRound, avatar: true },
 ];
+// telas que moram dentro de "Você" no celular (o item fica marcado nelas)
+const DENTRO_DE_VOCE = ["/configuracoes", "/ti/painel", "/ti/usuarios"];
 
 export function Layout() {
   const { usuario } = useAuth();
@@ -30,7 +34,8 @@ export function Layout() {
   const caminho = useLocation().pathname;
   const focado = caminho === "/novo";
   // "Todos os chamados" é a outra visão da Fila: o item Fila continua marcado, e a página fica mais larga (tabela)
-  const ativo = (i: Item, isActive: boolean) => isActive || (i.para === "/ti" && caminho === "/ti/chamados");
+  const ativo = (i: Item, isActive: boolean) =>
+    isActive || (i.para === "/ti" && caminho === "/ti/chamados") || (i.para === "/perfil" && DENTRO_DE_VOCE.includes(caminho));
   const numeros = useNumeros();
   const tecnico = ehTecnico(usuario);
   const [params] = useSearchParams();
@@ -47,15 +52,9 @@ export function Layout() {
     <div className={`flex min-h-dvh min-w-0 flex-1 flex-col md:pb-0 ${focado ? "" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
 
       {/* com o painel do chamado aberto no PC, sobra espaço embaixo para a lista rolar inteira acima dele */}
-      {/* celular: SEM barra no topo (a tela toda é do conteúdo, como no app). Só o avatar no canto, na altura do
-          título da página, rolando junto; ele leva ao Perfil (tema e "Sair da conta"). O nome "Dino Desk" fica na
-          tela de entrar, na aba do navegador e na barra lateral do PC. */}
-      <main className={`relative mx-auto w-full flex-1 px-4 pt-5 pb-8 md:px-8 md:pt-8 max-md:[&_h1]:pr-12 ${largura}`} style={{ paddingBottom: "calc(2rem + var(--altura-painel, 0px))" }}>
-        {caminho !== "/perfil" && !focado && usuario && (
-          <NavLink to="/perfil" aria-label="Meu perfil" className="absolute top-5 right-4 z-10 rounded-full ring-2 ring-superficie print:hidden md:hidden">
-            <Avatar id={usuario.id} nome={usuario.name} tamanho="sm" />
-          </NavLink>
-        )}
+      {/* celular: SEM barra no topo (a tela toda é do conteúdo, como no app). A pessoa fica na barra de baixo
+          ("Você"); o nome "Dino Desk" fica na tela de entrar, na aba do navegador e na barra lateral do PC. */}
+      <main className={`mx-auto w-full flex-1 px-4 pt-5 pb-8 md:px-8 md:pt-8 ${largura}`} style={{ paddingBottom: "calc(2rem + var(--altura-painel, 0px))" }}>
         <Outlet />
         <Avisos />
         <PainelChamado />
@@ -85,15 +84,26 @@ export function Layout() {
                       }`
                 ); }}
               >
-                <span className="relative">
-                  <i.Icone className="size-6" aria-hidden="true" />
-                  <SeloMenu i={i} numeros={numeros} tecnico={tecnico} />
-                </span>
-                <span className="flex items-center gap-0.5">
-                  {i.rotulo}
-                  {/* na Fila: setinha avisa que tocar de novo abre as visões */}
-                  {tecnico && i.para === "/ti" && caminho === "/ti" && <ChevronUp className={`size-3.5 transition-transform ${menuFila ? "rotate-180" : ""}`} aria-hidden="true" />}
-                </span>
+                {({ isActive: marcado }) => {
+                  const isActive = ativo(i, marcado);
+                  if (i.destaque) return <><i.Icone className="size-6" aria-hidden="true" /> {i.rotulo}</>;
+                  return (
+                    <>
+                      {/* aba marcada: "pílula" atrás do ícone, como a barra nativa do Android */}
+                      <span className={`relative flex h-8 items-center justify-center rounded-full px-5 transition-colors ${isActive ? "bg-mar-50" : ""}`}>
+                        {i.avatar && usuario
+                          ? <span className={`rounded-full ${isActive ? "ring-2 ring-acento ring-offset-1 ring-offset-mar-50" : ""}`}><Avatar id={usuario.id} nome={usuario.name} tamanho="sm" /></span>
+                          : <i.Icone className="size-6" aria-hidden="true" />}
+                        <SeloMenu i={i} numeros={numeros} tecnico={tecnico} />
+                      </span>
+                      <span className="flex items-center gap-0.5">
+                        {i.rotulo}
+                        {/* na Fila: setinha avisa que tocar de novo abre as visões */}
+                        {tecnico && i.para === "/ti" && caminho === "/ti" && <ChevronUp className={`size-3.5 transition-transform ${menuFila ? "rotate-180" : ""}`} aria-hidden="true" />}
+                      </span>
+                    </>
+                  );
+                }}
               </NavLink>
               {tecnico && i.para === "/ti" && menuFila && (
                 <MenuVisoes numeros={numeros} atual={params.get("visao")} aoEscolher={(v) => { setMenuFila(false); navegar(v ? `/ti?visao=${v}` : "/ti"); }} aoFechar={() => setMenuFila(false)} />
@@ -114,7 +124,7 @@ function SeloMenu({ i, numeros, tecnico }: { i: Item; numeros: Numeros | null; t
   const alerta = tecnico && !!numeros?.atrasados;
   return (
     <span
-      className={`absolute -top-1.5 -right-3 grid min-w-5 place-items-center rounded-full px-1 text-[11px] leading-5 font-bold text-white ${alerta ? "bg-brasa" : "bg-mar-700"}`}
+      className={`absolute -top-1 right-1 grid min-w-5 place-items-center rounded-full px-1 text-[11px] leading-5 font-bold text-white ${alerta ? "bg-brasa" : "bg-mar-700"}`}
       aria-label={tecnico ? `${n} na fila` : `${n} precisa(m) de você`}
     >
       {n}

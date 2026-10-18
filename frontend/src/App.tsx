@@ -8,6 +8,7 @@ import { Entrar } from "./pages/Entrar";
 import { MeusChamados } from "./pages/MeusChamados";
 import { NovoChamado } from "./pages/NovoChamado";
 import { Perfil } from "./pages/Perfil";
+import { Configuracoes } from "./pages/Configuracoes";
 import { TrocarSenha } from "./pages/TrocarSenha";
 import { Fila } from "./pages/ti/Fila";
 import { Historico } from "./pages/ti/Historico";
@@ -58,6 +59,7 @@ export function App() {
             <Route path="novo" element={<NovoChamado />} />
             <Route path="chamado/:id" element={<Chamado />} />
             <Route path="perfil" element={<Perfil />} />
+            <Route path="configuracoes" element={<Configuracoes />} />
             <Route path="ti" element={<SoTecnico><Fila /></SoTecnico>} />
             <Route path="ti/registrar" element={<SoTecnico><Registrar /></SoTecnico>} />
             <Route path="ti/historico" element={<SoTecnico><Historico /></SoTecnico>} />
