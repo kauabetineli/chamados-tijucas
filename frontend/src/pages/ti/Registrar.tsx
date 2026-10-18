@@ -6,6 +6,7 @@ import { Bloco } from "../../components/Esqueleto";
 import { CaixaComAnexos, Passo, RodapeEnviar } from "../../components/FormularioPassos";
 import { IconeCategoria } from "../../components/Icone";
 import { ProgressoEnvio } from "../../components/ProgressoEnvio";
+import { RegistroSolucao } from "../../components/RegistroSolucao";
 import { SeloStatus } from "../../components/Selos";
 import { useAuth } from "../../lib/auth";
 import { avisar } from "../../lib/avisos";
@@ -47,6 +48,7 @@ export function Registrar() {
   const [resolvido, setResolvido] = useState(false);
   const [diagnostico, setDiagnostico] = useState("");
   const [solucao, setSolucao] = useState("");
+  const [comRegistro, setComRegistro] = useState(false);
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -81,7 +83,7 @@ export function Registrar() {
 
   function limpar() {
     setSolicitante(null); setBusca(""); setSetor(""); setCategoria(""); setDescricao("");
-    setImpacto("so_eu"); setResolvido(false); setDiagnostico(""); setSolucao(""); setArquivos([]);
+    setImpacto("so_eu"); setResolvido(false); setComRegistro(false); setDiagnostico(""); setSolucao(""); setArquivos([]);
   }
 
   async function registrar(e: FormEvent) {
@@ -90,7 +92,7 @@ export function Registrar() {
     if (!solicitante && !busca.trim()) return setErro("Diga quem pediu (passo 1).");
     if (!categoria) return setErro("Escolha a categoria (passo 2).");
     if (!descricao.trim()) return setErro("Escreva o que foi pedido (passo 3).");
-    if (resolvido && (!diagnostico.trim() || !solucao.trim())) return setErro("Preencha a causa e o que foi feito (passo 5).");
+    if (resolvido && comRegistro && (!diagnostico.trim() || !solucao.trim())) return setErro("Preencha a causa e o que foi feito (passo 5), ou desmarque o registro no Histórico.");
     setSalvando(true);
     setProgresso(arquivos.length ? 0 : null);
     try {
@@ -103,10 +105,10 @@ export function Registrar() {
       d.append("descricao", descricao);
       d.append("impacto", impacto);
       d.append("status", resolvido ? "resolvido" : "aberto");
-      if (resolvido) { d.append("diagnostico", diagnostico); d.append("solucao", solucao); }
+      if (resolvido && comRegistro) { d.append("diagnostico", diagnostico.trim()); d.append("solucao", solucao.trim()); }
       arquivos.forEach((f) => d.append("anexos", f));
       const c = await criarComProgresso<Chamado>("chamados", d, setProgresso);
-      avisar(`Registrado como ${c.protocolo}. ${c.status === "resolvido" ? "Já entrou no histórico." : "Já está na fila."}`, {
+      avisar(`Registrado como ${c.protocolo}. ${c.status === "resolvido" ? (c.solucao ? "Já entrou no histórico com a solução." : "Já está como resolvido.") : "Já está na fila."}`, {
         link: { para: `/ti/chamado/${c.id}`, rotulo: "Abrir" },
         duracao: 6000,
       });
@@ -266,7 +268,7 @@ export function Registrar() {
           </Passo>
 
           {/* 5 */}
-          <Passo n={5} id="r-resolvido" titulo="Já foi resolvido?" feito={!resolvido || (!!diagnostico.trim() && !!solucao.trim())}>
+          <Passo n={5} id="r-resolvido" titulo="Já foi resolvido?" feito={!resolvido || !comRegistro || (!!diagnostico.trim() && !!solucao.trim())}>
             <div className="grid grid-cols-2 gap-1 rounded-xl bg-fundo p-1" role="radiogroup" aria-labelledby="r-resolvido">
               <label className={segmento(!resolvido)}>
                 <input type="radio" name="resolvido" className="sr-only" checked={!resolvido} onChange={() => setResolvido(false)} />
@@ -278,16 +280,8 @@ export function Registrar() {
               </label>
             </div>
             {resolvido && (
-              <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <div>
-                  <label htmlFor="diag" className="rotulo">Qual era a causa?</label>
-                  <textarea id="diag" className="campo min-h-24" value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} />
-                </div>
-                <div>
-                  <label htmlFor="sol" className="rotulo">O que foi feito?</label>
-                  <textarea id="sol" className="campo min-h-24" value={solucao} onChange={(e) => setSolucao(e.target.value)} />
-                </div>
-                <p className="ajuda lg:col-span-2">Vai direto para o Histórico: na próxima vez, quem atender vê como foi resolvido.</p>
+              <div className="mt-4">
+                <RegistroSolucao ligado={comRegistro} aoLigar={setComRegistro} diagnostico={diagnostico} aoDiagnostico={setDiagnostico} solucao={solucao} aoSolucao={setSolucao} prefixo="registrar" />
               </div>
             )}
           </Passo>

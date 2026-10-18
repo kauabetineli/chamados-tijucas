@@ -40,13 +40,13 @@ e até 5 arquivos em `anexos` (imagem ou vídeo, 250 MB cada).
 O hook (`pb_hooks/chamados.pb.js`) completa o resto:
 - **servidor**: solicitante = quem está logado, origem `sistema`, prioridade pelo impacto (`so_eu` → normal, `setor` → alta, `publico` → urgente);
 - **técnico** (registro de pedido de fora): manda também `solicitante` (id) ou `solicitante_nome`, `origem`
-  (`whatsapp`|`ligacao`|`presencial`) e pode mandar `status: "resolvido"` com `diagnostico` e `solucao`;
+  (`whatsapp`|`ligacao`|`presencial`) e pode mandar `status: "resolvido"` (com `diagnostico` e `solucao` opcionais);
 - sempre: protocolo `AAAA-NNNNN`, setor do solicitante, `ficticio` copiado do solicitante, linha do tempo e aviso ntfy.
 
 ### Mudar status (técnico)
 
 `PATCH /api/collections/chamados/records/{id}` com `{ "status": "em_andamento" }` ou
-`{ "status": "resolvido", "diagnostico": "...", "solucao": "..." }` (os dois são obrigatórios para resolver).
+`{ "status": "resolvido", "diagnostico": "...", "solucao": "..." }` (os dois são OPCIONAIS: só `{ "status": "resolvido" }` também resolve; preenchidos, vão para o Histórico e as soluções parecidas).
 O hook marca horários, define o responsável e registra a mudança na linha do tempo.
 
 **Em espera:** `{ "status": "aguardando", "aguardando_motivo": "peca" | "solicitante" | "terceiro" }` (motivo obrigatório; 400 sem ele).

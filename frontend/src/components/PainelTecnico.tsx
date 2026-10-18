@@ -5,6 +5,7 @@ import { useAuth } from "../lib/auth";
 import { paraData, ROTULO_AGUARDANDO, ROTULO_PRIORIDADE, tempoRelativo } from "../lib/formato";
 import { mensagemErro, pb, type Chamado, type Prioridade, type Usuario } from "../lib/pb";
 import { EscolhaEspera } from "./EscolhaEspera";
+import { RegistroSolucao } from "./RegistroSolucao";
 import { COR_PRIORIDADE } from "./Selos";
 
 /** Ações do técnico sobre um chamado: atender, priorizar, atribuir e resolver. */
@@ -22,6 +23,8 @@ export function PainelTecnico({ chamado: c, aoMudar }: { chamado: Chamado; aoMud
   }, [resolvendo]);
   const [diagnostico, setDiagnostico] = useState(c.diagnostico);
   const [solucao, setSolucao] = useState(c.solucao);
+  // causa e solução são opcionais: o formulário já vem ligado só se o chamado tinha registro (ex.: reaberto)
+  const [comRegistro, setComRegistro] = useState(!!(c.diagnostico || c.solucao));
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
 
@@ -105,18 +108,12 @@ export function PainelTecnico({ chamado: c, aoMudar }: { chamado: Chamado; aoMud
           className="space-y-3"
           onSubmit={(e) => {
             e.preventDefault();
-            salvar({ status: "resolvido", diagnostico, solucao });
+            salvar(comRegistro
+              ? { status: "resolvido", diagnostico: diagnostico.trim(), solucao: solucao.trim() }
+              : { status: "resolvido", diagnostico: "", solucao: "" });
           }}
         >
-          <p className="text-sm text-tinta-2">Esses dois campos alimentam o histórico de soluções do TI.</p>
-          <div>
-            <label htmlFor="diag" className="rotulo">Qual era a causa?</label>
-            <textarea id="diag" required className="campo min-h-20" value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} />
-          </div>
-          <div>
-            <label htmlFor="sol" className="rotulo">O que foi feito?</label>
-            <textarea id="sol" required className="campo min-h-20" value={solucao} onChange={(e) => setSolucao(e.target.value)} />
-          </div>
+          <RegistroSolucao ligado={comRegistro} aoLigar={setComRegistro} diagnostico={diagnostico} aoDiagnostico={setDiagnostico} solucao={solucao} aoSolucao={setSolucao} prefixo="painel" />
           <div className="flex gap-2">
             <button className="btn-sucesso flex-1" disabled={salvando}>Marcar como resolvido</button>
             <button type="button" className="btn-secundario" onClick={() => setResolvendo(false)}>Cancelar</button>

@@ -17,6 +17,8 @@ export function Historico() {
   const [q, setQ] = useState("");
   // vindo de "Ver todos no histórico" (soluções parecidas): já abre filtrado pela categoria
   const [categoria, setCategoria] = useState(() => new URLSearchParams(window.location.search).get("categoria") ?? "");
+  // causa e solução são opcionais ao resolver: por padrão o Histórico mostra só o que tem registro
+  const [soComSolucao, setSoComSolucao] = useState(true);
   const [itens, setItens] = useState<Chamado[] | null>(null);
   const [total, setTotal] = useState(0);
   const pag = usePaginacao("historico", 10);
@@ -24,6 +26,7 @@ export function Historico() {
   useEffect(() => {
     const t = window.setTimeout(async () => {
       const partes = ['status = "resolvido"'];
+      if (soComSolucao) partes.push('(solucao != "" || diagnostico != "")');
       const params: Record<string, string> = {};
       if (q.trim()) {
         partes.push("(descricao ~ {:q} || diagnostico ~ {:q} || solucao ~ {:q} || protocolo ~ {:q})");
@@ -45,7 +48,7 @@ export function Historico() {
       }
     }, 250);
     return () => window.clearTimeout(t);
-  }, [q, categoria, pag.pagina, pag.porPagina]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [q, categoria, soComSolucao, pag.pagina, pag.porPagina]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -75,12 +78,16 @@ export function Historico() {
           </select>
         </label>
       </div>
+      <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+        <input type="checkbox" className="size-5 accent-acento" checked={soComSolucao} onChange={(e) => { setSoComSolucao(e.target.checked); pag.voltarAoInicio(); }} />
+        Só os que têm causa e solução registradas
+      </label>
 
       {itens === null ? (
         <EsqueletoCartoes quantos={4} rotulo="Carregando o histórico..." />
       ) : itens.length === 0 ? (
         <p className="rounded-2xl bg-superficie p-6 text-center ring-1 ring-linha">
-          {q || categoria ? "Nada encontrado com esse filtro." : "Os chamados resolvidos aparecem aqui, com a causa e a solução."}
+          {q || categoria ? "Nada encontrado com esse filtro." : "Os chamados resolvidos aparecem aqui, com a causa e a solução quando o técnico registrou."}
         </p>
       ) : (
         <>
@@ -105,10 +112,14 @@ export function Historico() {
                     {c.expand?.responsavel && <><span aria-hidden="true">·</span><span className="min-w-0 truncate">por {c.expand.responsavel.name}</span></>}
                     {c.ficticio && <span className="ml-auto shrink-0"><SeloTeste ficticio compacto /></span>}
                   </div>
-                  <div className="mt-3 grid gap-2 border-t border-linha pt-3 sm:grid-cols-2">
-                    <p><span className="block text-sm text-tinta-2">Causa</span>{c.diagnostico || "—"}</p>
-                    <p><span className="block text-sm text-tinta-2">Solução</span>{c.solucao || "—"}</p>
-                  </div>
+                  {c.diagnostico || c.solucao ? (
+                    <div className="mt-3 grid gap-2 border-t border-linha pt-3 sm:grid-cols-2">
+                      <p><span className="block text-sm text-tinta-2">Causa</span>{c.diagnostico || "—"}</p>
+                      <p><span className="block text-sm text-tinta-2">Solução</span>{c.solucao || "—"}</p>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-tinta-2">Resolvido sem registro de causa e solução.</p>
+                  )}
                 </LinkChamado>
               </li>
             ))}

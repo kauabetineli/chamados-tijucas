@@ -11,7 +11,7 @@ com o TI e pelo menos 2 setores, meta de **50% dos chamados registrados no siste
 - [x] Meus chamados com a **senha da fila** (posição em tempo real)
 - [x] Detalhe do chamado: etapas, conversa com o TI, confirmar ou reabrir
 - [x] Fila do TI (todos / comigo / sem responsável), atualização em tempo real
-- [x] Atender, priorizar, atribuir, devolver para a fila, resolver (causa + solução obrigatórias), reabrir
+- [x] Atender, priorizar, atribuir, devolver para a fila, resolver (causa + solução opcionais, ligadas quando vale guardar no Histórico), reabrir
 - [x] Notas internas do TI
 - [x] Registro rápido de pedido por WhatsApp, ligação ou presencial (inclusive já resolvido)
 - [x] Histórico de soluções com busca

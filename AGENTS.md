@@ -7,7 +7,7 @@ Humanos também podem ler: é o resumo mais curto do projeto.
 
 Sistema de chamados do Departamento de TI da Prefeitura de Tijucas-SC, feito por estudantes da UNIVALI
 (projeto de extensão). Servidores abrem chamados pelo celular ou PC; 3 técnicos atendem numa fila única,
-registram pedidos de WhatsApp/ligação/corredor e fecham com causa + solução (vira histórico).
+registram pedidos de WhatsApp/ligação/corredor e fecham o chamado, com causa + solução opcionais (quando preenchidas, viram histórico).
 Público: gente que **não é de TI**. Tudo em **português do Brasil**.
 
 ## Mapa do código

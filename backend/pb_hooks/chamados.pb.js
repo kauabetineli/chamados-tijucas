@@ -33,11 +33,9 @@ onRecordCreateRequest((e) => {
     }
     const status = rec.getString("status") || "aberto";
     rec.set("status", status);
-    // permite registrar um atendimento já resolvido na hora (entra no histórico)
+    // permite registrar um atendimento já resolvido na hora. Causa e solução são OPCIONAIS:
+    // o técnico só preenche quando vale guardar no Histórico (o que é rotina não precisa de registro).
     if (status === "resolvido") {
-      if (!rec.getString("diagnostico").trim() || !rec.getString("solucao").trim()) {
-        throw new BadRequestError("Para registrar como resolvido, preencha o diagnóstico e a solução.");
-      }
       rec.set("iniciado_em", R.agora());
       rec.set("resolvido_em", R.agora());
     } else if (status === "em_andamento") {
@@ -106,9 +104,7 @@ onRecordUpdateRequest((e) => {
   const de = antes.getString("status");
   const para = rec.getString("status");
 
-  if (para === "resolvido" && (!rec.getString("diagnostico").trim() || !rec.getString("solucao").trim())) {
-    throw new BadRequestError("Para resolver, preencha o diagnóstico e a solução. Eles formam o histórico do TI.");
-  }
+  // resolver NÃO exige causa e solução (opcionais; quando preenchidas, vão para o Histórico e as soluções parecidas)
 
   // aguardando: precisa dizer o quê; fora dele, o motivo some
   if (para === "aguardando") {

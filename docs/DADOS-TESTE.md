@@ -64,7 +64,7 @@ Teste@1234
 
 1. **Solicitante:** entre como `ana.engenharia@teste.dinodesk` e veja a senha da fila (ela é a 4ª, atrás dos urgentes e altos).
 2. **Técnico:** numa janela anônima, entre como `tecnico1@teste.dinodesk`. A fila mostra o chamado do Protocolo no topo, em vermelho.
-3. Abra o chamado da Ana, clique em **Começar atendimento** e depois em **Resolver** (causa e solução).
+3. Abra o chamado da Ana, clique em **Começar atendimento** e depois em **Resolver** (causa e solução são opcionais: ligue "Guardar causa e solução no Histórico" para testar o Histórico).
 4. Volte à janela da Ana: o chamado aparece como resolvido, com o botão para confirmar.
 5. **Registro rápido:** como técnico, registre um pedido "por WhatsApp" em nome de `Bruno Arquitetura`.
 6. Confira o **Painel** e o **Histórico**.

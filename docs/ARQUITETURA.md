@@ -52,10 +52,12 @@ QR code / link  →  site da Prefeitura (/dinodesk, página estática)  →  htt
 - **Abertura pelo solicitante:** o servidor força `solicitante` = quem está logado, `origem` = sistema, `status` = aberto
   e calcula a prioridade pelo impacto (só eu → normal; setor → alta; atendimento ao público → urgente).
 - **Registro pelo técnico:** exige quem pediu (conta ou nome digitado), guarda a origem (WhatsApp, ligação, presencial)
-  e permite registrar já resolvido, desde que com causa e solução.
+  e permite registrar já resolvido (causa e solução opcionais).
 - **Protocolo:** `ANO-NNNNN`, sequencial por ano.
 - **Fila:** ordem = maior prioridade primeiro, depois quem abriu antes. A posição é calculada em `/api/fila/minhas-posicoes`.
-- **Resolver exige causa e solução.** Datas de início e de resolução são preenchidas sozinhas (base dos indicadores).
+- **Causa e solução são opcionais ao resolver** (desde 18/10/2026). Rotina que o TI já sabe resolver fecha sem texto;
+  o técnico liga "Guardar causa e solução no Histórico" quando vale registrar, e aí os dois campos são obrigatórios na tela.
+  O Histórico mostra por padrão só os que têm registro (caixa "Só os que têm causa e solução registradas"). Datas de início e de resolução são preenchidas sozinhas (base dos indicadores).
 - **Solicitante confirma ou reabre** (`/api/chamados/{id}/confirmar` e `/reabrir`).
 - **Toda mudança vira registro** na linha do tempo; e-mail para o solicitante quando o atendimento começa, quando é resolvido
   e quando o TI responde (só se o SMTP estiver configurado no painel).
