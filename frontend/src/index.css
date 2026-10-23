@@ -84,6 +84,8 @@
   /* "Tamanho do texto" (Meu perfil): tudo é medido em rem, então a tela inteira cresce junto, como no celular */
   html[data-texto="grande"] { font-size: 19px; }
   html[data-texto="maior"] { font-size: 21px; }
+  /* teclado aberto no celular (lib/teclado.ts): o campo focado para acima do rodapé fixo com o botão de enviar */
+  html[data-teclado] { scroll-padding-bottom: 96px; }
   body { overscroll-behavior: none; }
 
   /* barras de rolagem discretas nas áreas internas (painel do chamado, janelas, barra lateral);

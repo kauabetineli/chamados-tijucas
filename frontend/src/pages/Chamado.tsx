@@ -88,9 +88,10 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
 
       {/* no celular: dados do chamado, ações do técnico, conversa. No computador: ações na lateral */}
       <div className="grid gap-x-8 gap-y-7 md:grid-cols-[minmax(0,1fr)_20rem] md:grid-rows-[auto_1fr]">
-        <div className="space-y-7 md:col-start-1">
+        {/* min-w-0: em celular bem estreito (320 px) o conteúdo encolhe em vez de vazar da tela */}
+        <div className="min-w-0 space-y-7 md:col-start-1">
           <header>
-            <p className="font-display text-4xl font-extrabold tracking-tight">{c.protocolo}</p>
+            <p className="font-display text-3xl font-extrabold tracking-tight min-[360px]:text-4xl">{c.protocolo}</p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <SeloStatus status={c.status} />
               <SeloTeste ficticio={c.ficticio} />
@@ -105,7 +106,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
           {/* andamento em etapas: é de fato uma sequência */}
           <ol className="flex items-center gap-2" aria-label="Andamento do chamado">
             {ETAPAS.map((s, i) => (
-              <li key={s} className="flex flex-1 items-center gap-2" aria-current={i === etapa ? "step" : undefined}>
+              <li key={s} className="flex min-w-0 flex-1 items-center gap-2" aria-current={i === etapa ? "step" : undefined}>
                 <span
                   className={`grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold ${
                     i < etapa || c.status === "resolvido"
@@ -117,7 +118,8 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
                 >
                   {i < etapa || c.status === "resolvido" ? <Check className="size-4" aria-hidden="true" /> : i + 1}
                 </span>
-                <span className={`text-sm font-semibold ${i <= etapa ? "text-tinta" : "text-tinta-2"}`}>{rotuloEtapa(s)}</span>
+                {/* celular bem estreito (< 360 px): só a etapa atual mostra o nome; as outras ficam só com o número */}
+                <span className={`text-sm font-semibold ${i <= etapa ? "text-tinta" : "text-tinta-2"} ${i === etapa ? "" : "max-[359px]:sr-only"}`}>{rotuloEtapa(s)}</span>
                 {i < ETAPAS.length - 1 && <span className={`h-0.5 flex-1 ${i < etapa ? "bg-campo-700" : "bg-linha"}`} aria-hidden="true" />}
               </li>
             ))}

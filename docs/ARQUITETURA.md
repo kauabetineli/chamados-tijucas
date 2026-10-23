@@ -131,6 +131,9 @@ No celular o mural aparece no topo de Meus chamados e da Fila.
   (Normal/Grande/Maior, `html[data-texto]`, tudo em rem). No PC o zoom do navegador continua.
 - Sem "puxar para atualizar" nem efeito elástico (`overscroll-behavior: none`): o sistema já se atualiza em tempo real.
 - Teclado encolhe a tela (`interactive-widget=resizes-content`) em vez de cobrir o botão de baixo.
+  Com o teclado aberto (campo em foco + tela encolhida, `lib/teclado.ts`) a barra de baixo some, como no app nativo,
+  e o campo focado é rolado para ficar acima do rodapé fixo de enviar (`html[data-teclado]` com `scroll-padding-bottom`).
+  Na conversa, a rolagem leva também o botão Enviar à vista.
 - Faixas que rolam para o lado usam a classe `sem-barra`; áreas internas têm barra fina na cor do tema.
 - Enter do teclado: `enterKeyHint` ("Próximo", "Ir", "Buscar") e `irParaProximo` passa para o campo seguinte.
 - Segurar botão/link/foto não abre o menu do navegador (só no toque). No PC, arrastar link/foto para outra aba continua

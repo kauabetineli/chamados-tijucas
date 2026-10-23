@@ -1,6 +1,7 @@
 import { CheckCircle2, Paperclip, Video, X } from "lucide-react";
 import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { arrastandoArquivo, type ControleAnexos } from "./Anexos";
+import { useTecladoAberto } from "../lib/teclado";
 
 /**
  * Peças dos formulários "em uma coluna numerada" do PC (Novo chamado e Registrar pedido):
@@ -134,20 +135,22 @@ export const CaixaComAnexos = forwardRef<HTMLTextAreaElement, {
 export function RodapeEnviar({ frase, children, topo, acimaDaBarra }: { frase?: ReactNode; children: ReactNode; topo?: ReactNode; acimaDaBarra?: boolean }) {
   const fim = useRef<HTMLDivElement>(null);
   const [grudado, setGrudado] = useState(false);
+  // com o teclado aberto a barra de baixo some (Layout): o rodapé desce para a borda da tela
+  const sobeBarra = acimaDaBarra && !useTecladoAberto();
   useEffect(() => {
     const el = fim.current;
     if (!el || !("IntersectionObserver" in window)) return;
     // no celular a barra de navegação cobre os últimos 76 px da tela
-    const barra = acimaDaBarra && window.matchMedia?.("(max-width: 767px)").matches ? 76 : 0;
+    const barra = sobeBarra && window.matchMedia?.("(max-width: 767px)").matches ? 76 : 0;
     const obs = new IntersectionObserver(([e]) => setGrudado(!e.isIntersecting), { threshold: 0, rootMargin: `0px 0px -${barra}px 0px` });
     obs.observe(el);
     return () => obs.disconnect();
-  }, [acimaDaBarra]);
+  }, [sobeBarra]);
   return (
     <>
       <div
         className={`sticky z-10 -mx-5 -mb-5 space-y-3 rounded-b-2xl border-t border-linha bg-superficie px-5 py-3 md:-mx-8 md:-mb-8 md:px-8 md:pl-[4.75rem] ${
-          acimaDaBarra ? "bottom-[calc(76px+env(safe-area-inset-bottom))] md:bottom-0" : "bottom-0"
+          sobeBarra ? "bottom-[calc(76px+env(safe-area-inset-bottom))] md:bottom-0" : "bottom-0"
         } ${grudado ? "shadow-[0_-10px_24px_-14px_rgb(0_0_0/0.35)]" : ""}`}
       >
         {topo}

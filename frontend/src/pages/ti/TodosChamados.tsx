@@ -353,7 +353,8 @@ export function TodosChamados() {
             {itens.map((c) => (
               <li key={c.id}>
                 <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className={`block rounded-xl bg-superficie p-3 ring-1 ${verId === c.id ? "ring-2 ring-acento" : "ring-linha"}`}>
-                  <span className="flex items-center gap-2 whitespace-nowrap">
+                  {/* celular estreito (360 px): o selo de status desce para a linha de baixo em vez de vazar da tela */}
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-nowrap">
                     <span className="font-display font-bold">{c.protocolo}</span>
                     <PilulaPrioridade prioridade={c.prioridade} />
                     <span className="ml-auto"><SeloStatus status={c.status} /></span>

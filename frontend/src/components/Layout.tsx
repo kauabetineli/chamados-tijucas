@@ -8,6 +8,7 @@ import { BarraLateral } from "./BarraLateral";
 import { PainelChamado } from "./PainelChamado";
 import { ehTecnico } from "../lib/pb";
 import { useNumeros, VISOES, type Numeros } from "../lib/numeros";
+import { useTecladoAberto } from "../lib/teclado";
 
 // avatar: o item "Você" mostra a foto/iniciais da pessoa no lugar do ícone
 type Item = { para: string; rotulo: string; Icone: typeof Plus; fim?: boolean; destaque?: boolean; avatar?: boolean };
@@ -33,6 +34,9 @@ export function Layout() {
   // no passo a passo de novo chamado a barra de baixo some: o único botão no rodapé é o da etapa
   const caminho = useLocation().pathname;
   const focado = caminho === "/novo";
+  // celular com o teclado aberto: a barra de baixo some para não cobrir o campo (volta quando o teclado fecha)
+  const teclado = useTecladoAberto();
+  const semBarra = focado || teclado;
   // "Todos os chamados" é a outra visão da Fila: o item Fila continua marcado, e a página fica mais larga (tabela)
   const ativo = (i: Item, isActive: boolean) =>
     isActive || (i.para === "/ti" && caminho === "/ti/chamados") || (i.para === "/perfil" && DENTRO_DE_VOCE.includes(caminho));
@@ -49,7 +53,7 @@ export function Layout() {
     // PC: barra lateral à esquerda + conteúdo. Celular: topo + barra de baixo (a lateral não aparece).
     <div className="md:flex">
     <BarraLateral numeros={numeros} />
-    <div className={`flex min-h-dvh min-w-0 flex-1 flex-col md:pb-0 ${focado ? "" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
+    <div className={`flex min-h-dvh min-w-0 flex-1 flex-col md:pb-0 ${semBarra ? "" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
 
       {/* com o painel do chamado aberto no PC, sobra espaço embaixo para a lista rolar inteira acima dele */}
       {/* celular: SEM barra no topo (a tela toda é do conteúdo, como no app). A pessoa fica na barra de baixo
@@ -61,7 +65,7 @@ export function Layout() {
       </main>
 
       {/* barra inferior no celular */}
-      {!focado && <nav
+      {!semBarra && <nav
         aria-label="Principal"
         className="fixed inset-x-0 bottom-0 z-20 print:hidden border-t border-linha bg-superficie pb-[env(safe-area-inset-bottom)] md:hidden"
       >
