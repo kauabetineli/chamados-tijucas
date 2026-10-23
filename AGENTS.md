@@ -38,6 +38,7 @@ docs/                        ARQUITETURA, API, FERRAMENTAS-IA, IMPLANTACAO, DADO
 ```bash
 # Windows, tudo de uma vez (instala, sobe PocketBase + front, abre o navegador; rodar de novo = reiniciar)
 iniciar.bat            # parar.bat para parar
+iniciar-tudo.bat       # o mesmo + PocketBase na rede + app nativo (Expo) de ..\dinodesk-nativo
 reiniciar.bat          # reinicia os dois sem abrir outra aba; "reiniciar.bat backend" ou "reiniciar.bat front" para um só
 # backend (Linux/macOS: ./pocketbase; Windows: .\pocketbase.exe)
 cd backend && ./pocketbase serve                       # http://127.0.0.1:8090  admin: /_/

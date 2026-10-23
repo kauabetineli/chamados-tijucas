@@ -3,10 +3,11 @@
 # - abre duas janelas: PocketBase (porta 8090) e front com recarga (porta 5173);
 # - se ja estiver rodando, reinicia (util depois de editar pb_hooks, que no Windows nao recarrega sozinho);
 # - abre o navegador quando tudo estiver no ar.
-# Opcoes:  -Parar (so para tudo)   -SemNavegador
+# Opcoes:  -Parar (so para tudo, inclusive o app nativo)   -SemNavegador
 #          -Somente backend|front (reinicia so um dos dois; usado pelo reiniciar.bat)
+#          -ComApp (usado pelo iniciar-tudo.bat): PocketBase ouvindo na rede + app nativo (Expo) de ..\dinodesk-nativo
 
-param([switch]$Parar, [switch]$SemNavegador, [ValidateSet("tudo", "backend", "front")][string]$Somente = "tudo")
+param([switch]$Parar, [switch]$SemNavegador, [switch]$ComApp, [ValidateSet("tudo", "backend", "front")][string]$Somente = "tudo")
 $ErrorActionPreference = "Stop"
 
 $raiz = Split-Path -Parent $PSScriptRoot
@@ -14,6 +15,7 @@ $backend = Join-Path $raiz "backend"
 $frontend = Join-Path $raiz "frontend"
 $ferramentas = Join-Path $raiz "ferramentas"
 $exe = Join-Path $backend "pocketbase.exe"
+$nativo = Join-Path (Split-Path -Parent $raiz) "dinodesk-nativo"
 
 function Parar-Porta([int]$porta) {
   $conexoes = Get-NetTCPConnection -LocalPort $porta -State Listen -ErrorAction SilentlyContinue
@@ -46,6 +48,11 @@ Write-Host "Dino Desk - ambiente de desenvolvimento" -ForegroundColor Cyan
 $fazBackend = $Somente -ne "front"
 $fazFront = $Somente -ne "backend"
 
+# PocketBase na rede (0.0.0.0) para o celular alcancar: pedido pelo -ComApp, ou mantido se ja estava assim
+# (assim um "reiniciar.bat backend" depois do iniciar-tudo.bat nao tira o app nativo do ar)
+$naRede = $ComApp -or [bool](Get-NetTCPConnection -LocalPort 8090 -State Listen -ErrorAction SilentlyContinue |
+  Where-Object { $_.LocalAddress -eq "0.0.0.0" -or $_.LocalAddress -eq "::" })
+
 # para o que estiver rodando (reinicio) e fecha as janelas abertas por uma execucao anterior
 if ($fazBackend) {
   Parar-Porta 8090
@@ -57,6 +64,13 @@ if ($fazFront) {
   Parar-Porta 5173
   Get-Process powershell -ErrorAction SilentlyContinue |
     Where-Object { $_.MainWindowTitle -like "Dino Desk - front*" } |
+    Stop-Process -Force -ErrorAction SilentlyContinue
+}
+# app nativo (Expo, porta 8081): para no -Parar e reinicia no -ComApp
+if ($Parar -or $ComApp) {
+  Parar-Porta 8081
+  Get-Process cmd -ErrorAction SilentlyContinue |
+    Where-Object { $_.MainWindowTitle -like "*Dino Desk - app nativo*" } |
     Stop-Process -Force -ErrorAction SilentlyContinue
 }
 if ($Parar) { Write-Host "Tudo parado."; exit 0 }
@@ -88,7 +102,11 @@ if (-not (Test-Path (Join-Path $backend "bin\ffmpeg.exe"))) {
 # sobe o PocketBase e espera responder
 if ($fazBackend) {
   Write-Host "Iniciando o PocketBase..."
-  Abrir-Janela "Dino Desk - PocketBase (8090)" $backend ".\pocketbase.exe serve"
+  if ($naRede) {
+    Abrir-Janela "Dino Desk - PocketBase na rede (8090)" $backend ".\pocketbase.exe serve --http 0.0.0.0:8090"
+  } else {
+    Abrir-Janela "Dino Desk - PocketBase (8090)" $backend ".\pocketbase.exe serve"
+  }
   if (-not (Esperar-Url "http://127.0.0.1:8090/api/health" 30)) {
     throw "O PocketBase nao respondeu. Veja a mensagem de erro na janela dele."
   }
@@ -103,6 +121,21 @@ if ($fazFront) {
   }
 }
 
+# app nativo: abre o iniciar-app.bat do dinodesk-nativo numa janela propria (ele grava o .env com o IP,
+# confere as dependencias e mostra o QR code do Expo Go; o PocketBase ja esta na rede, entao ele nao sobe outro)
+$appAberto = $false
+if ($ComApp) {
+  $bat = Join-Path $nativo "iniciar-app.bat"
+  if (Test-Path $bat) {
+    Write-Host "Iniciando o app nativo (Expo)..."
+    Start-Process cmd -ArgumentList "/c", "`"$bat`"" -WorkingDirectory $nativo | Out-Null
+    $appAberto = $true
+  } else {
+    Write-Host "  aviso: nao achei $bat (o app nativo fica de fora)." -ForegroundColor Yellow
+    Write-Host "  Clone o dinodesk-nativo ao lado desta pasta: $(Split-Path -Parent $raiz)" -ForegroundColor Yellow
+  }
+}
+
 $ip = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
   Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" -and $_.PrefixOrigin -ne "WellKnown" } |
   Select-Object -First 1 -ExpandProperty IPAddress
@@ -112,8 +145,10 @@ Write-Host "Pronto!" -ForegroundColor Green
 Write-Host "  Sistema:       http://localhost:5173"
 if ($ip) { Write-Host "  Pelo celular:  http://${ip}:5173  (mesma rede Wi-Fi)" }
 Write-Host "  Painel admin:  http://127.0.0.1:8090/_/"
+if ($appAberto) { Write-Host "  App nativo:    leia o QR code da janela do Expo com o Expo Go (mesma rede Wi-Fi)" }
+if ($naRede) { Write-Host "  (PocketBase ouvindo na rede; se o Firewall perguntar, permita em Redes privadas)" }
 Write-Host ""
 Write-Host "Editou pb_hooks ou migrations? reiniciar.bat backend (ou reiniciar.bat para os dois)."
-Write-Host "Para parar: parar.bat (ou feche as duas janelas)."
+Write-Host "Para parar: parar.bat (ou feche as janelas)."
 
 if (-not $SemNavegador) { Start-Process "http://localhost:5173" }

@@ -60,6 +60,14 @@ e mostra o endereço para abrir pelo celular.
 - Editou `pb_hooks` ou criou migration? Rode `iniciar.bat` de novo: ele reinicia tudo.
 - Para parar: `parar.bat` (ou feche as duas janelas).
 
+### Tudo junto, com o app nativo: `iniciar-tudo.bat`
+
+Faz o mesmo que o `iniciar.bat` e ainda abre o app nativo ([dinodesk-nativo](https://github.com/kauabetineli/dinodesk-nativo)),
+que precisa estar clonado **ao lado** desta pasta (`C:\dev\chamados-tijucas` e `C:\dev\dinodesk-nativo`).
+O PocketBase sobe ouvindo na rede (`0.0.0.0:8090`) para o celular alcançar, e uma terceira janela mostra o QR code
+do Expo Go. O celular precisa estar no mesmo Wi-Fi do PC; se o Firewall perguntar, permita em "Redes privadas".
+`parar.bat` para os três, e `reiniciar.bat backend` mantém o PocketBase na rede.
+
 ### Passo a passo manual (se preferir)
 
 ```powershell
