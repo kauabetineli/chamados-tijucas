@@ -122,7 +122,7 @@ function EditorRespostas({ lista, aoMudar, aoFechar }: { lista: RespostaPronta[]
               </>
             ) : (
               <>
-                <span className="min-w-0 flex-1 text-sm">{r.texto}</span>
+                <span className="texto-livre min-w-0 flex-1 text-sm">{r.texto}</span>
                 <button type="button" className={botaoIcone} disabled={ocupado || i === 0} onClick={() => mover(i, -1)} aria-label={`Subir "${r.texto}"`}><ArrowUp className="size-4" /></button>
                 <button type="button" className={botaoIcone} disabled={ocupado || i === lista.length - 1} onClick={() => mover(i, 1)} aria-label={`Descer "${r.texto}"`}><ArrowDown className="size-4" /></button>
                 <button type="button" className={botaoIcone} disabled={ocupado} onClick={() => { setEditandoId(r.id); setTexto(r.texto); }} aria-label={`Editar "${r.texto}"`}><Pencil className="size-4" /></button>

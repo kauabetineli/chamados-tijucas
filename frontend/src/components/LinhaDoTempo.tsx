@@ -159,7 +159,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, status, aoMudarChamado 
             return (
               <li key={i.id} className="flex gap-2 text-sm text-tinta-2">
                 <span className="mt-1.5 size-2 shrink-0 rounded-full bg-linha" aria-hidden="true" />
-                <span>
+                <span className="texto-livre min-w-0">
                   {i.texto}
                   {i.expand?.autor && <> ({i.expand.autor.name})</>}
                   <span className="ml-1 whitespace-nowrap">{dataHora(i.created)}</span>
@@ -184,7 +184,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, status, aoMudarChamado 
                   {i.expand?.autor?.name ?? "Usuário"}
                   {!doSolicitante && !i.interno && <span className="font-normal text-tinta-2">(TI)</span>}
                 </p>
-                {i.texto && <p className="selecionavel whitespace-pre-wrap">{i.texto}</p>}
+                {i.texto && <p className="selecionavel texto-livre whitespace-pre-wrap">{i.texto}</p>}
                 {!!i.anexos?.length && (
                   <ul className={`mt-2 grid gap-1.5 ${i.anexos.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
                     {i.anexos.map((nome, n) => (

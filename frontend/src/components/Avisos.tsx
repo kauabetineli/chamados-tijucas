@@ -43,7 +43,7 @@ function Item({ a }: { a: Aviso }) {
       }`}
     >
       <Icone className={`size-5 shrink-0 ${COR_ICONE[a.tipo]}`} aria-hidden="true" />
-      <span className="min-w-0 flex-1">{a.texto}</span>
+      <span className="texto-livre min-w-0 flex-1">{a.texto}</span>
       {a.link && (
         <Link to={a.link.para} onClick={() => setSaindo(true)} className="shrink-0 rounded-lg px-2 py-1 text-acento underline underline-offset-4 hover:bg-mar-50">
           {a.link.rotulo}

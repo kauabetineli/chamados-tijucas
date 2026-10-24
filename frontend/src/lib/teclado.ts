@@ -10,7 +10,7 @@ import { useSyncExternalStore } from "react";
  * Enquanto está aberto:
  * - a barra de baixo some (Layout), como no app nativo, para não cobrir o campo;
  * - `<html data-teclado>` fica marcado e ganha `scroll-padding-bottom`, para o campo focado não ficar escondido
- *   atrás do rodapé fixo com o botão de enviar (RodapeEnviar).
+ *   atrás de um rodapé fixo com botão (ex.: "Continuar" no passo a passo do novo chamado).
  */
 
 const CELULAR = "(max-width: 767px)";

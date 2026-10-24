@@ -288,7 +288,7 @@ export function Registrar() {
           </Passo>
 
           <RodapeEnviar
-            acimaDaBarra
+            soNoFimNoCelular
             frase="Entra na fila (ou no histórico) e na contagem do piloto."
             topo={<><ProgressoEnvio pct={progresso} />{erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}</>}
           >

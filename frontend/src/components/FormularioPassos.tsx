@@ -1,7 +1,7 @@
 import { CheckCircle2, Paperclip, Video, X } from "lucide-react";
 import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { arrastandoArquivo, type ControleAnexos } from "./Anexos";
-import { useTecladoAberto } from "../lib/teclado";
+import { useMediaQuery } from "../lib/useMediaQuery";
 
 /**
  * Peças dos formulários "em uma coluna numerada" do PC (Novo chamado e Registrar pedido):
@@ -130,27 +130,27 @@ export const CaixaComAnexos = forwardRef<HTMLTextAreaElement, {
  * Rodapé do cartão com o botão de enviar. Fica no fim do formulário (onde a leitura termina); se o fim estiver
  * fora da tela, gruda embaixo e o botão continua à vista. `frase` some quando grudado (faixa baixa).
  * Coloque como ÚLTIMO filho do cartão com padding p-6 md:p-8.
- * `acimaDaBarra`: no celular, sobe acima da barra de navegação de baixo.
+ * `soNoFimNoCelular`: no celular o rodapé NÃO gruda: o botão fica só no fim do formulário (Registrar, onde a
+ * pessoa preenche tudo antes de enviar e um botão flutuando no meio do caminho atrapalhava). No PC continua grudando.
  */
-export function RodapeEnviar({ frase, children, topo, acimaDaBarra }: { frase?: ReactNode; children: ReactNode; topo?: ReactNode; acimaDaBarra?: boolean }) {
+export function RodapeEnviar({ frase, children, topo, soNoFimNoCelular }: { frase?: ReactNode; children: ReactNode; topo?: ReactNode; soNoFimNoCelular?: boolean }) {
   const fim = useRef<HTMLDivElement>(null);
-  const [grudado, setGrudado] = useState(false);
-  // com o teclado aberto a barra de baixo some (Layout): o rodapé desce para a borda da tela
-  const sobeBarra = acimaDaBarra && !useTecladoAberto();
+  const [passou, setPassou] = useState(false);
+  const pc = useMediaQuery("(min-width: 768px)");
+  const gruda = pc || !soNoFimNoCelular;
+  const grudado = gruda && passou;
   useEffect(() => {
     const el = fim.current;
     if (!el || !("IntersectionObserver" in window)) return;
-    // no celular a barra de navegação cobre os últimos 76 px da tela
-    const barra = sobeBarra && window.matchMedia?.("(max-width: 767px)").matches ? 76 : 0;
-    const obs = new IntersectionObserver(([e]) => setGrudado(!e.isIntersecting), { threshold: 0, rootMargin: `0px 0px -${barra}px 0px` });
+    const obs = new IntersectionObserver(([e]) => setPassou(!e.isIntersecting), { threshold: 0 });
     obs.observe(el);
     return () => obs.disconnect();
-  }, [sobeBarra]);
+  }, []);
   return (
     <>
       <div
-        className={`sticky z-10 -mx-5 -mb-5 space-y-3 rounded-b-2xl border-t border-linha bg-superficie px-5 py-3 md:-mx-8 md:-mb-8 md:px-8 md:pl-[4.75rem] ${
-          sobeBarra ? "bottom-[calc(76px+env(safe-area-inset-bottom))] md:bottom-0" : "bottom-0"
+        className={`z-10 -mx-5 -mb-5 space-y-3 rounded-b-2xl border-t border-linha bg-superficie px-5 py-3 md:-mx-8 md:-mb-8 md:px-8 md:pl-[4.75rem] ${
+          gruda ? "sticky bottom-0" : ""
         } ${grudado ? "shadow-[0_-10px_24px_-14px_rgb(0_0_0/0.35)]" : ""}`}
       >
         {topo}

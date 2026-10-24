@@ -114,6 +114,9 @@
   body {
     @apply bg-fundo font-sans text-tinta antialiased;
     min-height: 100dvh;
+    /* palavra enorme sem espaço (caminho de pasta, link) quebra em vez de vazar. Dentro de flex/grid isso não basta:
+       o texto digitado pelas pessoas usa a classe texto-livre (abaixo) */
+    overflow-wrap: break-word;
   }
   h1, h2, h3 {
     @apply font-display;
@@ -126,6 +129,11 @@
   :focus-visible {
     outline: 3px solid var(--color-mar);
     outline-offset: 2px;
+  }
+  /* linha inteira clicável dentro de lista com cantos arredondados (overflow-hidden): o contorno de foco vai por
+     DENTRO, senão a lista corta em cima e embaixo (cartões da Fila, Você, Pessoas e setores) */
+  li > a:focus-visible, li > button:focus-visible {
+    outline-offset: -3px;
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -222,8 +230,18 @@
   }
 }
 
-/* faixas que rolam para o lado (abas, chips): sem barra de rolagem, como num app */
+/* texto digitado pelas pessoas (descrição, causa, solução, conversa, avisos): quebra onde precisar, inclusive dentro
+   de flex e grid, para caminhos de pasta e links longos não vazarem do cartão. Não use em rótulos da interface:
+   neles a palavra deve ficar inteira ("andamento", não "andam-ento"). */
+@utility texto-livre {
+  overflow-wrap: anywhere;
+}
+
+/* faixas que rolam para o lado (abas, chips): sem barra de rolagem, como num app.
+   Uma faixa com overflow-x corta TAMBÉM em cima e embaixo: a folga de 6 px deixa à vista o contorno (ring) dos botões
+   e o contorno de foco do teclado (3 px + 2 px de recuo). Sem margem negativa: ela anularia o space-y do pai. */
 @utility sem-barra {
+  padding-block: 6px;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 }

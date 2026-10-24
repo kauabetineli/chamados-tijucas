@@ -57,7 +57,10 @@ QR code / link  →  site da Prefeitura (/dinodesk, página estática)  →  htt
 - **Fila:** ordem = maior prioridade primeiro, depois quem abriu antes. A posição é calculada em `/api/fila/minhas-posicoes`.
 - **Causa e solução são opcionais ao resolver** (desde 18/10/2026). Rotina que o TI já sabe resolver fecha sem texto;
   o técnico liga "Guardar causa e solução no Histórico" quando vale registrar, e aí os dois campos são obrigatórios na tela.
-  O Histórico mostra por padrão só os que têm registro (caixa "Só os que têm causa e solução registradas"). Datas de início e de resolução são preenchidas sozinhas (base dos indicadores).
+  O Histórico mostra por padrão só os que têm registro (caixa "Só os que têm causa e solução registradas"). Ele começa
+  pela pergunta "Que tipo de problema?" (categorias com o número de soluções de cada uma) ou pela busca, em vez de uma
+  lista longa; "Ver todos os resolvidos" abre a lista inteira. No cartão a solução vem em destaque e textos longos são
+  encurtados (o chamado completo abre ao tocar). Datas de início e de resolução são preenchidas sozinhas (base dos indicadores).
 - **Solicitante confirma ou reabre** (`/api/chamados/{id}/confirmar` e `/reabrir`).
 - **Toda mudança vira registro** na linha do tempo; e-mail para o solicitante quando o atendimento começa, quando é resolvido
   e quando o TI responde (só se o SMTP estiver configurado no painel).

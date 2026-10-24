@@ -153,7 +153,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
           {c.status === "resolvido" && doSolicitante && !c.confirmado && <Confirmacao chamadoId={c.id} aoConcluir={carregar} />}
 
           <section className="space-y-4">
-            <p className="text-lg whitespace-pre-wrap">{c.descricao}</p>
+            <p className="texto-livre text-lg whitespace-pre-wrap">{c.descricao}</p>
             <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
               {tecnico && <Dado termo="Quem pediu" valor={nomeSolicitante(c) + (ramalDe(c.expand?.solicitante, c.expand?.setor) ? ` (ramal ${ramalDe(c.expand?.solicitante, c.expand?.setor)})` : "")} />}
               <Dado termo="Setor" valor={c.expand?.setor?.nome} />
@@ -183,10 +183,10 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
             <section className="rounded-2xl border-l-8 border-campo bg-superficie p-5 ring-1 ring-linha">
               <h2 className="text-xl font-bold">O que o TI fez</h2>
               {c.diagnostico && (
-                <p className="mt-2"><span className="font-semibold">Causa: </span>{c.diagnostico}</p>
+                <p className="texto-livre mt-2"><span className="font-semibold">Causa: </span>{c.diagnostico}</p>
               )}
               {c.solucao && (
-                <p className="mt-1"><span className="font-semibold">Solução: </span>{c.solucao}</p>
+                <p className="texto-livre mt-1"><span className="font-semibold">Solução: </span>{c.solucao}</p>
               )}
               {c.confirmado && (
                 <div className="mt-3 space-y-1 text-sm">
@@ -198,7 +198,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
                         : <><ThumbsDown className="size-4 text-alerta" aria-hidden="true" /> Atendimento avaliado como "poderia ser melhor"</>}
                     </p>
                   )}
-                  {c.avaliacao_comentario && <p className="text-tinta-2">“{c.avaliacao_comentario}”</p>}
+                  {c.avaliacao_comentario && <p className="texto-livre text-tinta-2">“{c.avaliacao_comentario}”</p>}
                 </div>
               )}
             </section>

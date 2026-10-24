@@ -93,10 +93,11 @@ export function Layout() {
                   if (i.destaque) return <><i.Icone className="size-6" aria-hidden="true" /> {i.rotulo}</>;
                   return (
                     <>
-                      {/* aba marcada: "pílula" atrás do ícone, como a barra nativa do Android */}
-                      <span className={`relative flex h-8 items-center justify-center rounded-full px-5 transition-colors ${isActive ? "bg-mar-50" : ""}`}>
+                      {/* aba marcada: "pílula" atrás do ícone, como a barra nativa do Android. No "Você" a foto já é o
+                          ícone: sem pílula, do tamanho dos outros ícones, e marcada só com um anel em volta */}
+                      <span className={`relative flex h-8 items-center justify-center rounded-full px-5 transition-colors ${isActive && !i.avatar ? "bg-mar-50" : ""}`}>
                         {i.avatar && usuario
-                          ? <span className={`rounded-full ${isActive ? "ring-2 ring-acento ring-offset-1 ring-offset-mar-50" : ""}`}><Avatar id={usuario.id} nome={usuario.name} tamanho="sm" /></span>
+                          ? <span className={`rounded-full ${isActive ? "ring-2 ring-acento ring-offset-2 ring-offset-superficie" : ""}`}><Avatar id={usuario.id} nome={usuario.name} tamanho="xs" /></span>
                           : <i.Icone className="size-6" aria-hidden="true" />}
                         <SeloMenu i={i} numeros={numeros} tecnico={tecnico} />
                       </span>

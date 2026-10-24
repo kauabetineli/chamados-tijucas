@@ -37,7 +37,7 @@ function CartaoAviso({ a, podeEncerrar }: { a: AvisoTI; podeEncerrar: boolean })
     <li className={`flex gap-2.5 rounded-xl p-3 text-sm ring-1 ${caixa}`}>
       <Icone className={`mt-0.5 size-4 shrink-0 ${icone}`} aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        <p className="font-semibold break-words">{a.texto}</p>
+        <p className="texto-livre font-semibold">{a.texto}</p>
         <p className="mt-0.5 text-xs text-tinta-2">
           {a.expand?.autor?.name?.split(" ")[0] ?? "TI"} · {tempoRelativo(a.created)}{a.ate ? ` · ${horaFim(a.ate)}` : ""}
         </p>

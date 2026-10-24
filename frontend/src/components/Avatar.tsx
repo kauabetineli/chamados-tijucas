@@ -4,10 +4,10 @@ import { corDe, iniciais } from "../lib/equipe";
 export function Avatar({ id, nome, tamanho = "md", destaque }: {
   id: string;
   nome?: string;
-  tamanho?: "sm" | "md" | "lg";
+  tamanho?: "xs" | "sm" | "md" | "lg";
   destaque?: boolean;
 }) {
-  const t = { sm: "size-7 text-xs", md: "size-9 text-sm", lg: "size-11 text-base" }[tamanho];
+  const t = { xs: "size-6 text-[10px]", sm: "size-7 text-xs", md: "size-9 text-sm", lg: "size-11 text-base" }[tamanho];
   return (
     <span
       className={`grid shrink-0 place-items-center rounded-full font-bold text-white ${t} ${destaque ? "ring-2 ring-sol ring-offset-2 ring-offset-superficie" : ""}`}

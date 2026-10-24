@@ -209,7 +209,7 @@ export function TodosChamados() {
       <div className="space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
         {/* celular: uma linha que rola para o lado; PC: quebra linha */}
         {/* py-1/-my-1: folga para o contorno arredondado não ser cortado pela rolagem */}
-        <div className="sem-barra -mx-4 -my-1 flex gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label="Situação">
+        <div className="sem-barra -mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label="Situação">
           {SITUACOES.map((s) => (
             <button
               key={s.valor}
@@ -331,7 +331,7 @@ export function TodosChamados() {
                         <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 shrink-0 text-acento" />
                         {c.expand?.categoria?.nome}
                       </span>
-                      <span className="mt-0.5 line-clamp-2 text-tinta-2">{c.descricao}</span>
+                      <span className="texto-livre mt-0.5 line-clamp-2 text-tinta-2">{c.descricao}</span>
                     </td>
                     <td className="px-3 py-3">
                       <span className="block font-semibold">{nomeSolicitante(c)}</span>

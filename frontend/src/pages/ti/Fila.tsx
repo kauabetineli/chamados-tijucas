@@ -182,7 +182,7 @@ function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastand
       <p className={`mb-1.5 text-sm font-semibold ${arrastando ? "text-acento" : "text-tinta-2"}`}>
         {arrastando ? "Solte na pessoa para atribuir" : "Equipe"}
       </p>
-      <div className="sem-barra -mx-1.5 -my-1 flex gap-2 overflow-x-auto px-1.5 py-1.5" role="group" aria-label="Chamados por técnico">
+      <div className="sem-barra -mx-1.5 flex gap-2 overflow-x-auto px-1.5" role="group" aria-label="Chamados por técnico">
         {ordem.map((t) => (
           <button
             key={t.id}
@@ -512,7 +512,7 @@ export function Fila() {
       </div>
 
       {/* celular: abas das visões (no PC elas ficam na barra lateral) */}
-      <div role="tablist" aria-label="Visões da fila" className="sem-barra -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden">
+      <div role="tablist" aria-label="Visões da fila" className="sem-barra -mx-4 flex gap-2 overflow-x-auto px-4 md:hidden">
         {[{ id: null, rotulo: "Tudo", Icone: null }, ...VISOES].map((v) => {
           const ativa = visao === v.id;
           return (
