@@ -5,12 +5,13 @@ import { LinkChamado, useVerChamado } from "../../lib/verChamado";
 import { Avatar } from "../../components/Avatar";
 import { EsqueletoCartoes, EsqueletoTabela } from "../../components/Esqueleto";
 import { useCategorias } from "../../components/CamposChamado";
+import { Espera } from "../../components/Espera";
 import { IconeCategoria } from "../../components/Icone";
-import { PilulaPrioridade, SeloStatus, SeloTeste } from "../../components/Selos";
+import { EtiquetaPrioridade, MarcaTeste, SeloStatus } from "../../components/Selos";
 import { Paginacao, usePaginacao } from "../../components/Paginacao";
 import { VisaoTI } from "../../components/VisaoTI";
 import { useSetores, useTecnicos } from "../../lib/equipe";
-import { atrasado, esperaCurta, horasEsperando } from "../../lib/fila";
+import { esperaCurta } from "../../lib/fila";
 import { dataCurta, duracaoHoras, paraData, resumo, ROTULO_AGUARDANDO, ROTULO_PRIORIDADE } from "../../lib/formato";
 import { buscarPagina } from "../../lib/paginar";
 import { baixarCsvChamados } from "../../lib/planilha";
@@ -54,9 +55,8 @@ function Tempo({ c }: { c: Chamado }) {
     const ini = paraData(c.iniciado_em);
     return <span className="text-tinta-2">{ini ? `atendendo ${ha((Date.now() - ini.getTime()) / 3_600_000)}` : "—"}</span>;
   }
-  return atrasado(c)
-    ? <span className="font-semibold text-alerta">atrasado, esperando {ha(horasEsperando(c))}</span>
-    : <span className="text-tinta-2">esperando {ha(horasEsperando(c))}</span>;
+  // na fila: o mesmo sinal da Fila ("há 3 h" neutro; vermelho com relógio só fora do prazo)
+  return <span className="text-tinta-2"><Espera c={c} /></span>;
 }
 
 function Responsavel({ c }: { c: Chamado }) {
@@ -296,16 +296,17 @@ export function TodosChamados() {
         <>
           {/* PC: tabela */}
           <div aria-busy={carregando} className={`hidden overflow-x-auto rounded-2xl bg-superficie ring-1 ring-linha md:block ${carregando ? "opacity-60" : ""}`}>
-            <table className="w-full min-w-[56rem] border-collapse">
+            {/* larguras fixas nas colunas curtas; o Problema fica com o resto (é o que se lê primeiro) */}
+            <table className="w-full min-w-[56rem] table-fixed border-collapse">
               <thead className="border-b border-linha">
                 <tr>
-                  <Cabecalho col="protocolo">Protocolo</Cabecalho>
-                  <Cabecalho col="prioridade">Prioridade</Cabecalho>
-                  <Cabecalho col="situacao">Situação</Cabecalho>
-                  <Cabecalho className="w-[34%]">Problema</Cabecalho>
-                  <Cabecalho>Quem pediu</Cabecalho>
-                  <Cabecalho>Responsável</Cabecalho>
-                  <Cabecalho col="aberto">Aberto</Cabecalho>
+                  <Cabecalho col="protocolo" className="w-32">Protocolo</Cabecalho>
+                  <Cabecalho col="prioridade" className="w-24">Prioridade</Cabecalho>
+                  <Cabecalho col="situacao" className="w-36">Situação</Cabecalho>
+                  <Cabecalho>Problema</Cabecalho>
+                  <Cabecalho className="w-36">Quem pediu</Cabecalho>
+                  <Cabecalho className="w-28">Responsável</Cabecalho>
+                  <Cabecalho col="aberto" className="w-28">Aberto</Cabecalho>
                 </tr>
               </thead>
               <tbody className="divide-y divide-linha">
@@ -322,16 +323,17 @@ export function TodosChamados() {
                           {c.protocolo}
                         </LinkChamado>
                       </span>
-                      {c.ficticio && <span className="ml-2 align-middle"><SeloTeste ficticio compacto /></span>}
+                      <span className="ml-1.5"><MarcaTeste ficticio={c.ficticio} /></span>
                     </td>
-                    <td className="px-3 py-3"><PilulaPrioridade prioridade={c.prioridade} /></td>
+                    <td className="px-3 py-3"><EtiquetaPrioridade prioridade={c.prioridade} sempre /></td>
                     <td className="px-3 py-3 whitespace-nowrap"><SeloStatus status={c.status} /></td>
                     <td className="px-3 py-3">
-                      <span className="flex items-center gap-1.5 font-semibold">
+                      {/* o problema primeiro (como na Fila); a categoria embaixo, menor */}
+                      <span className="texto-livre line-clamp-2 font-semibold">{c.descricao}</span>
+                      <span className="mt-0.5 flex items-center gap-1.5 text-tinta-2">
                         <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 shrink-0 text-acento" />
                         {c.expand?.categoria?.nome}
                       </span>
-                      <span className="texto-livre mt-0.5 line-clamp-2 text-tinta-2">{c.descricao}</span>
                     </td>
                     <td className="px-3 py-3">
                       <span className="block font-semibold">{nomeSolicitante(c)}</span>
@@ -349,22 +351,22 @@ export function TodosChamados() {
           </div>
 
           {/* celular: lista compacta com os mesmos dados */}
-          <ul aria-busy={carregando} className={`space-y-2 md:hidden ${carregando ? "opacity-60" : ""}`}>
+          {/* celular: lista enxuta, o mesmo desenho da Fila (tipo · problema · situação, onde e quem · tempo) */}
+          <ul aria-busy={carregando} className={`divide-y divide-linha overflow-hidden rounded-2xl bg-superficie ring-1 ring-linha md:hidden ${carregando ? "opacity-60" : ""}`}>
             {itens.map((c) => (
               <li key={c.id}>
-                <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className={`block rounded-xl bg-superficie p-3 ring-1 ${verId === c.id ? "ring-2 ring-acento" : "ring-linha"}`}>
-                  {/* celular estreito (360 px): o selo de status desce para a linha de baixo em vez de vazar da tela */}
-                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-nowrap">
-                    <span className="font-display font-bold">{c.protocolo}</span>
-                    <PilulaPrioridade prioridade={c.prioridade} />
-                    <span className="ml-auto"><SeloStatus status={c.status} /></span>
+                <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className={`flex items-center gap-3 px-3 py-2.5 ${verId === c.id ? "bg-mar-50" : ""}`}>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-mar-50 text-acento" title={c.expand?.categoria?.nome}>
+                    <IconeCategoria nome={c.expand?.categoria?.icone} className="size-5" />
                   </span>
-                  <span className="mt-1 block truncate font-semibold">{resumo(c.descricao, 90)}</span>
-                  <span className="mt-1 flex min-w-0 items-center gap-2 text-sm whitespace-nowrap text-tinta-2">
-                    <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 shrink-0 text-acento" />
-                    <span className="min-w-0 truncate">{nomeSolicitante(c)} · {c.expand?.setor?.nome ?? "—"}</span>
-                    <span className="ml-auto shrink-0 text-xs"><Tempo c={c} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="texto-livre line-clamp-2 leading-snug font-semibold"><EtiquetaPrioridade prioridade={c.prioridade} />{resumo(c.descricao, 120)}</span>
+                    <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm whitespace-nowrap text-tinta-2">
+                      <SeloStatus status={c.status} />
+                      <span className="min-w-0 truncate">· {c.expand?.setor?.nome ?? "—"} · {nomeSolicitante(c)} · <span className="tabular-nums">{c.protocolo}</span> <MarcaTeste ficticio={c.ficticio} /></span>
+                    </span>
                   </span>
+                  <span className="shrink-0 self-start pt-0.5 text-xs text-tinta-2">{c.status === "resolvido" ? <Tempo c={c} /> : <Espera c={c} />}</span>
                 </LinkChamado>
               </li>
             ))}

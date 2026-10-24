@@ -14,6 +14,7 @@
   - sucesso: text-ok · erro e atraso: text-alerta
   - preenchimentos com texto branco: bg-mar-700, bg-campo-700 (botões)
   - fundos suaves: bg-mar-50, bg-campo-50, bg-brasa-50, bg-sol-50
+  - etiqueta de prioridade Alta: bg-sol-50 + ring-ambar + text-ambar-tinta (só ela)
   - escuro fixo (sobre foto/vídeo, senha amarela): bg-noite / text-noite
   Proibido: bg-white, bg-black, text-black, cor em hexadecimal no componente.
   Exceção consciente: escreva "tema-fixo" num comentário na linha ou na linha de cima.
@@ -36,6 +37,10 @@
   --color-brasa: #e8302f;     /* vermelho das estrelas: só para urgência */
   --color-brasa-700: #b4201f;
   --color-brasa-50: #fdeceb;
+
+  /* âmbar: SÓ a prioridade Alta (etiqueta). O amarelo forte (sol) fica para a "senha" da fila do servidor */
+  --color-ambar: #c79a00;      /* contorno da etiqueta Alta */
+  --color-ambar-tinta: #5c4400; /* texto da etiqueta Alta (sobre sol-50) */
 
   --color-tinta: #113227;     /* verde-escuro: texto */
   --color-tinta-2: #47605a;   /* texto secundário */
@@ -70,6 +75,8 @@
   --color-campo-50: #0d2a1a;
   --color-brasa-50: #361311;
   --color-sol-50: #2b2706;
+  --color-ambar: #a88600;
+  --color-ambar-tinta: #ffd966;
 }
 
 @layer base {

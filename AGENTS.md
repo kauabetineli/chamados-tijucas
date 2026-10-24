@@ -102,6 +102,9 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 13. **Carregando = esqueleto**, nunca só o texto "Carregando...": use `components/Esqueleto.tsx` (`EsqueletoCartoes`,
     `EsqueletoLinhas`, `EsqueletoTabela`, `EsqueletoChamado`, `EsqueletoConversa` ou `Bloco` para montar um novo)
     no formato do que vai aparecer. Números que ainda não chegaram não aparecem como "0".
+14. **Sinais das listas**: um sinal = um significado (docs/ARQUITETURA.md, "Sinais das listas"). Prioridade só com
+    `EtiquetaPrioridade` (aparece para Urgente e Alta), espera com `Espera`, situação com `SeloStatus`, "teste" com
+    `MarcaTeste`. Não crie pílula nova nem use cor de prioridade para outra coisa.
 
 ## Modelo de dados (resumo)
 

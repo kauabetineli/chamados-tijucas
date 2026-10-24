@@ -1,7 +1,8 @@
-import { AlertTriangle, ChevronDown, Clock, GripVertical, Hourglass, MoreVertical, User, Wrench } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, MoreVertical, Table2, Users, Wrench } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { Avatar, SeloLivre } from "../../components/Avatar";
+import { Avatar } from "../../components/Avatar";
+import { Espera } from "../../components/Espera";
 import { Bloco, EsqueletoCartoes } from "../../components/Esqueleto";
 import { IconeCategoria } from "../../components/Icone";
 import { MuralAvisos } from "../../components/MuralAvisos";
@@ -9,11 +10,11 @@ import { MenuAcoes } from "../../components/MenuAcoes";
 import { MenuAtribuir } from "../../components/MenuAtribuir";
 import { Paginacao, usePaginacao } from "../../components/Paginacao";
 import { VisaoTI } from "../../components/VisaoTI";
-import { COR_PRIORIDADE, PilulaPrioridade, SeloTeste } from "../../components/Selos";
+import { EtiquetaPrioridade, MarcaTeste } from "../../components/Selos";
 import { useAuth } from "../../lib/auth";
 import { atribuir, useTecnicos } from "../../lib/equipe";
-import { atrasado, cargaDaEquipe, esperaCurta, horasEsperando, organizarFila } from "../../lib/fila";
-import { paraData, resumo, ROTULO_AGUARDANDO, ROTULO_ORIGEM } from "../../lib/formato";
+import { atrasado, cargaDaEquipe, META_ESPERA_HORAS, organizarFila } from "../../lib/fila";
+import { resumo, ROTULO_AGUARDANDO, ROTULO_ORIGEM, ROTULO_PRIORIDADE } from "../../lib/formato";
 import { EXPAND_CHAMADO, mensagemErro, nomeSolicitante, pb, type Chamado, type Usuario } from "../../lib/pb";
 import { useRealtime } from "../../lib/useRealtime";
 import { ehVisao, VISOES, type Visao } from "../../lib/numeros";
@@ -21,76 +22,51 @@ import { LinkChamado, useVerChamado } from "../../lib/verChamado";
 import { avisar } from "../../lib/avisos";
 
 const TIPO_ARRASTE = "application/x-dinodesk-chamado";
-const horasDesde = (s: string) => (Date.now() - (paraData(s)?.getTime() ?? Date.now())) / 3_600_000;
 const primeiroNome = (n?: string) => (n || "").trim().split(/\s+/)[0] || "Técnico";
 
-/**
- * Linha de detalhes do cartão (3ª linha): categoria · setor · espera, e os selos no fim.
- * Nunca quebra: se faltar espaço, categoria e setor encurtam com "…".
- */
-function Detalhes({ c }: { c: Chamado }) {
-  const late = atrasado(c);
+/** Tipo do problema: ícone da categoria num quadrado, sempre à esquerda (reconhece antes de ler). */
+function TipoCategoria({ c, grande }: { c: Chamado; grande?: boolean }) {
   return (
-    <div className="mt-1 flex min-w-0 items-center gap-2 text-sm whitespace-nowrap text-tinta-2">
-      {/* no celular, só o ícone da categoria: sobra espaço para o setor */}
-      <span className="inline-flex min-w-0 shrink-0 items-center gap-1 sm:shrink" title={c.expand?.categoria?.nome}>
-        <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 shrink-0 text-acento" />
-        <span className="sr-only truncate sm:not-sr-only">{c.expand?.categoria?.nome}</span>
-      </span>
-      {c.expand?.setor?.nome && (
-        <>
-          <span aria-hidden="true">·</span>
-          <span className="min-w-0 truncate">{c.expand.setor.nome}</span>
-        </>
-      )}
-      {c.status === "aberto" && (
-        <span className={`inline-flex shrink-0 items-center gap-1 ${late ? "font-semibold text-alerta" : ""}`}>
-          <span aria-hidden="true" className="font-normal text-tinta-2">·</span>
-          {late ? <AlertTriangle className="size-4" aria-hidden="true" /> : <Clock className="size-4" aria-hidden="true" />}
-          {late ? "atrasado " : "há "}{esperaCurta(horasEsperando(c))}
-        </span>
-      )}
-      {c.status === "em_andamento" && (
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-sol-50 px-2 py-0.5 text-xs font-semibold text-tinta ring-1 ring-sol">
-          <Wrench className="size-3.5" aria-hidden="true" /> atendendo
-        </span>
-      )}
-      {c.status === "aguardando" && (
-        <span
-          className="inline-flex shrink-0 items-center gap-1 rounded-full bg-fundo px-2 py-0.5 text-xs font-semibold text-tinta ring-1 ring-linha"
-          title={c.aguardando_motivo ? `Aguardando ${ROTULO_AGUARDANDO[c.aguardando_motivo]}` : "Em espera"}
-        >
-          <Hourglass className="size-3.5" aria-hidden="true" />
-          {c.aguardando_motivo === "peca" ? "peça" : c.aguardando_motivo === "solicitante" ? "resposta" : c.aguardando_motivo === "terceiro" ? "terceiro" : "em espera"}
-          {paraData(c.aguardando_desde || "") && <span className="font-normal text-tinta-2">· {esperaCurta(horasDesde(c.aguardando_desde!))}</span>}
-        </span>
-      )}
-      {c.ficticio && <span className="ml-auto shrink-0"><SeloTeste ficticio compacto /></span>}
-    </div>
+    <span className={`grid shrink-0 place-items-center rounded-xl bg-mar-50 text-acento ${grande ? "size-11" : "size-10"}`} title={c.expand?.categoria?.nome}>
+      <IconeCategoria nome={c.expand?.categoria?.icone} className={grande ? "size-6" : "size-5"} />
+    </span>
   );
 }
 
-/** Botão com o dono atual ("Livre", "você", "Felipe"); toque abre o menu de atribuir. */
-function BotaoDono({ c, eu, aoAbrir, compacto }: { c: Chamado; eu: string; aoAbrir: () => void; compacto?: boolean }) {
+/** Linha de apoio: onde e quem; o protocolo por último, menor. No celular entra o setor (no PC ele tem coluna). */
+function LinhaApoio({ c, posicao }: { c: Chamado; posicao?: number }) {
+  const setor = c.expand?.setor?.nome;
+  const partes = [
+    posicao ? `${posicao}º` : "",
+    c.status === "aguardando" ? `Aguardando ${c.aguardando_motivo ? ROTULO_AGUARDANDO[c.aguardando_motivo] : "algo"}` : "",
+  ].filter(Boolean);
+  return (
+    <p className="mt-0.5 truncate text-sm text-tinta-2">
+      {partes.map((t) => <span key={t}>{t} · </span>)}
+      {/* celular: setor; PC (lg+): categoria, porque o setor tem coluna própria */}
+      {setor && <span className="lg:hidden">{setor} · </span>}
+      <span className="hidden lg:inline">{c.expand?.categoria?.nome ?? "Sem categoria"} · </span>
+      {nomeSolicitante(c)} · <span className="tabular-nums">{c.protocolo}</span> <MarcaTeste ficticio={c.ficticio} />
+    </p>
+  );
+}
+
+/** Com quem está: avatar (livre = círculo tracejado); no PC o nome ao lado. Toque abre o menu de atribuir. */
+function BotaoDono({ c, eu, aoAbrir, comNome }: { c: Chamado; eu: string; aoAbrir: () => void; comNome?: boolean }) {
   const dono = c.expand?.responsavel;
   const rotulo = !c.responsavel ? "Livre" : c.responsavel === eu ? "Você" : primeiroNome(dono?.name);
   return (
     <button
       type="button"
       onClick={aoAbrir}
-      className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full py-1 pr-2 pl-1 hover:bg-mar-50"
+      className="flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full px-1 hover:bg-mar-50"
       aria-label={`Atribuir ${c.protocolo}. Agora: ${rotulo}`}
+      title={`Com quem está: ${rotulo}. Toque para passar.`}
     >
-      {c.responsavel ? (
-        <Avatar id={c.responsavel} nome={dono?.name} tamanho="sm" destaque={c.responsavel === eu} />
-      ) : compacto ? (
-        // celular: círculo tracejado no lugar do selo, para sobrar espaço para o texto
-        <>
-          <span className="size-7 rounded-full border-2 border-dashed border-tinta-2/50 sm:hidden" aria-hidden="true" />
-          <span className="hidden sm:inline-flex"><SeloLivre /></span>
-        </>
-      ) : <SeloLivre />}
-      {c.responsavel && <span className={`text-sm font-semibold ${compacto ? "hidden sm:inline" : ""}`}>{rotulo}</span>}
+      {c.responsavel
+        ? <Avatar id={c.responsavel} nome={dono?.name} tamanho="sm" destaque={c.responsavel === eu} />
+        : <span className="size-7 rounded-full border-2 border-dashed border-tinta-2/50" aria-hidden="true" />}
+      {comNome && <span className={`w-20 truncate text-left text-sm font-semibold ${c.responsavel ? "" : "text-tinta-2"}`}>{rotulo}</span>}
     </button>
   );
 }
@@ -148,7 +124,8 @@ function useSegurar(aoSegurar: () => void) {
 }
 
 /** Faixa da equipe: quantos chamados cada um tem. Toque filtra; no PC, solte um chamado aqui para atribuir. */
-function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastando, aoSoltar }: {
+function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastando, aoSoltar, className = "" }: {
+  className?: string;
   tecnicos: Usuario[];
   eu: string;
   carga: Record<string, number>;
@@ -178,7 +155,7 @@ function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastand
   const ordem = [...tecnicos].sort((a, b) => (a.id === eu ? -1 : b.id === eu ? 1 : 0));
 
   return (
-    <div className={`sticky top-0 z-10 -mx-4 px-4 md:top-0 md:-mx-8 md:px-8 py-2 backdrop-blur ${arrastando ? "bg-mar-50/95" : "bg-fundo/95"}`}>
+    <div className={`sticky top-0 z-10 -mx-4 px-4 md:top-0 md:-mx-8 md:px-8 py-2 backdrop-blur ${arrastando ? "bg-mar-50/95" : "bg-fundo/95"} ${className}`}>
       <p className={`mb-1.5 text-sm font-semibold ${arrastando ? "text-acento" : "text-tinta-2"}`}>
         {arrastando ? "Solte na pessoa para atribuir" : "Equipe"}
       </p>
@@ -213,15 +190,18 @@ function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastand
   );
 }
 
-/** Cartão de chamado na fila. No PC dá para arrastar (alça à esquerda) até alguém da equipe. */
-function Cartao({ c, eu, posicao, destaque, realcado, selecionado, aoAtribuir, aoAcoes, arrastavel, aoArrastar }: {
+/**
+ * Uma linha da fila (lista enxuta, docs/ARQUITETURA.md "Sinais das listas"):
+ * tipo (ícone) · problema (título, com a etiqueta só se for Urgente/Alta) e onde/quem embaixo · espera · com quem.
+ * No PC as três últimas viram colunas alinhadas e dá para arrastar a linha (alça à esquerda) até alguém da Equipe.
+ */
+function Linha({ c, eu, posicao, realcado, selecionado, aoAtribuir, aoAcoes, arrastavel, aoArrastar }: {
   c: Chamado;
   realcado?: boolean;
   /** aberto no painel de baixo */
   selecionado?: boolean;
   eu: string;
   posicao?: number;
-  destaque?: boolean;
   aoAtribuir: () => void;
   aoAcoes: () => void;
   arrastavel: boolean;
@@ -235,90 +215,97 @@ function Cartao({ c, eu, posicao, destaque, realcado, selecionado, aoAtribuir, a
       draggable={arrastavel}
       onDragStart={(e) => { e.dataTransfer.setData(TIPO_ARRASTE, c.id); e.dataTransfer.effectAllowed = "move"; aoArrastar(c.id); }}
       onDragEnd={() => aoArrastar("")}
-      className={`group flex items-stretch overflow-hidden rounded-xl ring-1 hover:ring-acento ${destaque ? "bg-sol-50 ring-sol" : "bg-superficie ring-linha"} ${selecionado ? "ring-2 ring-acento" : ""} ${realcado ? "animar-realce" : ""}`}
+      className={`group flex items-center gap-3 py-2 pr-1.5 pl-3 md:pl-2 ${selecionado ? "bg-mar-50" : "hover:bg-fundo"} ${realcado ? "animar-realce" : ""}`}
     >
-      <span className={`w-1.5 shrink-0 ${COR_PRIORIDADE[c.prioridade]}`} aria-hidden="true" />
       {arrastavel && (
-        <span className="hidden w-5 shrink-0 cursor-grab items-center justify-center text-tinta-2/40 group-hover:text-tinta-2 md:flex" aria-hidden="true">
+        <span className="hidden w-4 shrink-0 cursor-grab justify-center text-tinta-2/0 group-hover:text-tinta-2 md:flex" aria-hidden="true">
           <GripVertical className="size-4" />
         </span>
       )}
-      {posicao !== undefined && (
-        <span className="grid w-11 shrink-0 place-items-center font-display text-xl font-bold text-tinta-2" aria-label={`${posicao}º da fila`}>
-          {posicao}º
-        </span>
-      )}
-      <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} draggable={false} className={`min-w-0 flex-1 py-3 ${posicao === undefined ? "pl-3" : ""}`}>
-        {/* 1: identidade (nunca quebra) · 2: o problema · 3: detalhes */}
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <span className="font-display text-base font-bold">{c.protocolo}</span>
-          <PilulaPrioridade prioridade={c.prioridade} />
-        </div>
-        <p className="mt-1 truncate font-semibold">{resumo(c.descricao, 140)}</p>
-        <Detalhes c={c} />
+      <TipoCategoria c={c} />
+      <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} draggable={false} className="min-w-0 flex-1 py-1">
+        <p className="line-clamp-2 leading-snug font-semibold md:line-clamp-1">
+          <EtiquetaPrioridade prioridade={c.prioridade} />{resumo(c.descricao, 140)}
+        </p>
+        <LinhaApoio c={c} posicao={posicao} />
       </LinkChamado>
-      <div className="flex items-center pr-1.5 pl-1">
-        <BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} compacto />
-        <BotaoMais c={c} aoAbrir={aoAcoes} />
-      </div>
+      {/* PC: colunas */}
+      <span className="hidden w-36 shrink-0 truncate text-sm text-tinta-2 lg:block">{c.expand?.setor?.nome ?? "—"}</span>
+      <span className="hidden w-24 shrink-0 text-sm text-tinta-2 md:block"><Espera c={c} /></span>
+      <span className="hidden md:block"><BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} comNome /></span>
+      <span className="hidden md:block"><BotaoMais c={c} aoAbrir={aoAcoes} /></span>
+      {/* celular: espera em cima, com quem embaixo (as ações abrem segurando a linha) */}
+      <span className="flex shrink-0 flex-col items-end text-xs text-tinta-2 md:hidden">
+        <Espera c={c} />
+        <BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} />
+      </span>
     </li>
   );
 }
 
-/** O próximo chamado livre, em destaque, com começar e atribuir. */
+/** O próximo chamado livre (ou passado para mim), em destaque, com começar e passar. */
 function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, realcado }: { c: Chamado; eu: string; posicao: number; aoComecar: () => void; aoAtribuir: () => void; aoAcoes: () => void; ocupado: boolean; realcado?: boolean }) {
   const meu = c.responsavel === eu;
   return (
-    <section id={`chamado-${c.id}`} aria-labelledby="titulo-proximo" className={`overflow-hidden rounded-2xl bg-superficie ring-2 ring-acento ${realcado ? "animar-realce" : ""}`}>
-      <div className={`h-2 ${COR_PRIORIDADE[c.prioridade]}`} aria-hidden="true" />
-      <div className="p-5 md:p-6">
-        {/* título e dono à esquerda (podem quebrar linha); "⋮" sempre fixo no canto direito */}
-        <div className="flex items-start gap-2">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 pt-2">
-            <p id="titulo-proximo" className="text-sm font-bold tracking-wider text-acento uppercase">
-              Seu próximo{posicao > 1 && <span className="font-semibold text-tinta-2 normal-case" title="Os de cima estão com colegas"> · {posicao}º da fila</span>}
-            </p>
-            {meu ? (
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold whitespace-nowrap">
-                <Avatar id={eu} nome={c.expand?.responsavel?.name} tamanho="sm" destaque /> Passado para você
-              </span>
-            ) : <SeloLivre />}
-          </div>
-          <div className="-mt-1 -mr-3"><BotaoMais c={c} aoAbrir={aoAcoes} /></div>
+    <section id={`chamado-${c.id}`} aria-labelledby="titulo-proximo" className={`rounded-2xl bg-superficie p-4 ring-2 ring-acento md:p-5 ${realcado ? "animar-realce" : ""}`}>
+      <div className="flex items-start gap-3">
+        {/* celular: sem o ícone, o texto do próximo usa a largura toda */}
+        <span className="hidden sm:block"><TipoCategoria c={c} grande /></span>
+        <div className="min-w-0 flex-1">
+          <p id="titulo-proximo" className="flex flex-wrap items-center gap-x-2 text-xs font-bold tracking-wider text-acento uppercase">
+            Seu próximo
+            {posicao > 1 && <span className="font-semibold tracking-normal text-tinta-2 normal-case" title="Os de cima estão com colegas">· {posicao}º da fila</span>}
+            {meu && <span className="font-semibold tracking-normal text-tinta normal-case">· passado para você</span>}
+          </p>
+          <p className="mt-1 text-lg leading-snug font-semibold"><EtiquetaPrioridade prioridade={c.prioridade} />{resumo(c.descricao, 220)}</p>
+          <p className="mt-1 text-sm text-tinta-2">
+            {[c.expand?.categoria?.nome, c.expand?.setor?.nome, `${nomeSolicitante(c)}${c.origem !== "sistema" ? `, ${ROTULO_ORIGEM[c.origem].toLowerCase()}` : ""}`, c.protocolo].filter(Boolean).join(" · ")}
+            {" · "}<Espera c={c} /> <MarcaTeste ficticio={c.ficticio} />
+          </p>
         </div>
-        {/* mesmo desenho dos cartões da fila, em tamanho maior */}
-        <div className="mt-2 flex items-center gap-2 whitespace-nowrap">
-          <span className="font-display text-2xl font-extrabold">{c.protocolo}</span>
-          <PilulaPrioridade prioridade={c.prioridade} />
-        </div>
-        <p className="mt-2 text-lg leading-snug">{resumo(c.descricao, 220)}</p>
-        <Detalhes c={c} />
-        <p className="mt-1 flex min-w-0 items-center gap-1 text-sm whitespace-nowrap text-tinta-2">
-          <User className="size-4 shrink-0" aria-hidden="true" />
-          <span className="truncate">{nomeSolicitante(c)}{c.origem !== "sistema" ? ` · chegou por ${ROTULO_ORIGEM[c.origem]}` : ""}</span>
-        </p>
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-          <button type="button" className="btn-primario flex-1 text-lg" onClick={aoComecar} disabled={ocupado}>
-            <Wrench className="size-5" aria-hidden="true" />
-            {ocupado ? "Pegando..." : "Começar atendimento"}
-          </button>
-          <button type="button" className="btn-secundario" onClick={aoAtribuir}>
-            Passar para alguém <ChevronDown className="size-4" aria-hidden="true" />
-          </button>
-          <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className="btn px-3 text-tinta-2 hover:text-tinta">Ver detalhes</LinkChamado>
-        </div>
+        <div className="-mt-1.5 -mr-2"><BotaoMais c={c} aoAbrir={aoAcoes} /></div>
+      </div>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:pl-14">
+        <button type="button" className="btn-primario flex-1 sm:flex-none" onClick={aoComecar} disabled={ocupado}>
+          <Wrench className="size-5" aria-hidden="true" />
+          {ocupado ? "Pegando..." : "Começar atendimento"}
+        </button>
+        <button type="button" className="btn-secundario" onClick={aoAtribuir}>
+          Passar para alguém <ChevronDown className="size-4" aria-hidden="true" />
+        </button>
+        <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className="btn px-3 text-tinta-2 hover:text-tinta">Ver detalhes</LinkChamado>
       </div>
     </section>
   );
 }
 
-function Secao({ titulo, total, children }: { titulo: string; total: number; children: ReactNode }) {
+/**
+ * Seção da fila: título + uma superfície com as linhas separadas por divisórias.
+ * No PC, um cabeçalho de colunas (Problema, Setor, Espera, Com quem) alinhado com as linhas.
+ */
+function Secao({ titulo, total, nota, vazio, arrastavel, children }: { titulo: string; total: number; nota?: string; vazio?: string; arrastavel: boolean; children: ReactNode }) {
   return (
     <section className="space-y-2">
       <h2 className="flex items-baseline gap-2 text-lg font-bold">
         {titulo} <span className="font-display text-base text-tinta-2">{total}</span>
       </h2>
-      <ul className="space-y-2">{children}</ul>
+      {nota && <p className="-mt-1 text-sm text-tinta-2">{nota}</p>}
+      {total === 0 && vazio ? (
+        <p className="rounded-2xl bg-superficie p-6 text-center text-tinta-2 ring-1 ring-linha">{vazio}</p>
+      ) : (
+        <div className="overflow-hidden rounded-2xl bg-superficie ring-1 ring-linha">
+          <div className="hidden items-center gap-3 border-b border-linha py-2 pr-1.5 pl-2 text-xs font-bold tracking-wider text-tinta-2 uppercase md:flex" aria-hidden="true">
+            {arrastavel && <span className="w-4" />}
+            <span className="w-10" />
+            <span className="flex-1">Problema</span>
+            <span className="hidden w-36 lg:block">Setor</span>
+            <span className="w-24">Espera</span>
+            <span className="w-[7.75rem]">Com quem</span>
+            <span className="w-11" />
+          </div>
+          <ul className="divide-y divide-linha">{children}</ul>
+        </div>
+      )}
     </section>
   );
 }
@@ -338,6 +325,8 @@ export function Fila() {
   const [chamados, setChamados] = useState<Chamado[] | null>(null);
   const [pegando, setPegando] = useState("");
   const [filtro, setFiltro] = useState("");
+  // celular: a faixa da Equipe fica recolhida atrás do botão "Equipe" (cabeçalho curto); no PC sempre aparece
+  const [verEquipe, setVerEquipe] = useState(false);
   // visão rápida (/ti?visao=atendendo|livres|espera): barra lateral, abas do celular e menu do ícone Fila
   const [params, setParams] = useSearchParams();
   const visao: Visao | null = ehVisao(params.get("visao")) ? (params.get("visao") as Visao) : null;
@@ -441,13 +430,12 @@ export function Fila() {
     }
   }
 
-  const cartao = (c: Chamado, destaque = false) => (
-    <Cartao
+  const cartao = (c: Chamado) => (
+    <Linha
       key={c.id}
       c={c}
       eu={eu}
       posicao={posicao(c)}
-      destaque={destaque}
       realcado={realce === c.id}
       selecionado={verId === c.id}
       aoAtribuir={() => setMenu(c)}
@@ -460,6 +448,8 @@ export function Fila() {
   // visão filtrada (toque num técnico ou em "Livres" na faixa da equipe)
   const filtrados = filtro === "livres"
     ? fila.filter((c) => !c.responsavel)
+    : filtro === "prazo"
+      ? fila.filter((c) => atrasado(c))
     : filtro
       ? [
           ...lista.filter((c) => c.status === "em_andamento" && c.responsavel === filtro),
@@ -492,55 +482,95 @@ export function Fila() {
       rotulo="chamados"
     />
   );
-  const nomeFiltro = filtro === "livres" ? "Livres" : filtro === eu ? "Com você" : `Com ${primeiroNome(tecnicos.find((t) => t.id === filtro)?.name)}`;
+  const nomeFiltro = filtro === "prazo" ? "Fora do prazo" : filtro === "livres" ? "Livres" : filtro === eu ? "Com você" : `Com ${primeiroNome(tecnicos.find((t) => t.id === filtro)?.name)}`;
+
+  const metas = (["urgente", "alta", "normal", "baixa"] as const).map((p) => `${ROTULO_PRIORIDADE[p]} ${META_ESPERA_HORAS[p]} h`).join(", ");
+  const filtroTecnico = !!filtro && filtro !== "livres" && filtro !== "prazo";
+  const secao = (titulo: string, itens: Chamado[], extra?: { nota?: string; vazio?: string; paginar?: boolean }) => (
+    <Secao titulo={titulo} total={itens.length} nota={extra?.nota} vazio={extra?.vazio} arrastavel={podeArrastar}>
+      {(extra?.paginar ? fatia(itens) : itens).map((c) => cartao(c))}
+    </Secao>
+  );
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
+      {/* cabeçalho curto: os números numa linha só; "fora do prazo" é um filtro, não um alarme em cada chamado */}
       <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h1 className="text-3xl font-bold">Fila</h1>
-        {chamados === null ? <Bloco className="mt-2 h-6 w-64" /> : <p className="mt-1 flex flex-wrap gap-x-4 text-tinta-2">
-          <span><b className="font-display text-xl text-tinta">{fila.length}</b> aguardando</span>
-          {atrasados > 0 && (
-            <span className="font-semibold text-alerta"><b className="font-display text-xl">{atrasados}</b> {atrasados === 1 ? "atrasado" : "atrasados"}</span>
+        <div>
+          <h1 className="text-3xl font-bold">Fila</h1>
+          {chamados === null ? <Bloco className="mt-2 h-6 w-64" /> : (
+            <p className="mt-1 text-tinta-2">
+              <b className="font-display text-tinta">{fila.length}</b> na fila
+              {" · "}<b className="font-display text-tinta">{atendendo.length + comOutros.length}</b> em atendimento
+              {esperando.length > 0 && <>{" · "}<b className="font-display text-tinta">{esperando.length}</b> seus em espera</>}
+            </p>
           )}
-          <span><b className="font-display text-xl text-tinta">{atendendo.length + comOutros.length}</b> em atendimento</span>
-          {esperando.length > 0 && <span><b className="font-display text-xl text-tinta">{esperando.length}</b> seus em espera</span>}
-        </p>}
-      </div>
-      <VisaoTI />
-      </div>
-
-      {/* celular: abas das visões (no PC elas ficam na barra lateral) */}
-      <div role="tablist" aria-label="Visões da fila" className="sem-barra -mx-4 flex gap-2 overflow-x-auto px-4 md:hidden">
-        {[{ id: null, rotulo: "Tudo", Icone: null }, ...VISOES].map((v) => {
-          const ativa = visao === v.id;
-          return (
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {atrasados > 0 && (
             <button
-              key={v.id ?? "tudo"}
               type="button"
-              role="tab"
-              aria-selected={ativa}
-              // a aba escolhida fica à vista (sem rolar a página: só a faixa)
-              ref={(el) => { if (ativa && el?.parentElement) el.parentElement.scrollLeft = el.offsetLeft - 16; }}
-              onClick={() => irParaVisao(v.id as Visao | null)}
-              className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold ring-1 ${
-                ativa ? "bg-mar-700 text-white ring-transparent" : "bg-superficie text-tinta-2 ring-linha"
+              aria-pressed={filtro === "prazo"}
+              onClick={() => { if (visao) { const p = new URLSearchParams(params); p.delete("visao"); setParams(p); } setFiltro(filtro === "prazo" ? "" : "prazo"); pag.voltarAoInicio(); }}
+              title={`Esperando mais que a meta: ${metas}`}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-full px-3.5 text-sm font-semibold ring-1 ${
+                filtro === "prazo" ? "bg-brasa-50 text-alerta ring-alerta/50" : "bg-superficie text-tinta ring-linha hover:ring-acento"
               }`}
             >
-              {v.Icone && <v.Icone className="size-4" aria-hidden="true" />}
-              {v.rotulo}
-              {v.id && chamados !== null && <span className="font-display">{totalVisao[v.id as Visao]}</span>}
+              <span className="size-2 rounded-full bg-brasa-700" aria-hidden="true" />
+              {atrasados} fora do prazo
             </button>
-          );
-        })}
+          )}
+          <span className="hidden md:block"><VisaoTI /></span>
+        </div>
       </div>
 
-      {/* no PC o mural fica na barra lateral */}
-      <MuralAvisos className="md:hidden" />
+      {/* celular: abas das visões (no PC elas ficam na barra lateral), a Equipe e o atalho para Todos os chamados */}
+      <div className="sem-barra -mx-4 flex gap-2 overflow-x-auto px-4 md:hidden">
+        <div role="tablist" aria-label="Visões da fila" className="flex gap-2">
+          {[{ id: null, rotulo: "Tudo", Icone: null }, ...VISOES].map((v) => {
+            const ativa = visao === v.id && !filtro;
+            return (
+              <button
+                key={v.id ?? "tudo"}
+                type="button"
+                role="tab"
+                aria-selected={ativa}
+                // a aba escolhida fica à vista (sem rolar a página: só a faixa)
+                ref={(el) => { const faixa = el?.parentElement?.parentElement; if (ativa && el && faixa) faixa.scrollLeft = el.offsetLeft - 16; }}
+                onClick={() => irParaVisao(v.id as Visao | null)}
+                className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold ring-1 ${
+                  ativa ? "bg-mar-700 text-white ring-transparent" : "bg-superficie text-tinta-2 ring-linha"
+                }`}
+              >
+                {v.Icone && <v.Icone className="size-4" aria-hidden="true" />}
+                {v.rotulo}
+                {v.id && chamados !== null && <span className="font-display">{totalVisao[v.id as Visao]}</span>}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          aria-expanded={verEquipe || filtroTecnico}
+          onClick={() => setVerEquipe((v) => !v)}
+          className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold ring-1 ${
+            verEquipe || filtroTecnico ? "bg-mar-50 text-acento ring-acento" : "bg-superficie text-tinta-2 ring-linha"
+          }`}
+        >
+          <Users className="size-4" aria-hidden="true" /> Equipe
+        </button>
+        <Link to="/ti/chamados" className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-superficie px-4 text-sm font-semibold text-tinta-2 ring-1 ring-linha">
+          <Table2 className="size-4" aria-hidden="true" /> Todos <ChevronRight className="size-4" aria-hidden="true" />
+        </Link>
+      </div>
+
+      {/* no PC o mural fica na barra lateral; no celular, sem aviso, vira uma linha só */}
+      <MuralAvisos className="md:hidden" enxuto />
 
       {tecnicos.length > 0 && chamados !== null && (
         <FaixaEquipe
+          className={verEquipe || filtroTecnico || arrastando ? "" : "max-md:hidden"}
           tecnicos={tecnicos}
           eu={eu}
           carga={carga}
@@ -556,34 +586,31 @@ export function Fila() {
         />
       )}
 
-
       {chamados === null ? (
         <EsqueletoCartoes quantos={5} rotulo="Carregando a fila..." />
       ) : visao ? (
         <>
-          <Secao titulo={VISOES.find((v) => v.id === visao)!.rotulo} total={listaVisao.length}>
-            {visao === "espera" && listaVisao.length > 0 && (
-              <li className="-mt-1 text-sm text-tinta-2">Fora da fila e da sua carga. "Resposta" volta sozinho quando a pessoa responder.</li>
-            )}
-            {visao === "livres" && listaVisao.length > 0 && (
-              <li className="-mt-1 text-sm text-tinta-2">Sem responsável, na ordem da fila (prioridade, depois chegada).</li>
-            )}
-            {listaVisao.length
-              ? fatia(listaVisao).map((c) => cartao(c, visao === "atendendo"))
-              : <li className="rounded-2xl bg-superficie p-6 text-center text-tinta-2 ring-1 ring-linha">{VISOES.find((v) => v.id === visao)!.vazio}</li>}
-          </Secao>
+          {secao(VISOES.find((v) => v.id === visao)!.rotulo, listaVisao, {
+            paginar: true,
+            vazio: VISOES.find((v) => v.id === visao)!.vazio,
+            nota: !listaVisao.length ? undefined
+              : visao === "espera" ? 'Fora da fila e da sua carga. "Resposta" volta sozinho quando a pessoa responder.'
+              : visao === "livres" ? "Sem responsável, na ordem da fila (prioridade, depois chegada)." : undefined,
+          })}
           {rodape}
         </>
       ) : filtro ? (
         <>
-          <Secao titulo={nomeFiltro} total={filtrados.length}>
-            {filtrados.length ? fatia(filtrados).map((c) => cartao(c, c.status === "em_andamento" && c.responsavel === eu)) : <li className="text-tinta-2">Nenhum chamado aqui.</li>}
-          </Secao>
+          {secao(nomeFiltro, filtrados, {
+            paginar: true,
+            vazio: "Nenhum chamado aqui.",
+            nota: filtro === "prazo" && filtrados.length ? `Esperando mais que a meta da prioridade (${metas}).` : undefined,
+          })}
           {rodape}
         </>
       ) : (
         <>
-          {atendendo.length > 0 && <Secao titulo="Você está atendendo" total={atendendo.length}>{atendendo.map((c) => cartao(c, true))}</Secao>}
+          {atendendo.length > 0 && secao("Você está atendendo", atendendo)}
 
           {proximo ? (
             <Proximo c={proximo} eu={eu} posicao={fila.indexOf(proximo) + 1} aoComecar={() => comecar(proximo)} aoAtribuir={() => setMenu(proximo)} aoAcoes={() => setAcoes(proximo)} ocupado={pegando === proximo.id} realcado={realce === proximo.id} />
@@ -597,18 +624,13 @@ export function Fila() {
             </div>
           )}
 
-          {depois.length > 0 && <Secao titulo="Depois na fila" total={depois.length}>{fatia(depois).map((c) => cartao(c, c.responsavel === eu))}</Secao>}
+          {depois.length > 0 && secao("Depois na fila", depois, { paginar: true })}
           {!filtro && rodape}
-          {esperando.length > 0 && (
-            <Secao titulo="Seus em espera" total={esperando.length}>
-              <li className="-mt-1 text-sm text-tinta-2">Fora da fila e da sua carga. Retome quando chegar o que falta.</li>
-              {esperando.map((c) => cartao(c))}
-            </Secao>
-          )}
+          {esperando.length > 0 && secao("Seus em espera", esperando, { nota: "Fora da fila e da sua carga. Retome quando chegar o que falta." })}
           {comColegas > 0 && (
             <p className="rounded-xl border-2 border-dashed border-linha px-4 py-3 text-sm text-tinta-2">
               <b className="font-display text-base text-tinta">{comColegas}</b> {comColegas === 1 ? "chamado está" : "chamados estão"} com colegas
-              (na fila, em atendimento ou em espera) e não aparecem aqui. Para ver, toque no nome da pessoa em <b>Equipe</b>, lá em cima.
+              (na fila, em atendimento ou em espera) e não aparecem aqui. Para ver, toque no nome da pessoa em <b>Equipe</b>.
             </p>
           )}
         </>

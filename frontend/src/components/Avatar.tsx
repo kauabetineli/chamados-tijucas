@@ -10,7 +10,7 @@ export function Avatar({ id, nome, tamanho = "md", destaque }: {
   const t = { xs: "size-6 text-[10px]", sm: "size-7 text-xs", md: "size-9 text-sm", lg: "size-11 text-base" }[tamanho];
   return (
     <span
-      className={`grid shrink-0 place-items-center rounded-full font-bold text-white ${t} ${destaque ? "ring-2 ring-sol ring-offset-2 ring-offset-superficie" : ""}`}
+      className={`grid shrink-0 place-items-center rounded-full font-bold text-white ${t} ${destaque ? "ring-2 ring-acento ring-offset-2 ring-offset-superficie" : ""}`}
       style={{ backgroundColor: corDe(id) }}
       title={nome}
       aria-hidden="true"

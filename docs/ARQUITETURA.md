@@ -151,6 +151,27 @@ celular, tocar de novo no ícone Fila (a setinha indica) abre um menu com as vis
 (faixa Equipe) não se misturam: escolher um desliga o outro. Os números vêm de `lib/numeros.ts` (uma consulta só,
 no Layout). Para o servidor, o "Meus chamados" mostra em destaque quantos chamados precisam dele (responder ou confirmar).
 
+## Sinais das listas (Fila, Todos os chamados, Meus chamados)
+
+A Fila mostrava a mesma informação de vários jeitos (barra colorida + etiqueta de prioridade, fundo amarelo para "é meu",
+etiqueta "atendendo" dentro da seção "Você está atendendo", "atrasado" em vermelho em quase todo chamado) e a mesma cor
+com vários sentidos. A revisão (estudo com Linear, Freshdesk, Help Scout e os guias de status do Carbon, da NN/g e do
+GOV.UK) trocou isso por **um sinal = um significado, sempre no mesmo lugar**:
+
+- **Lista enxuta**: as linhas ficam numa superfície só, com divisórias. Cada linha: ícone da categoria à esquerda ·
+  o PROBLEMA como título (a maior letra) · embaixo, onde e quem, com o protocolo por último · à direita, a espera e com quem
+  está. No PC (lg+) setor, espera e "com quem" viram colunas alinhadas, com cabeçalho; no celular a ação abre segurando a linha.
+- **Prioridade**: etiqueta SÓ para Urgente (vermelha cheia) e Alta (âmbar, `--color-ambar`). Normal e Baixa não aparecem
+  nas listas: a ordem da fila já diz isso (`EtiquetaPrioridade`; `sempre` para colunas e menus).
+- **Espera** (`components/Espera.tsx`): "há 3 h", neutro. Fora do prazo (`META_ESPERA_HORAS`), o mesmo texto em vermelho com
+  relógio, sem a palavra "atrasado". O total vira um filtro no topo da Fila ("3 fora do prazo").
+- **Situação**: na Fila a seção já diz; nas listas misturadas, ícone + texto sem fundo (`SeloStatus`).
+- **Com quem**: avatar; círculo tracejado = livre; "você" com anel azul.
+- **Cores**: vermelho = ação agora (Urgente, fora do prazo); âmbar = Alta; azul = você e o que dá para tocar;
+  verde = resolvido; amarelo forte (sol) só na "senha" da fila do servidor.
+- **Cabeçalho curto no celular**: números numa linha, abas, a Equipe recolhida atrás do botão "Equipe" e os Avisos do TI
+  numa linha só quando não há aviso.
+
 ## Em espera, avaliação, respostas prontas e números (piloto)
 
 - **Em espera** (`status = "aguardando"`, migration 0009): o técnico não consegue avançar porque falta uma **peça**, uma

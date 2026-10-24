@@ -128,7 +128,11 @@ function NovoAviso({ aoFechar }: { aoFechar: () => void }) {
  * Mural "Avisos do TI": avisos em vigor para todos; técnicos publicam e encerram.
  * `compacto` (barra lateral recolhida): só o ícone com a quantidade.
  */
-export function MuralAvisos({ compacto, aoExpandir, className = "" }: { compacto?: boolean; aoExpandir?: () => void; className?: string }) {
+/**
+ * `enxuto` (topo da Fila no celular): sem aviso no ar, vira UMA linha ("Nenhum aviso do TI · + Novo aviso") em vez
+ * do título com o parágrafo; com aviso, aparece inteiro.
+ */
+export function MuralAvisos({ compacto, enxuto, aoExpandir, className = "" }: { compacto?: boolean; enxuto?: boolean; aoExpandir?: () => void; className?: string }) {
   const { usuario } = useAuth();
   const tecnico = ehTecnico(usuario);
   const avisos = useAvisosTI();
@@ -147,6 +151,19 @@ export function MuralAvisos({ compacto, aoExpandir, className = "" }: { compacto
 
   // servidor sem avisos: nada a mostrar
   if (!tecnico && !avisos?.length) return null;
+
+  if (enxuto && avisos?.length === 0) {
+    return (
+      <div className={`flex items-center gap-2 text-sm text-tinta-2 ${className}`}>
+        <Megaphone className="size-4 shrink-0" aria-hidden="true" />
+        <span className="flex-1">Nenhum aviso do TI no ar.</span>
+        <button type="button" onClick={() => setNovo(true)} className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2 font-semibold text-acento hover:bg-mar-50">
+          <Plus className="size-4" aria-hidden="true" /> Novo aviso
+        </button>
+        {novo && <NovoAviso aoFechar={() => setNovo(false)} />}
+      </div>
+    );
+  }
 
   return (
     <section aria-labelledby="titulo-mural" className={className}>
