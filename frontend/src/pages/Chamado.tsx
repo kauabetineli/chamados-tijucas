@@ -13,6 +13,7 @@ import { useAuth } from "../lib/auth";
 import { dataHora, ROTULO_AGUARDANDO, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS } from "../lib/formato";
 import { EXPAND_CHAMADO, ehTecnico, mensagemErro, nomeSolicitante, pb, type Chamado as TChamado, type Status, ramalDe } from "../lib/pb";
 import { useRealtime } from "../lib/useRealtime";
+import { useMediaQuery } from "../lib/useMediaQuery";
 
 const ETAPAS: Status[] = ["aberto", "em_andamento", "resolvido"];
 
@@ -29,6 +30,8 @@ export function Chamado() {
 export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolean }) {
   const { usuario } = useAuth();
   const tecnico = ehTecnico(usuario);
+  // celular (coluna única): soluções parecidas vão para depois das ações do técnico
+  const pc = useMediaQuery("(min-width: 768px)");
   const estado = useLocation().state as { novo?: boolean } | null;
   const novo = !embutido && estado?.novo;
   const [c, setC] = useState<TChamado | null>(null);
@@ -64,6 +67,9 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
   if (!c) return <EsqueletoChamado tecnico={tecnico} />;
 
   const doSolicitante = c.solicitante === usuario?.id;
+  const parecidas = tecnico && c.status !== "resolvido" && c.categoria
+    ? <SolucoesParecidas chamadoId={c.id} categoriaId={c.categoria} categoriaNome={c.expand?.categoria?.nome} />
+    : null;
   // "aguardando" é a etapa do meio (o TI está com o chamado), com outro nome
   const etapa = c.status === "aguardando" ? 1 : ETAPAS.indexOf(c.status);
   const rotuloEtapa = (s: Status) => (s === "em_andamento" && c.status === "aguardando" ? "Em espera" : ROTULO_STATUS[s]);
@@ -164,9 +170,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
             <GaleriaAnexos chamado={c} />
           </section>
 
-          {tecnico && c.status !== "resolvido" && c.categoria && (
-            <SolucoesParecidas chamadoId={c.id} categoriaId={c.categoria} categoriaNome={c.expand?.categoria?.nome} />
-          )}
+          {pc && parecidas}
         </div>
 
         {tecnico && (
@@ -178,6 +182,8 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
         )}
 
         <div className="space-y-7 md:col-start-1">
+          {/* celular: as ações do técnico vêm logo depois dos dados; as soluções parecidas, depois delas */}
+          {!pc && parecidas}
 
           {c.status === "resolvido" && (c.diagnostico || c.solucao) && (
             <section className="rounded-2xl border-l-8 border-campo bg-superficie p-5 ring-1 ring-linha">

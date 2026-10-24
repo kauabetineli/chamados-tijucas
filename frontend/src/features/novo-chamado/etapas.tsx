@@ -61,6 +61,8 @@ function EtapaDescricao({ f, modo, avancar }: PropsEtapa) {
   const anexos = useAnexos(f.setArquivos, f.setPreparandoAnexo);
   const painel = modo === "painel";
   const [sobre, setSobre] = useState(false);
+  // "Continuar" sem descrição: em vez de um botão apagado sem explicação, diz o que falta e leva até a caixa
+  const [falta, setFalta] = useState(false);
   // computador: a caixa começa baixa e cresce com o texto (até ~320 px; depois rola por dentro)
   const caixa = useRef<HTMLTextAreaElement>(null);
   useLayoutEffect(() => {
@@ -104,7 +106,9 @@ function EtapaDescricao({ f, modo, avancar }: PropsEtapa) {
                 : "Ex.: a impressora da recepção mostra uma luz laranja e não imprime desde hoje cedo."
             }
             value={f.descricao}
-            onChange={(e) => f.setDescricao(e.target.value)}
+            onChange={(e) => { f.setDescricao(e.target.value); if (e.target.value.trim()) setFalta(false); }}
+            aria-invalid={falta || undefined}
+            aria-describedby={falta ? "descricao-falta" : undefined}
             // print colado (Ctrl+V) ou arrastado para a caixa de texto vira anexo
             onPaste={(e) => {
               const imgs = Array.from(e.clipboardData.files);
@@ -118,6 +122,11 @@ function EtapaDescricao({ f, modo, avancar }: PropsEtapa) {
               e.preventDefault(); setSobre(false); anexos.adicionar(e.dataTransfer.files);
             }}
           />
+          {falta && (
+            <p id="descricao-falta" role="alert" className="mt-2 font-semibold text-alerta">
+              Escreva o que está acontecendo para continuar. Pode ser curto, ou toque numa sugestão acima.
+            </p>
+          )}
           {sobre && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl border-2 border-dashed border-acento bg-mar-50/90 font-semibold text-acento">
               Solte para anexar ao chamado
@@ -143,7 +152,16 @@ function EtapaDescricao({ f, modo, avancar }: PropsEtapa) {
       </div>
       {modo === "passo" && (
         <BarraAcao>
-          <button type="button" className="btn-primario w-full text-lg" disabled={!f.descricao.trim() || f.preparandoAnexo} onClick={avancar}>
+          <button
+            type="button"
+            className="btn-primario w-full text-lg"
+            disabled={f.preparandoAnexo}
+            onClick={() => {
+              if (f.descricao.trim()) return avancar();
+              setFalta(true);
+              caixa.current?.focus();
+            }}
+          >
             {f.preparandoAnexo ? "Preparando anexo..." : "Continuar"}
           </button>
         </BarraAcao>

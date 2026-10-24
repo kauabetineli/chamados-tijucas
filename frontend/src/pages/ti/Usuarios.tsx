@@ -143,6 +143,12 @@ function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, ao
   async function salvar(e?: FormEvent) {
     e?.preventDefault();
     setErro("");
+    // servidor sem setor abre chamado "sem lugar": o TI não sabe aonde ir. Obrigatório ao criar (ou ao tirar o setor)
+    if (d.papel === "solicitante" && !d.setor && (!editando || mudados.includes("setor") || mudados.includes("papel"))) {
+      setErro("Escolha o setor da pessoa: é para lá que o TI vai quando ela abrir um chamado.");
+      document.getElementById("p-setor")?.focus();
+      return;
+    }
     setSalvando(true);
     try {
       if (editando) {
@@ -249,9 +255,9 @@ function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, ao
             onChange={(e) => muda("matricula", e.target.value.replace(/\D/g, "").slice(0, 8))} autoComplete="off"
           />
         </Campo>
-        <Campo id="p-setor" rotulo="Setor">
+        <Campo id="p-setor" rotulo="Setor" ajuda={d.papel === "solicitante" ? "Obrigatório para servidor: é o lugar dos chamados que a pessoa abrir." : undefined}>
           <select id="p-setor" className="campo" value={d.setor} onChange={(e) => muda("setor", e.target.value)}>
-            <option value="">Sem setor</option>
+            <option value="">{d.papel === "solicitante" ? "Escolha o setor" : "Sem setor"}</option>
             {opcoesSetor.map((s) => <option key={s.id} value={s.id}>{s.nome}{s.ativo ? "" : " (inativo)"}</option>)}
           </select>
         </Campo>

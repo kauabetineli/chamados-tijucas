@@ -7,6 +7,7 @@ import { useTema, type Tema } from "../lib/tema";
 import { useAuth } from "../lib/auth";
 import { avisar } from "../lib/avisos";
 import { ehAdmin, mensagemErro, pb, ramalDe, type Usuario } from "../lib/pb";
+import { CampoSenha } from "../components/CampoSenha";
 
 function Linha({ Icone, rotulo, children }: { Icone: typeof Mail; rotulo: string; children: ReactNode }) {
   return (
@@ -63,16 +64,16 @@ function TrocarMinhaSenha({ u }: { u: Usuario }) {
       <h2 className="text-lg font-bold">Trocar minha senha</h2>
       <div>
         <label htmlFor="s-atual" className="rotulo">Senha atual</label>
-        <input id="s-atual" type="password" enterKeyHint="next" onKeyDown={irParaProximo} autoComplete="current-password" required className="campo" value={atual} onChange={(e) => setAtual(e.target.value)} />
+        <CampoSenha id="s-atual" enterKeyHint="next" onKeyDown={irParaProximo} autoComplete="current-password" required value={atual} onChange={(e) => setAtual(e.target.value)} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="s-nova" className="rotulo">Nova senha</label>
-          <input id="s-nova" type="password" enterKeyHint="next" onKeyDown={irParaProximo} autoComplete="new-password" required className="campo" value={nova} onChange={(e) => setNova(e.target.value)} />
+          <CampoSenha id="s-nova" enterKeyHint="next" onKeyDown={irParaProximo} autoComplete="new-password" required value={nova} onChange={(e) => setNova(e.target.value)} />
         </div>
         <div>
           <label htmlFor="s-conf" className="rotulo">Repita a nova senha</label>
-          <input id="s-conf" type="password" enterKeyHint="go" autoComplete="new-password" required className="campo" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} />
+          <CampoSenha id="s-conf" enterKeyHint="go" autoComplete="new-password" required value={confirmar} onChange={(e) => setConfirmar(e.target.value)} />
         </div>
       </div>
       <ul className="space-y-1 text-sm" aria-label="Regras da senha">

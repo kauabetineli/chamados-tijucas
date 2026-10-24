@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { TelaAcesso } from "../components/TelaAcesso";
 import { senhaLembrada, useAuth } from "../lib/auth";
 import { mensagemErro, pb } from "../lib/pb";
+import { CampoSenha } from "../components/CampoSenha";
 
 /**
  * Primeiro acesso (ou senha trocada pelo TI): a pessoa entrou com a senha provisória
@@ -55,16 +56,16 @@ export function TrocarSenha() {
         {!lembrada && (
           <div>
             <label htmlFor="provisoria" className="rotulo">Senha provisória</label>
-            <input id="provisoria" type="password" enterKeyHint="next" onKeyDown={irParaProximo} autoComplete="current-password" required className="campo" value={provisoria} onChange={(e) => setProvisoria(e.target.value)} />
+            <CampoSenha id="provisoria" enterKeyHint="next" onKeyDown={irParaProximo} autoComplete="current-password" required value={provisoria} onChange={(e) => setProvisoria(e.target.value)} />
           </div>
         )}
         <div>
           <label htmlFor="nova" className="rotulo">Nova senha</label>
-          <input id="nova" type="password" enterKeyHint="next" onKeyDown={irParaProximo} autoComplete="new-password" required className="campo" value={nova} onChange={(e) => setNova(e.target.value)} />
+          <CampoSenha id="nova" enterKeyHint="next" onKeyDown={irParaProximo} autoComplete="new-password" required value={nova} onChange={(e) => setNova(e.target.value)} />
         </div>
         <div>
           <label htmlFor="confirmar" className="rotulo">Repita a nova senha</label>
-          <input id="confirmar" type="password" enterKeyHint="go" autoComplete="new-password" required className="campo" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} />
+          <CampoSenha id="confirmar" enterKeyHint="go" autoComplete="new-password" required value={confirmar} onChange={(e) => setConfirmar(e.target.value)} />
         </div>
         <ul className="space-y-1 text-sm" aria-label="Regras da senha">
           {regras.map((r) => (

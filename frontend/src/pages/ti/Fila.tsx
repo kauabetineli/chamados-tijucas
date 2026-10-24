@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, GripVertical, MoreVertical, Table2, Users, Wrench } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, MessageCircle, MoreVertical, Table2, Users, Wrench } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Avatar } from "../../components/Avatar";
@@ -17,6 +17,7 @@ import { atrasado, cargaDaEquipe, META_ESPERA_HORAS, organizarFila } from "../..
 import { resumo, ROTULO_AGUARDANDO, ROTULO_ORIGEM, ROTULO_PRIORIDADE } from "../../lib/formato";
 import { EXPAND_CHAMADO, mensagemErro, nomeSolicitante, pb, type Chamado, type Usuario } from "../../lib/pb";
 import { useRealtime } from "../../lib/useRealtime";
+import { ultimaVisita } from "../../lib/visto";
 import { ehVisao, VISOES, type Visao } from "../../lib/numeros";
 import { LinkChamado, useVerChamado } from "../../lib/verChamado";
 import { avisar } from "../../lib/avisos";
@@ -34,7 +35,16 @@ function TipoCategoria({ c, grande }: { c: Chamado; grande?: boolean }) {
 }
 
 /** Linha de apoio: onde e quem; o protocolo por último, menor. No celular entra o setor (no PC ele tem coluna). */
-function LinhaApoio({ c, posicao }: { c: Chamado; posicao?: number }) {
+/** Quem pediu escreveu depois da última vez que você abriu o chamado (neste aparelho). */
+function NovaMensagem() {
+  return (
+    <span className="font-semibold text-acento">
+      <MessageCircle className="inline size-3.5 align-[-2px]" aria-hidden="true" /> Nova mensagem ·{" "}
+    </span>
+  );
+}
+
+function LinhaApoio({ c, posicao, novaMensagem }: { c: Chamado; posicao?: number; novaMensagem?: boolean }) {
   const setor = c.expand?.setor?.nome;
   const partes = [
     posicao ? `${posicao}º` : "",
@@ -42,6 +52,7 @@ function LinhaApoio({ c, posicao }: { c: Chamado; posicao?: number }) {
   ].filter(Boolean);
   return (
     <p className="mt-0.5 truncate text-sm text-tinta-2">
+      {novaMensagem && <NovaMensagem />}
       {partes.map((t) => <span key={t}>{t} · </span>)}
       {/* celular: setor; PC (lg+): categoria, porque o setor tem coluna própria */}
       {setor && <span className="lg:hidden">{setor} · </span>}
@@ -195,8 +206,10 @@ function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastand
  * tipo (ícone) · problema (título, com a etiqueta só se for Urgente/Alta) e onde/quem embaixo · espera · com quem.
  * No PC as três últimas viram colunas alinhadas e dá para arrastar a linha (alça à esquerda) até alguém da Equipe.
  */
-function Linha({ c, eu, posicao, realcado, selecionado, aoAtribuir, aoAcoes, arrastavel, aoArrastar }: {
+function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir, aoAcoes, arrastavel, aoArrastar }: {
   c: Chamado;
+  /** quem pediu respondeu e você ainda não viu */
+  novaMensagem?: boolean;
   realcado?: boolean;
   /** aberto no painel de baixo */
   selecionado?: boolean;
@@ -227,7 +240,7 @@ function Linha({ c, eu, posicao, realcado, selecionado, aoAtribuir, aoAcoes, arr
         <p className="line-clamp-2 leading-snug font-semibold md:line-clamp-1">
           <EtiquetaPrioridade prioridade={c.prioridade} />{resumo(c.descricao, 140)}
         </p>
-        <LinhaApoio c={c} posicao={posicao} />
+        <LinhaApoio c={c} posicao={posicao} novaMensagem={novaMensagem} />
       </LinkChamado>
       {/* PC: colunas */}
       <span className="hidden w-36 shrink-0 truncate text-sm text-tinta-2 lg:block">{c.expand?.setor?.nome ?? "—"}</span>
@@ -244,7 +257,7 @@ function Linha({ c, eu, posicao, realcado, selecionado, aoAtribuir, aoAcoes, arr
 }
 
 /** O próximo chamado livre (ou passado para mim), em destaque, com começar e passar. */
-function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, realcado }: { c: Chamado; eu: string; posicao: number; aoComecar: () => void; aoAtribuir: () => void; aoAcoes: () => void; ocupado: boolean; realcado?: boolean }) {
+function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, realcado, novaMensagem }: { c: Chamado; eu: string; posicao: number; aoComecar: () => void; aoAtribuir: () => void; aoAcoes: () => void; ocupado: boolean; realcado?: boolean; novaMensagem?: boolean }) {
   const meu = c.responsavel === eu;
   return (
     <section id={`chamado-${c.id}`} aria-labelledby="titulo-proximo" className={`rounded-2xl bg-superficie p-4 ring-2 ring-acento md:p-5 ${realcado ? "animar-realce" : ""}`}>
@@ -259,6 +272,7 @@ function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, real
           </p>
           <p className="mt-1 text-lg leading-snug font-semibold"><EtiquetaPrioridade prioridade={c.prioridade} />{resumo(c.descricao, 220)}</p>
           <p className="mt-1 text-sm text-tinta-2">
+            {novaMensagem && <NovaMensagem />}
             {[c.expand?.categoria?.nome, c.expand?.setor?.nome, `${nomeSolicitante(c)}${c.origem !== "sistema" ? `, ${ROTULO_ORIGEM[c.origem].toLowerCase()}` : ""}`, c.protocolo].filter(Boolean).join(" · ")}
             {" · "}<Espera c={c} /> <MarcaTeste ficticio={c.ficticio} />
           </p>
@@ -299,7 +313,7 @@ function Secao({ titulo, total, nota, vazio, arrastavel, children }: { titulo: s
             <span className="w-10" />
             <span className="flex-1">Problema</span>
             <span className="hidden w-36 lg:block">Setor</span>
-            <span className="w-24">Espera</span>
+            <span className="w-24" title="Na fila: há quanto tempo espera. Em atendimento: desde que começou. Em espera: desde que parou.">Tempo</span>
             <span className="w-[7.75rem]">Com quem</span>
             <span className="w-11" />
           </div>
@@ -323,6 +337,8 @@ export function Fila() {
   const navegar = useNavigate();
   const tecnicos = useTecnicos();
   const [chamados, setChamados] = useState<Chamado[] | null>(null);
+  const [ultimaDeQuemPediu, setUltimaDeQuemPediu] = useState<Record<string, number>>({});
+  const novaMensagem = (c: Chamado) => (ultimaDeQuemPediu[c.id] ?? 0) > ultimaVisita(c.id);
   const [pegando, setPegando] = useState("");
   const [filtro, setFiltro] = useState("");
   // celular: a faixa da Equipe fica recolhida atrás do botão "Equipe" (cabeçalho curto); no PC sempre aparece
@@ -358,10 +374,22 @@ export function Fila() {
       expand: EXPAND_CHAMADO,
     });
     setChamados(lista);
+    // última mensagem de QUEM PEDIU em cada chamado aberto: marca "Nova mensagem" se você ainda não viu
+    // (antes o TI só descobria a resposta abrindo o chamado; o servidor tem o "Nova resposta do TI")
+    const msgs = await pb.collection("interacoes").getList<{ chamado: string; created: string }>(1, 200, {
+      filter: 'chamado.status != "resolvido" && tipo = "comentario" && interno = false && autor = chamado.solicitante',
+      sort: "-created",
+      fields: "chamado,created",
+      requestKey: "fila-mensagens",
+    }).catch(() => ({ items: [] as { chamado: string; created: string }[] }));
+    const mapa: Record<string, number> = {};
+    for (const m of msgs.items) mapa[m.chamado] ??= Date.parse(m.created.replace(" ", "T"));
+    setUltimaDeQuemPediu(mapa);
   }, []);
 
   useEffect(() => { carregar().catch(() => setChamados([])); }, [carregar]);
   useRealtime("chamados", () => carregar().catch(() => {}));
+  useRealtime("interacoes", () => carregar().catch(() => {}));
   useEffect(() => {
     const t = window.setInterval(() => setTique((n) => n + 1), 60_000); // atualiza "esperando há"
     return () => window.clearInterval(t);
@@ -436,6 +464,7 @@ export function Fila() {
       c={c}
       eu={eu}
       posicao={posicao(c)}
+      novaMensagem={novaMensagem(c)}
       realcado={realce === c.id}
       selecionado={verId === c.id}
       aoAtribuir={() => setMenu(c)}
@@ -613,7 +642,7 @@ export function Fila() {
           {atendendo.length > 0 && secao("Você está atendendo", atendendo)}
 
           {proximo ? (
-            <Proximo c={proximo} eu={eu} posicao={fila.indexOf(proximo) + 1} aoComecar={() => comecar(proximo)} aoAtribuir={() => setMenu(proximo)} aoAcoes={() => setAcoes(proximo)} ocupado={pegando === proximo.id} realcado={realce === proximo.id} />
+            <Proximo c={proximo} eu={eu} posicao={fila.indexOf(proximo) + 1} aoComecar={() => comecar(proximo)} aoAtribuir={() => setMenu(proximo)} aoAcoes={() => setAcoes(proximo)} ocupado={pegando === proximo.id} realcado={realce === proximo.id} novaMensagem={novaMensagem(proximo)} />
           ) : (
             <div className="rounded-2xl bg-superficie p-8 text-center ring-1 ring-linha">
               <p className="text-xl font-bold">Nada esperando por você na fila.</p>

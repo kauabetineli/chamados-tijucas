@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { TelaAcesso } from "../components/TelaAcesso";
 import { lembrarSenhaDoLogin } from "../lib/auth";
 import { destinoSeguro, mensagemErro, pb } from "../lib/pb";
+import { CampoSenha } from "../components/CampoSenha";
 
 /**
  * Login pela MATRÍCULA (ou e-mail, para quem tiver). Não existe "criar conta":
@@ -57,7 +58,7 @@ export function Entrar() {
         </div>
         <div>
           <label htmlFor="senha" className="rotulo">Senha</label>
-          <input id="senha" type="password" enterKeyHint="go" autoComplete="current-password" required className="campo" value={senha} onChange={(e) => setSenha(e.target.value)} />
+          <CampoSenha id="senha" enterKeyHint="go" autoComplete="current-password" required value={senha} onChange={(e) => setSenha(e.target.value)} />
         </div>
         {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
         <button className="btn-primario w-full" disabled={entrando}>{entrando ? "Entrando..." : "Entrar"}</button>

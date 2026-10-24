@@ -151,6 +151,26 @@ celular, tocar de novo no ícone Fila (a setinha indica) abre um menu com as vis
 (faixa Equipe) não se misturam: escolher um desliga o outro. Os números vêm de `lib/numeros.ts` (uma consulta só,
 no Layout). Para o servidor, o "Meus chamados" mostra em destaque quantos chamados precisam dele (responder ou confirmar).
 
+## Revisão de usabilidade (outubro de 2026)
+
+Percorremos os fluxos do servidor (entrar, abrir, acompanhar, confirmar) e do técnico (pegar, atender, esperar,
+resolver, registrar, criar contas) no celular e no PC. O que mudou e por quê:
+
+- **O TI vê quando quem pediu responde.** A Fila marca "Nova mensagem" no chamado quando o solicitante escreveu depois
+  da última vez que o técnico abriu (mesma lógica do "Nova resposta do TI" do servidor, `lib/visto.ts`). Antes o
+  técnico só descobria a resposta abrindo o chamado.
+- **Toda ação do painel do técnico confirma** com aviso rápido (começar, espera, devolver, resolver, reabrir,
+  prioridade, responsável). Antes prioridade e responsável mudavam sem retorno nenhum.
+- **"Começar" fica com quem tocou.** No chamado de um colega o botão vira "Assumir e começar" (antes começava
+  "em andamento" no nome do colega).
+- **Celular, página do chamado (TI):** o painel Atendimento vem logo depois dos dados; "Como chamados desse tipo foram
+  resolvidos" desce para depois dele.
+- **Senha com "Mostrar"** (`CampoSenha`): a senha provisória é digitada olhando o bilhete; sem ver, a pessoa erra.
+- **Novo chamado, passo 2:** "Continuar" não fica apagado sem explicação; tocado sem descrição, diz o que falta e
+  leva até a caixa.
+- **Servidor precisa de setor:** criar conta de servidor sem setor gerava chamado sem lugar. Agora é obrigatório.
+- **Coluna "Tempo"** na Fila (era "Espera", mas em atendimento conta desde o início).
+
 ## Sinais das listas (Fila, Todos os chamados, Meus chamados)
 
 A Fila mostrava a mesma informação de vários jeitos (barra colorida + etiqueta de prioridade, fundo amarelo para "é meu",
