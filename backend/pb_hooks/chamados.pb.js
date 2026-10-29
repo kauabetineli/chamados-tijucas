@@ -14,15 +14,35 @@ onRecordCreateRequest((e) => {
     throw new BadRequestError("Descreva o problema.");
   }
 
+  const A = require(`${__hooks}/lib/automacao.js`);
+  const cfg = A.lerConfig(e.app);
+  rec.set("prioridade_escolhida", false);
+  rec.set("prazo_regra_min", 0);
+  rec.set("regras_tempo", []);
+
   if (!tecnico) {
     // solicitante: abre sempre em nome próprio, pelo sistema
     rec.set("solicitante", auth.id);
     rec.set("solicitante_nome", "");
     rec.set("origem", "sistema");
     rec.set("responsavel", "");
-    rec.set("prioridade", R.PRIORIDADE_POR_IMPACTO[rec.getString("impacto")] || "normal");
     rec.set("status", "aberto");
+    // prioridade: sugerida pelo impacto. Se o administrador liberou (Configurações do TI > Fila e atendimento),
+    // a pessoa pode escolher outra, até o teto; subir para Urgente pode exigir um motivo curto.
+    const sugerida = R.PRIORIDADE_POR_IMPACTO[rec.getString("impacto")] || "normal";
+    const pedida = rec.getString("prioridade");
+    const teto = Math.max(A.NIVEL[cfg.teto_prioridade], A.NIVEL[sugerida]);
+    let prio = sugerida;
+    if (cfg.servidor_prioridade && pedida && pedida !== "baixa" && A.NIVEL[pedida] && A.NIVEL[pedida] <= teto) prio = pedida;
+    rec.set("prioridade", prio);
+    rec.set("prioridade_escolhida", prio !== sugerida);
+    const motivo = rec.getString("motivo_urgencia").trim();
+    if (prio === "urgente" && prio !== sugerida && cfg.pedir_motivo_urgente && !motivo) {
+      throw new BadRequestError("Conte em poucas palavras por que é urgente.");
+    }
+    rec.set("motivo_urgencia", prio !== sugerida ? motivo.slice(0, 200) : "");
   } else {
+    rec.set("motivo_urgencia", "");
     // técnico: registra o que chegou por WhatsApp, ligação ou corredor
     // quem pediu é opcional quando o setor é informado (ex.: "ligaram da Obras", sem dizer o nome)
     if (!rec.getString("solicitante") && !rec.getString("solicitante_nome").trim() && !rec.getString("setor")) {
@@ -64,6 +84,11 @@ onRecordCreateRequest((e) => {
 
   if (!superuser) rec.set("registrado_por", auth.id);
   rec.set("confirmado", false);
+  // automação do TI (etapas 1 a 3): prioridade, prazo, avisos e quem atende. Registro já resolvido não passa por ela.
+  let aplicado = null;
+  if (rec.getString("status") !== "resolvido") {
+    aplicado = A.aplicarNaAbertura(e.app, rec, !rec.getString("responsavel") && rec.getString("status") === "aberto");
+  }
   rec.set("peso", R.pesoDe(rec.getString("prioridade")));
   rec.set("protocolo", R.proximoProtocolo(e.app));
 
@@ -73,6 +98,12 @@ onRecordCreateRequest((e) => {
     ? "Chamado aberto pelo sistema."
     : `Chamado registrado pelo TI (origem: ${rec.getString("origem")}).`;
   R.registrar(e.app, rec.id, superuser ? "" : auth.id, "sistema", quem, false);
+  if (rec.getBool("prioridade_escolhida")) {
+    const motivo = rec.getString("motivo_urgencia");
+    R.registrar(e.app, rec.id, auth.id, "prioridade", `Prioridade ${R.ROTULO_PRIORIDADE[rec.getString("prioridade")]} escolhida por quem pediu${motivo ? `: “${motivo}”` : "."}`, true);
+  }
+  if (aplicado) A.depoisDaAbertura(e.app, rec, aplicado);
+  else { A.calcularPrazoEOrdem(rec, cfg); e.app.saveNoValidate(rec); }
 
   // vídeo anexado: o servidor comprime em segundo plano (pb_hooks/videos.pb.js)
   const V = require(`${__hooks}/lib/videos.js`);
@@ -100,7 +131,13 @@ onRecordUpdateRequest((e) => {
     rec.set(campo, antes.get(campo));
   }
 
+  for (const campo of ["prioridade_escolhida", "motivo_urgencia", "prazo_regra_min", "regras_tempo"]) {
+    rec.set(campo, antes.get(campo));
+  }
   rec.set("peso", R.pesoDe(rec.getString("prioridade")));
+  // prazo e lugar na fila acompanham a prioridade (e a configuração atual da fila)
+  const A = require(`${__hooks}/lib/automacao.js`);
+  A.calcularPrazoEOrdem(rec, A.lerConfig(e.app));
 
   const de = antes.getString("status");
   const para = rec.getString("status");

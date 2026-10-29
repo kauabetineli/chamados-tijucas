@@ -18,7 +18,7 @@ onRecordCreateRequest((e) => {
 onRecordUpdateRequest((e) => {
   if (e.hasSuperuserAuth()) return e.next();
   const antes = e.record.original();
-  for (const campo of ["name", "setor", "papel", "ramal", "matricula", "admin", "bloqueado", "ficticio", "trocar_senha", "emailVisibility"]) {
+  for (const campo of ["name", "setor", "papel", "ramal", "matricula", "admin", "bloqueado", "ficticio", "trocar_senha", "emailVisibility", "ausente_de", "ausente_ate", "ausencia_motivo", "sem_automatico"]) {
     e.record.set(campo, antes.get(campo));
   }
   e.record.setEmail(antes.email());
@@ -291,7 +291,7 @@ onRecordEnrich((e) => {
   const doTI = quem && quem.collection().name === "users" && quem.getString("papel") === "tecnico";
   const superusuario = quem && quem.collection().name === "_superusers";
   if (!superusuario && !doTI && (!quem || quem.id !== e.record.id)) {
-    e.record.hide("matricula", "ramal", "telefone", "admin", "trocar_senha", "bloqueado", "ficticio");
+    e.record.hide("matricula", "ramal", "telefone", "admin", "trocar_senha", "bloqueado", "ficticio", "ausente_de", "ausente_ate", "ausencia_motivo", "sem_automatico");
   }
   e.next();
 }, "users");
@@ -303,7 +303,7 @@ onRecordsListRequest((e) => {
   if (!e.hasSuperuserAuth() && !doTI) {
     const q = e.requestInfo().query || {};
     const texto = `${q.filter || ""} ${q.sort || ""}`;
-    if (/matricula|ramal|telefone|admin|trocar_senha|bloqueado|ficticio|email/i.test(texto)) {
+    if (/matricula|ramal|telefone|admin|trocar_senha|bloqueado|ficticio|email|ausen|sem_automatico/i.test(texto)) {
       throw new ForbiddenError("Filtro não permitido.");
     }
   }

@@ -1,6 +1,6 @@
 import { Clock, Hourglass } from "lucide-react";
-import { atrasado, esperaCurta, horasEsperando, META_ESPERA_HORAS } from "../lib/fila";
-import { paraData, ROTULO_PRIORIDADE } from "../lib/formato";
+import { atrasado, esperaCurta, horasEsperando, prazoDe } from "../lib/fila";
+import { dataHora, paraData } from "../lib/formato";
 import type { Chamado } from "../lib/pb";
 
 const horasDesde = (s: string) => (Date.now() - (paraData(s)?.getTime() ?? Date.now())) / 3_600_000;
@@ -9,7 +9,7 @@ const horasDesde = (s: string) => (Date.now() - (paraData(s)?.getTime() ?? Date.
 export const ha = (horas: number) => { const t = esperaCurta(horas); return t === "agora" ? t : `há ${t}`; };
 
 /**
- * Há quanto tempo (coluna "Espera"). Na fila: desde a abertura, neutro; FORA DO PRAZO (META_ESPERA_HORAS) fica
+ * Há quanto tempo (coluna "Espera"). Na fila: desde a abertura, neutro; FORA DO PRAZO (prazo_em) fica
  * vermelho com relógio, sem a palavra "atrasado". Em atendimento: desde o início. Em espera: desde que parou.
  */
 export function Espera({ c }: { c: Chamado }) {
@@ -22,7 +22,7 @@ export function Espera({ c }: { c: Chamado }) {
   }
   if (atrasado(c)) {
     return (
-      <span className="inline-flex items-center gap-1 font-bold text-alerta" title={`Fora do prazo: a meta para ${ROTULO_PRIORIDADE[c.prioridade]} é ${META_ESPERA_HORAS[c.prioridade]} h`}>
+      <span className="inline-flex items-center gap-1 font-bold text-alerta" title={`Fora do prazo: era para começar até ${dataHora(prazoDe(c)?.toISOString() ?? c.created)}`}>
         <Clock className="size-3.5 shrink-0" aria-hidden="true" /> {ha(horasEsperando(c))}
         <span className="sr-only">, fora do prazo</span>
       </span>

@@ -18,14 +18,16 @@ backend/                     PocketBase 0.40.4 (um executável + SQLite)
   pb_hooks/
     chamados.pb.js           abrir/atualizar chamado, comentários (protocolo, prioridade, histórico, avisos)
     rotas.pb.js              /api/fila, /api/chamados/{id}/confirmar|reabrir|solucoes-parecidas, /api/painel/resumo|tecnico, /api/chamados/semelhantes
+    automacao.pb.js          Configurações do TI: /api/ti/automacao(/testar), /api/ti/equipe, config_ti, cron da etapa 4
     usuarios.pb.js           /api/sistema/info, /api/ti/usuarios, /api/ti/setores; protege o campo "ficticio"
     videos.pb.js             cron que comprime vídeos com ffmpeg
-    lib/                     regras.js, avisos.js (ntfy), config.js, usuarios.js, videos.js
+    lib/                     regras.js, automacao.js (motor das regras e da fila), avisos.js (ntfy), config.js, usuarios.js, videos.js
   config.json                (fora do Git) ambiente, ntfy. Modelo: config.exemplo.json
 frontend/src/                React 19 + Vite + TypeScript + Tailwind v4 (tokens em index.css)
   pages/                     telas do servidor (MeusChamados, NovoChamado, Chamado)
   pages/ti/                  telas do TI (Fila, TodosChamados = tabela com filtros, Registrar, Historico, Painel, Usuarios, QrCodes)
   features/novo-chamado/     abertura de chamado em ETAPAS modulares (etapas.tsx); celular = passo a passo, PC = painel
+  features/configuracoes/    Configurações do TI (só admin, /ti/configuracoes): Automação, Equipe, Categorias, Fila e atendimento
   components/                peças reutilizadas (Anexos, Selos, Layout, BarraLateral, PainelChamado, MuralAvisos...)
   lib/pb.ts                  cliente PocketBase, TIPOS das coleções, mensagemErro()
 ferramentas/                 CLI + servidor MCP para gerar dados de teste e operar o sistema (ver abaixo)
@@ -109,20 +111,26 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 ## Modelo de dados (resumo)
 
 - `users` (auth): name, **matricula** (login, até 8 dígitos, única), email (opcional), setor → setores,
-  papel (`solicitante` | `tecnico`), admin (admin do TI), ramal (próprio, opcional), trocar_senha, bloqueado, ficticio.
+  papel (`solicitante` | `tecnico`), admin (admin do TI), ramal (próprio, opcional), trocar_senha, bloqueado, ficticio,
+  ausente_de/ausente_ate/ausencia_motivo e sem_automatico (técnicos; só o TI vê).
   **Não há cadastro público**: só o admin do TI cria contas (`POST /api/ti/usuarios`); a pessoa só troca a própria senha.
   O PocketBase ESCONDE o e-mail de outros usuários; o TI usa `GET /api/ti/usuarios`. O servidor vê as contas de técnicos
   (nome do responsável e de quem respondeu), sem matrícula, ramal e marcas internas (hook `onRecordEnrich` em usuarios.pb.js).
-- `setores`: nome, predio, ramal (do setor), ativo (desativar em vez de apagar). `categorias`: nome, icone (lucide), ordem, ativa.
+- `setores`: nome, predio, ramal (do setor), ativo (desativar em vez de apagar). `categorias`: nome, icone (lucide, lista em
+  `components/Icone.tsx`), ordem, ativa, sugestoes, dicas, protegida ("Outro"). Tudo editável pelo admin do TI.
+- `config_ti` (registro "geral"): ordem da fila, prazos por prioridade, prioridade escolhida pelo servidor, horário, destino
+  das ausências. `automacao_versoes`: regras da automação (a versão mais nova vale). **Nada disso fica chumbado no código:**
+  leia com `lib/configTI.ts` (front) ou `lib/automacao.js` (hooks).
 - `chamados`: protocolo (2026-00001), descricao, categoria, solicitante | solicitante_nome, setor (o lugar do chamado; `local` é legado e não é usado),
   impacto (`so_eu`|`setor`|`publico`) → prioridade (`normal`|`alta`|`urgente`, `baixa` só pelo TI), peso,
+  prazo_em, ordem_fila (a Fila ordena por `ordem_fila,created`), prioridade_escolhida, motivo_urgencia,
   status (`aberto`|`em_andamento`|`aguardando`|`resolvido`), aguardando_motivo (`peca`|`solicitante`|`terceiro`), aguardando_desde, origem (`sistema`|`whatsapp`|`ligacao`|`presencial`),
   responsavel, registrado_por, anexos (até 5, 250 MB), diagnostico, solucao, confirmado, avaliacao (`bom`|`ruim`), avaliacao_comentario,
   midia_pendente, ficticio. "aguardando" = em espera: continua com o responsável, fora da fila e da carga.
 - `avisos`: mural "Avisos do TI" (texto, tipo `info`|`problema`, ate = some sozinho depois, autor). Técnico publica e
   encerra (encerrar = `ate` vira agora; não se apaga). Aparece na barra lateral (PC) e no topo de Meus chamados/Fila (celular).
 - `respostas_prontas`: texto, ordem. Frases do TI, editáveis por qualquer técnico (só o TI lê).
-- `interacoes`: chamado, autor, tipo (`comentario`|`status`|`prioridade`|`atribuicao`|`sistema`), texto, interno,
+- `interacoes`: chamado, autor (vazio = mensagem automática de uma regra), tipo (`comentario`|`status`|`prioridade`|`atribuicao`|`sistema`), texto, interno,
   anexos (até 4 imagens por mensagem; mensagem pode ser só imagem).
 
 Detalhes e o porquê das decisões: `docs/ARQUITETURA.md`.

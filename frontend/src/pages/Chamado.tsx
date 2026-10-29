@@ -10,6 +10,7 @@ import { SeloStatus, SeloTeste } from "../components/Selos";
 import { SenhaFila } from "../components/SenhaFila";
 import { SolucoesParecidas } from "../components/SolucoesParecidas";
 import { useAuth } from "../lib/auth";
+import { dentroDoHorario, mensagemForaDoHorario, useConfigTI } from "../lib/configTI";
 import { dataHora, ROTULO_AGUARDANDO, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS } from "../lib/formato";
 import { EXPAND_CHAMADO, ehTecnico, mensagemErro, nomeSolicitante, pb, type Chamado as TChamado, type Status, ramalDe } from "../lib/pb";
 import { useRealtime } from "../lib/useRealtime";
@@ -34,6 +35,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
   const pc = useMediaQuery("(min-width: 768px)");
   const estado = useLocation().state as { novo?: boolean } | null;
   const novo = !embutido && estado?.novo;
+  const { config } = useConfigTI();
   const [c, setC] = useState<TChamado | null>(null);
   const [aFrente, setAFrente] = useState<number | null>(null);
   const [erro, setErro] = useState("");
@@ -88,6 +90,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
           <p className="font-semibold">
             Chamado aberto. O TI já vê o seu pedido na fila e você recebe as respostas por aqui
             {usuario?.email ? " e por e-mail" : ""}.
+            {!dentroDoHorario(config) && <span className="mt-1 block font-normal">{mensagemForaDoHorario(config)}</span>}
           </p>
         </div>
       )}

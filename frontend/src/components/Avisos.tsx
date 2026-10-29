@@ -49,6 +49,11 @@ function Item({ a }: { a: Aviso }) {
           {a.link.rotulo}
         </Link>
       )}
+      {a.acao && (
+        <button type="button" onClick={() => { a.acao?.fazer(); setSaindo(true); }} className="shrink-0 rounded-lg px-2.5 py-1.5 font-bold text-acento ring-1 ring-acento hover:bg-mar-50">
+          {a.acao.rotulo}
+        </button>
+      )}
       <button type="button" onClick={() => setSaindo(true)} className="grid size-8 shrink-0 place-items-center rounded-lg text-tinta-2 hover:bg-fundo hover:text-tinta" aria-label="Fechar aviso">
         <X className="size-4" />
       </button>

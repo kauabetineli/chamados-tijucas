@@ -167,7 +167,9 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, status, aoMudarChamado 
               </li>
             );
           }
-          const doSolicitante = i.autor === solicitanteId;
+          // sem autor = mensagem automática de uma regra (Configurações do TI > Automação)
+          const automatica = !i.autor;
+          const doSolicitante = !automatica && i.autor === solicitanteId;
           return (
             <li key={i.id} className={`flex ${doSolicitante ? "justify-start" : "justify-end"}`}>
               <div
@@ -181,7 +183,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, status, aoMudarChamado 
               >
                 <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
                   {i.interno && <Lock className="size-4" aria-label="Nota interna" />}
-                  {i.expand?.autor?.name ?? "Usuário"}
+                  {automatica ? (i.interno ? "Nota automática" : "Resposta automática") : i.expand?.autor?.name ?? "Usuário"}
                   {!doSolicitante && !i.interno && <span className="font-normal text-tinta-2">(TI)</span>}
                 </p>
                 {i.texto && <p className="selecionavel texto-livre whitespace-pre-wrap">{i.texto}</p>}

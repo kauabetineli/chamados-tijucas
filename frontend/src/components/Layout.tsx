@@ -26,7 +26,7 @@ const TECNICO: Item[] = [
   { para: "/perfil", rotulo: "Você", Icone: UserRound, avatar: true },
 ];
 // telas que moram dentro de "Você" no celular (o item fica marcado nelas)
-const DENTRO_DE_VOCE = ["/configuracoes", "/ti/painel", "/ti/usuarios"];
+const DENTRO_DE_VOCE = ["/configuracoes", "/ti/painel", "/ti/usuarios", "/ti/configuracoes"];
 
 export function Layout() {
   const { usuario } = useAuth();
@@ -47,7 +47,7 @@ export function Layout() {
   // celular, técnico: tocar de novo em "Fila" (já estando nela) abre o menu das visões
   const [menuFila, setMenuFila] = useState(false);
   useEffect(() => setMenuFila(false), [caminho, params]);
-  const largura = caminho === "/ti/chamados" || caminho === "/ti/registrar" || focado ? "max-w-7xl" : "max-w-5xl";
+  const largura = caminho === "/ti/configuracoes" ? "max-w-[96rem]" : caminho === "/ti/chamados" || caminho === "/ti/registrar" || focado ? "max-w-7xl" : "max-w-5xl";
 
   return (
     // PC: barra lateral à esquerda + conteúdo. Celular: topo + barra de baixo (a lateral não aparece).

@@ -43,8 +43,10 @@ QR code / link  →  site da Prefeitura (/dinodesk, página estática)  →  htt
 |---|---|---|
 | `users` (auth) | name, matricula (login, única), email (opcional), setor, papel (`solicitante`/`tecnico`), admin, ramal (próprio, opcional), trocar_senha, bloqueado | cada um vê a si; técnicos veem todos. Só o admin do TI cria e edita (rotas `/api/ti/usuarios`); a pessoa só troca a própria senha |
 | `setores` | nome, predio, ramal, ativo | leitura pública; criação e edição pelo admin do TI (`/api/ti/setores`) |
-| `categorias` | nome, icone, ordem, ativa | leitura para logados; edição só no painel admin |
-| `chamados` | protocolo, descricao, categoria, solicitante / solicitante_nome, setor (é o lugar do chamado; `local` ficou só como legado), impacto, prioridade, peso, status (aberto/em_andamento/aguardando/resolvido), aguardando_motivo, aguardando_desde, origem, responsavel, registrado_por, anexos, diagnostico, solucao, confirmado, avaliacao (bom/ruim), avaliacao_comentario, iniciado_em, resolvido_em | solicitante vê os seus; técnicos veem e alteram todos |
+| `categorias` | nome, icone (nome Lucide, lista em `components/Icone.tsx`), ordem, ativa, sugestoes (≤ 6), dicas, protegida ("Outro") | leitura para logados; criação e edição pelo admin do TI (Configurações do TI > Categorias); não se apaga, oculta |
+| `config_ti` | chave ("geral"), dados (ordem_fila, prazos, servidor_prioridade, teto_prioridade, pedir_motivo_urgente, marcar_escolhida, horario, destino_ausencia) | leitura para logados; edição pelo admin do TI |
+| `automacao_versoes` | dados (ajustes, quem, senao, tempo), autor, resumo | técnicos leem; versão nova só pela rota do admin. A mais nova vale |
+| `chamados` | protocolo, descricao, categoria, solicitante / solicitante_nome, setor (é o lugar do chamado; `local` ficou só como legado), impacto, prioridade, peso, prazo_em, prazo_regra_min, ordem_fila, prioridade_escolhida, motivo_urgencia, regras_tempo, status (aberto/em_andamento/aguardando/resolvido), aguardando_motivo, aguardando_desde, origem, responsavel, registrado_por, anexos, diagnostico, solucao, confirmado, avaliacao (bom/ruim), avaliacao_comentario, iniciado_em, resolvido_em | solicitante vê os seus; técnicos veem e alteram todos |
 | `interacoes` | chamado, autor, tipo (comentario/status/prioridade/atribuicao/sistema), texto, interno | solicitante vê a linha do tempo dos seus chamados, sem as notas internas |
 
 ## Regras de negócio (backend/pb_hooks)
@@ -54,7 +56,20 @@ QR code / link  →  site da Prefeitura (/dinodesk, página estática)  →  htt
 - **Registro pelo técnico:** exige quem pediu (conta ou nome digitado), guarda a origem (WhatsApp, ligação, presencial)
   e permite registrar já resolvido (causa e solução opcionais).
 - **Protocolo:** `ANO-NNNNN`, sequencial por ano.
-- **Fila:** ordem = maior prioridade primeiro, depois quem abriu antes. A posição é calculada em `/api/fila/minhas-posicoes`.
+- **Fila:** a ordem é o número `ordem_fila` de cada chamado, calculado no servidor conforme Configurações do TI > Fila e
+  atendimento: **pelo prazo** (padrão; `prazo_em` em segundos), **prioridade, depois chegada** ou **ordem de chegada**.
+  `prazo_em` = abertura + prazo da prioridade (ou o de uma regra), contado só no horário de atendimento quando ele está ligado.
+  Mudar a ordem, os prazos ou o horário recalcula todos os não resolvidos. Fila (`sort=ordem_fila,created`) e
+  `/api/fila/minhas-posicoes` usam a mesma ordem.
+- **Automação (Configurações do TI):** motor em `pb_hooks/lib/automacao.js`, só no servidor (a tela "Testar" chama
+  `/api/ti/automacao/testar`, então mostra exatamente o que vai acontecer). Etapas: **1** prioridade, prazo e avisos (todas
+  as regras que combinam valem; maior prioridade e menor prazo ganham) → **2** quem atende (de cima para baixo, vale a
+  primeira que escolhe uma pessoa disponível; blocos de regras têm condição própria e um "se nenhuma servir": continua,
+  livre ou pessoa) → **3** se ninguém foi escolhido → **4** com o passar do tempo (cron a cada 5 min; cada regra age uma vez
+  por chamado, guardado em `regras_tempo`). Pessoa ausente ou fora dos automáticos é pulada. Cada salvamento é uma versão
+  (`automacao_versoes`), com histórico. Nada de regra fica no código.
+- **Ausências:** `users.ausente_de/ate` (o fim encerra sozinho), `sem_automatico`. O admin marca em Equipe e ausências;
+  cada técnico marca a própria no Perfil. `destino_ausencia` decide se os chamados da pessoa ficam com ela ou voltam à fila.
 - **Causa e solução são opcionais ao resolver** (desde 18/10/2026). Rotina que o TI já sabe resolver fecha sem texto;
   o técnico liga "Guardar causa e solução no Histórico" quando vale registrar, e aí os dois campos são obrigatórios na tela.
   O Histórico mostra por padrão só os que têm registro (caixa "Só os que têm causa e solução registradas"). Ele começa
@@ -182,8 +197,10 @@ GOV.UK) trocou isso por **um sinal = um significado, sempre no mesmo lugar**:
   o PROBLEMA como título (a maior letra) · embaixo, onde e quem, com o protocolo por último · à direita, a espera e com quem
   está. No PC (lg+) setor, espera e "com quem" viram colunas alinhadas, com cabeçalho; no celular a ação abre segurando a linha.
 - **Prioridade**: etiqueta SÓ para Urgente (vermelha cheia) e Alta (âmbar, `--color-ambar`). Normal e Baixa não aparecem
-  nas listas: a ordem da fila já diz isso (`EtiquetaPrioridade`; `sempre` para colunas e menus).
-- **Espera** (`components/Espera.tsx`): "há 3 h", neutro. Fora do prazo (`META_ESPERA_HORAS`), o mesmo texto em vermelho com
+  nas listas: a ordem da fila já diz isso (`EtiquetaPrioridade`; `sempre` para colunas e menus). Quando quem pediu
+  escolheu a prioridade (e o admin ligou "mostrar na Fila"), a própria etiqueta ganha um ícone de pessoa, com o motivo no
+  `title`: não é um sinal novo, é um detalhe da prioridade.
+- **Espera** (`components/Espera.tsx`): "há 3 h", neutro. Fora do prazo (`prazo_em`; `META_ESPERA_HORAS` só para chamado antigo sem prazo), o mesmo texto em vermelho com
   relógio, sem a palavra "atrasado". O total vira um filtro no topo da Fila ("3 fora do prazo").
 - **Situação**: na Fila a seção já diz; nas listas misturadas, ícone + texto sem fundo (`SeloStatus`).
 - **Com quem**: avatar; círculo tracejado = livre; "você" com anel azul.

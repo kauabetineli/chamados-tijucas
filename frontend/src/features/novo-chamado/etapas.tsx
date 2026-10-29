@@ -4,8 +4,9 @@ import type { ReactNode } from "react";
 import { arrastandoArquivo, GaleriaArquivos, SeletorAnexos, useAnexos } from "../../components/Anexos";
 import { EscolhaCategoria, EscolhaImpacto } from "../../components/CamposChamado";
 import { ROTULO_IMPACTO } from "../../lib/formato";
+import type { Prioridade } from "../../lib/pb";
 import { AvisoSemelhantes } from "./AvisoSemelhantes";
-import { SUGESTOES } from "./sugestoes";
+import { EscolhaPrioridade } from "./EscolhaPrioridade";
 import type { FormularioChamado } from "./useNovoChamado";
 import { BarraAcao } from "./BarraAcao";
 
@@ -55,7 +56,7 @@ function EtapaCategoria({ f, modo, avancar }: PropsEtapa) {
 }
 
 function EtapaDescricao({ f, modo, avancar }: PropsEtapa) {
-  const sugestoes = SUGESTOES[f.categoriaEscolhida?.nome ?? ""] ?? [];
+  const sugestoes = f.categoriaEscolhida?.sugestoes ?? [];
   const usarSugestao = (s: string) =>
     f.setDescricao((atual) => (atual.trim() ? `${atual.trim()} ${s}.` : `${s}. `));
   const anexos = useAnexos(f.setArquivos, f.setPreparandoAnexo);
@@ -171,23 +172,43 @@ function EtapaDescricao({ f, modo, avancar }: PropsEtapa) {
 }
 
 function EtapaImpacto({ f, modo, avancar }: PropsEtapa) {
+  // com a escolha de prioridade liberada, o toque não avança sozinho: a pessoa confere a prioridade e toca em Continuar
+  const [faltaMotivo, setFaltaMotivo] = useState(false);
+  const passo = modo === "passo";
   return (
-    <EscolhaImpacto
-      valor={f.impacto}
-      onChange={f.setImpacto}
-      aoTocar={modo === "passo" ? () => setTimeout(avancar, 120) : undefined}
-      titulo="Isso está atrapalhando quem?"
-      grande={modo === "passo"}
-      lado={modo === "painel"}
-    />
+    <div className="space-y-4">
+      <EscolhaImpacto
+        valor={f.impacto}
+        onChange={f.setImpacto}
+        aoTocar={passo && !f.escolhePrioridade ? () => setTimeout(avancar, 120) : undefined}
+        titulo="Isso está atrapalhando quem?"
+        grande={passo}
+        lado={modo === "painel"}
+      />
+      <EscolhaPrioridade f={f} faltaMotivo={faltaMotivo && !f.motivoUrgencia.trim()} />
+      {passo && f.escolhePrioridade && f.impacto && (
+        <BarraAcao>
+          <button type="button" className="btn-primario w-full text-lg"
+            onClick={() => { if (f.precisaMotivo && !f.motivoUrgencia.trim()) return setFaltaMotivo(true); avancar(); }}>
+            Continuar
+          </button>
+        </BarraAcao>
+      )}
+    </div>
   );
 }
+
+const ROTULO_PRIORIDADE: Record<Prioridade, string> = { baixa: "Baixa", normal: "Normal", alta: "Alta", urgente: "Urgente" };
 
 function EtapaRevisao({ f, irPara }: PropsEtapa) {
   const linhas: { id: string; rotulo: string; valor: ReactNode }[] = [
     { id: "categoria", rotulo: "Problema", valor: f.categoriaEscolhida?.nome },
     { id: "descricao", rotulo: "Descrição", valor: <span className="whitespace-pre-wrap">{f.descricao}</span> },
     { id: "impacto", rotulo: "Quem é afetado", valor: f.impacto ? ROTULO_IMPACTO[f.impacto] : "" },
+    ...(f.escolhePrioridade ? [{
+      id: "impacto", rotulo: "Prioridade",
+      valor: <>{ROTULO_PRIORIDADE[f.prioridade]}{f.motivoUrgencia.trim() && f.prioridade !== f.sugerida ? <span className="block font-normal text-tinta-2">“{f.motivoUrgencia.trim()}”</span> : null}</>,
+    }] : []),
   ];
   return (
     <div className="space-y-5">
@@ -198,7 +219,7 @@ function EtapaRevisao({ f, irPara }: PropsEtapa) {
           <dd className="font-semibold">{f.setor || "Seu setor"}</dd>
         </div>
         {linhas.map((l) => (
-          <div key={l.id} className="flex items-start gap-3 p-4">
+          <div key={l.rotulo} className="flex items-start gap-3 p-4">
             <div className="min-w-0 flex-1">
               <dt className="text-sm text-tinta-2">{l.rotulo}</dt>
               <dd className="font-semibold">{l.valor || "—"}</dd>
@@ -235,7 +256,7 @@ export const ETAPAS: Etapa[] = [
   },
   {
     id: "impacto", rotulo: "Impacto", Componente: EtapaImpacto, coluna: "direita",
-    pronta: (f) => !!f.impacto, falta: "Diga quem está sendo afetado.",
+    pronta: (f) => !!f.impacto && (!f.precisaMotivo || !!f.motivoUrgencia.trim()), falta: "Diga quem está sendo afetado (e, se escolheu Urgente, o motivo).",
   },
   {
     id: "revisao", rotulo: "Enviar", Componente: EtapaRevisao,

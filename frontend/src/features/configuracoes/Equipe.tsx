@@ -1,0 +1,174 @@
+import { useEffect, useState } from "react";
+import { Avatar } from "../../components/Avatar";
+import { EsqueletoLinhas } from "../../components/Esqueleto";
+import { SeloTeste } from "../../components/Selos";
+import { avisar } from "../../lib/avisos";
+import { salvarConfigTI, useConfigTI } from "../../lib/configTI";
+import { mensagemErro, pb } from "../../lib/pb";
+import { useEquipe, type Tecnico } from "./dados";
+
+type Situacao = "disp" | "hoje" | "periodo";
+
+const hojeISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const ddmm = (s: string) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}` : "");
+
+function situacaoDe(t: Tecnico): Situacao {
+  const hoje = hojeISO();
+  if (!t.ausente_de && !t.ausente_ate) return "disp";
+  if (t.ausente_ate && t.ausente_ate < hoje) return "disp";
+  if (t.ausente_de === hoje && t.ausente_ate === hoje) return "hoje";
+  return "periodo";
+}
+
+/** Equipe e ausências: quem está atendendo e quem recebe chamados das regras. Cada mudança salva na hora. */
+export function Equipe({ equipe, recarregar }: { equipe: Tecnico[] | null; recarregar: () => void }) {
+  const cfg = useConfigTI();
+  const [destino, setDestino] = useState<"fica" | "fila">("fica");
+  useEffect(() => { if (cfg.carregada) setDestino(cfg.config.destino_ausencia); }, [cfg.carregada, cfg.config.destino_ausencia]);
+
+  async function salvarPessoa(t: Tecnico, corpo: Partial<Tecnico>, msg: string) {
+    try {
+      const r = await pb.send<{ devolvidos: number }>(`/api/ti/equipe/${t.id}`, { method: "PATCH", body: corpo });
+      avisar(r.devolvidos ? `${msg} ${r.devolvidos} chamado${r.devolvidos > 1 ? "s voltaram" : " voltou"} para a fila.` : msg);
+      recarregar();
+    } catch (e) {
+      avisar(mensagemErro(e), { tipo: "erro" });
+      recarregar();
+    }
+  }
+
+  async function mudarDestino(d: "fica" | "fila") {
+    setDestino(d);
+    try {
+      await salvarConfigTI(cfg.id, { ...cfg.config, destino_ausencia: d });
+      avisar(d === "fila" ? "Chamados de quem ficar ausente voltam para a fila." : "Chamados de quem ficar ausente continuam com a pessoa.");
+    } catch (e) {
+      avisar(mensagemErro(e), { tipo: "erro" });
+    }
+  }
+
+  if (!equipe) return <EsqueletoLinhas quantos={3} />;
+  const ativos = equipe.filter((t) => !t.bloqueado);
+
+  return (
+    <div className="max-w-3xl space-y-4">
+      <div>
+        <h2 className="font-display text-xl font-extrabold">Quem está atendendo</h2>
+        <p className="mt-1 text-tinta-2">
+          Quem está ausente não recebe chamados das regras nem da divisão. A ausência termina sozinha na data marcada.
+          Cada técnico também pode marcar a própria ausência no Perfil.
+        </p>
+      </div>
+      {!ativos.length && <p className="rounded-xl bg-superficie p-4 text-tinta-2 ring-1 ring-linha">Nenhum técnico ativo.</p>}
+      {ativos.map((t) => <CartaoPessoa key={t.id} t={t} salvar={(c, m) => salvarPessoa(t, c, m)} />)}
+
+      <fieldset className="space-y-2 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
+        <legend className="sr-only">Chamados de quem fica ausente</legend>
+        <h3 className="font-bold" aria-hidden="true">Quando alguém fica ausente, os chamados que já estão com essa pessoa</h3>
+        {([
+          ["fica", "Continuam com a pessoa", "Bom para ausências curtas: ela retoma quando voltar."],
+          ["fila", "Voltam para a fila, sem responsável", "Bom para férias: outro técnico pega. Quem pediu não perde o lugar na fila."],
+        ] as const).map(([k, rot, ajuda]) => (
+          <label key={k} className={`flex min-h-14 cursor-pointer items-start gap-3 rounded-xl p-3 ring-1 ${destino === k ? "bg-mar-50 ring-2 ring-acento" : "ring-linha"}`}>
+            <input type="radio" name="destino-ausencia" checked={destino === k} onChange={() => mudarDestino(k)} className="mt-1 size-5 accent-acento" disabled={!cfg.carregada} />
+            <span><b className="block">{rot}</b><span className="text-sm text-tinta-2">{ajuda}</span></span>
+          </label>
+        ))}
+      </fieldset>
+    </div>
+  );
+}
+
+/** Perfil do técnico: marcar a própria ausência (o "recebe chamados das regras" fica com o administrador). */
+export function MinhaAusencia({ eu }: { eu: string }) {
+  const { equipe, recarregar } = useEquipe();
+  const t = equipe?.find((x) => x.id === eu);
+  if (!equipe) return <EsqueletoLinhas quantos={1} />;
+  if (!t) return null;
+  return (
+    <section aria-labelledby="titulo-minha-ausencia" className="space-y-2">
+      <h2 id="titulo-minha-ausencia" className="text-xl font-bold">Minha situação</h2>
+      <CartaoPessoa t={t} proprio salvar={async (corpo, msg) => {
+        try {
+          await pb.send(`/api/ti/equipe/${t.id}`, { method: "PATCH", body: corpo });
+          avisar(msg.replace(`${t.nome.split(" ")[0]} está`, "Você está").replace(`de ${t.nome.split(" ")[0]} marcada`, "marcada"));
+        } catch (e) { avisar(mensagemErro(e), { tipo: "erro" }); }
+        recarregar();
+      }} />
+    </section>
+  );
+}
+
+function CartaoPessoa({ t, salvar, proprio }: { t: Tecnico; salvar: (corpo: Partial<Tecnico>, msg: string) => void; proprio?: boolean }) {
+  const sit = situacaoDe(t);
+  const [de, setDe] = useState(t.ausente_de);
+  const [ate, setAte] = useState(t.ausente_ate);
+  const [motivo, setMotivo] = useState(t.ausencia_motivo);
+  const [periodo, setPeriodo] = useState(sit === "periodo");
+  useEffect(() => { setDe(t.ausente_de); setAte(t.ausente_ate); setMotivo(t.ausencia_motivo); setPeriodo(situacaoDe(t) === "periodo"); }, [t]);
+  const primeiro = t.nome.split(" ")[0];
+  const marcada: Situacao = periodo ? "periodo" : sit;
+
+  const selo = t.ausente_hoje ? (sit === "hoje" ? "Fora hoje" : `Ausente até ${ddmm(t.ausente_ate)}`)
+    : sit === "periodo" ? `Ausente de ${ddmm(t.ausente_de)} a ${ddmm(t.ausente_ate)}`
+    : t.sem_automatico ? "Não recebe automáticos" : "Disponível";
+  const ok = t.disponivel;
+
+  function escolher(s: Situacao) {
+    if (s === "disp") { setPeriodo(false); salvar({ ausente_de: "", ausente_ate: "", ausencia_motivo: "" }, `${primeiro} está disponível.`); }
+    if (s === "hoje") { setPeriodo(false); const h = hojeISO(); salvar({ ausente_de: h, ausente_ate: h }, `${primeiro} está fora hoje.`); }
+    if (s === "periodo") setPeriodo(true);
+  }
+  function salvarPeriodo(nde: string, nate: string) {
+    if (!nde || !nate) return;
+    if (nate < nde) { avisar("A volta não pode ser antes do começo da ausência.", { tipo: "erro" }); return; }
+    salvar({ ausente_de: nde, ausente_ate: nate }, `Ausência de ${primeiro} marcada: ${ddmm(nde)} a ${ddmm(nate)}.`);
+  }
+
+  return (
+    <article className="space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
+      <div className="flex flex-wrap items-center gap-3">
+        <Avatar id={t.id} nome={t.nome} />
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-2 font-bold">{t.nome} <SeloTeste ficticio={t.ficticio} compacto /></p>
+          <p className="text-sm text-tinta-2">{t.carga} em atendimento{t.admin ? " · administrador" : ""}</p>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-sm font-bold ${ok ? "bg-campo-50 text-ok" : "bg-sol-50 text-ambar-tinta"}`}>{selo}</span>
+      </div>
+      <div role="radiogroup" aria-label={`Situação de ${t.nome}`} className="grid gap-2 sm:grid-cols-3">
+        {([["disp", "Disponível"], ["hoje", "Fora hoje"], ["periodo", "Ausente por um período"]] as const).map(([k, rot]) => (
+          <button key={k} type="button" role="radio" aria-checked={marcada === k} onClick={() => escolher(k)}
+            className={`min-h-12 rounded-xl px-3 font-bold ${marcada === k ? "bg-mar-50 text-tinta ring-2 ring-acento" : "text-tinta-2 ring-1 ring-linha hover:ring-acento"}`}>
+            {rot}
+          </button>
+        ))}
+      </div>
+      {marcada === "periodo" && (
+        <div className="grid gap-2 sm:grid-cols-[auto_auto_1fr]">
+          <label className="flex flex-col gap-1 text-sm font-semibold">De
+            <input type="date" className="campo" value={de} onChange={(e) => { setDe(e.target.value); salvarPeriodo(e.target.value, ate); }} />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-semibold">Até
+            <input type="date" className="campo" value={ate} min={de || undefined} onChange={(e) => { setAte(e.target.value); salvarPeriodo(de, e.target.value); }} />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-semibold">Motivo (opcional, só o TI vê)
+            <input className="campo" value={motivo} maxLength={120} placeholder="Ex.: férias, curso" onChange={(e) => setMotivo(e.target.value)}
+              onBlur={() => { if (motivo !== t.ausencia_motivo) salvar({ ausencia_motivo: motivo }, "Motivo salvo."); }} />
+          </label>
+        </div>
+      )}
+      {proprio ? (
+        t.sem_automatico && <p className="text-sm text-tinta-2">O administrador do TI deixou você fora da distribuição automática.</p>
+      ) : (
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 font-semibold">
+        <input type="checkbox" role="switch" className="size-5 accent-acento" checked={!t.sem_automatico}
+          onChange={() => salvar({ sem_automatico: !t.sem_automatico }, t.sem_automatico ? `${primeiro} volta a receber chamados das regras.` : `${primeiro} não recebe mais chamados das regras.`)} />
+        Recebe chamados pelas regras de distribuição
+      </label>
+      )}
+    </article>
+  );
+}

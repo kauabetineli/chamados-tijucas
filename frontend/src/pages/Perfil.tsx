@@ -1,6 +1,7 @@
-import { BarChart3, Building2, ChevronRight, Settings, ShieldCheck, Users, Wrench } from "lucide-react";
+import { BarChart3, Building2, ChevronRight, Settings, ShieldCheck, SlidersHorizontal, Users, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { MinhaAusencia } from "../features/configuracoes/Equipe";
 import { Avatar } from "../components/Avatar";
 import { useAuth } from "../lib/auth";
 import { ehAdmin, ehTecnico, pb, type Usuario } from "../lib/pb";
@@ -71,6 +72,9 @@ export function Perfil() {
       { para: "/ti/painel", Icone: BarChart3, titulo: "Painel da equipe", detalhe: "Indicadores e o piloto" },
       { para: "/ti/usuarios", Icone: Users, titulo: admin ? "Pessoas e setores" : "Pessoas", detalhe: admin ? "Contas, senha nova, bloquear e setores" : "Buscar contato e ramal" },
     ] : []),
+    ...(admin ? [
+      { para: "/ti/configuracoes", Icone: SlidersHorizontal, titulo: "Configurações do TI", detalhe: "Automação, equipe, categorias e a fila" },
+    ] : []),
     { para: "/configuracoes", Icone: Settings, titulo: "Configurações", detalhe: "Aparência, senha, meus dados e sair" },
   ];
 
@@ -85,6 +89,8 @@ export function Perfil() {
       </section>
 
       <Numeros u={u} />
+
+      {tecnico && <MinhaAusencia eu={u.id} />}
 
       <nav aria-label="Mais opções" className="overflow-hidden rounded-2xl bg-superficie ring-1 ring-linha">
         <ul className="divide-y divide-linha">

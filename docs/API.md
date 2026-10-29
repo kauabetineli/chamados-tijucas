@@ -30,7 +30,10 @@ Padrão: `GET /api/collections/{c}/records?filter=...&sort=...&expand=...&page=1
 | `users` | a própria conta e as contas de técnicos (para o servidor, só nome, papel e setor; filtrar por matrícula, ramal etc. dá 403); técnicos veem todas (sem e-mail: use `/api/ti/usuarios`) | **ninguém** (só admin do TI pela rota `/api/ti/usuarios`) | só a própria senha | superusuário |
 | `respostas_prontas` | técnicos (`sort=ordem,created`) | técnicos | técnicos | técnicos |
 | `avisos` | qualquer logado (o front filtra `ate = "" \|\| ate > agora`) | técnico, com `autor` = ele mesmo | técnico (encerrar = `ate` vira agora) | ninguém |
-| `setores`, `categorias` | todos | superusuário (setor: admin do TI por `/api/ti/setores`) | idem | superusuário |
+| `setores` | todos | superusuário (admin do TI por `/api/ti/setores`) | idem | superusuário |
+| `categorias` | todos | **admin do TI** (Configurações do TI > Categorias) | **admin do TI** (hook limpa `sugestoes` ≤ 6 e `dicas` ≤ 8; `protegida` = "Outro", sempre ativa) | ninguém (ocultar = `ativa: false`) |
+| `config_ti` | logado (registro `chave = "geral"`, campo `dados`) | ninguém | **admin do TI** (o hook normaliza; se mudou ordem, prazos ou horário, recalcula `prazo_em`/`ordem_fila` de todos os não resolvidos) | ninguém |
+| `automacao_versoes` | técnicos | só pela rota `POST /api/ti/automacao` | ninguém | ninguém |
 
 ### Abrir chamado (multipart)
 
@@ -38,10 +41,14 @@ Padrão: `GET /api/collections/{c}/records?filter=...&sort=...&expand=...&page=1
 e até 5 arquivos em `anexos` (imagem ou vídeo, 250 MB cada).
 
 O hook (`pb_hooks/chamados.pb.js`) completa o resto:
-- **servidor**: solicitante = quem está logado, origem `sistema`, prioridade pelo impacto (`so_eu` → normal, `setor` → alta, `publico` → urgente);
+- **servidor**: solicitante = quem está logado, origem `sistema`, prioridade pelo impacto (`so_eu` → normal, `setor` → alta, `publico` → urgente).
+  Se `config_ti.servidor_prioridade` estiver ligado, aceita `prioridade` (não `baixa`) até `max(teto_prioridade, sugerida)`
+  e marca `prioridade_escolhida`; subir para Urgente acima da sugerida exige `motivo_urgencia` quando `pedir_motivo_urgente` (400 sem ele);
 - **técnico** (registro de pedido de fora): manda também `solicitante` (id) ou `solicitante_nome` (os dois podem faltar se vier `setor`), `origem`
   (`whatsapp`|`ligacao`|`presencial`) e pode mandar `status: "resolvido"` (com `diagnostico` e `solucao` opcionais);
-- sempre: protocolo `AAAA-NNNNN`, setor do solicitante, `ficticio` copiado do solicitante, linha do tempo e aviso ntfy.
+- sempre: protocolo `AAAA-NNNNN`, setor do solicitante, `ficticio` copiado do solicitante, linha do tempo e aviso ntfy;
+- automação (etapas 1 a 3 de `automacao_versoes`, a versão mais nova): prioridade, prazo, responsável, avisos, resposta automática
+  (comentário sem `autor`) e nota interna; depois `prazo_em` (em horário de atendimento, se ligado) e `ordem_fila`.
 
 ### Mudar status (técnico)
 
@@ -63,7 +70,7 @@ Qualquer outro status limpa o motivo. De `aguardando` dá para retomar (`em_anda
 
 | Método | Rota | Quem | Faz |
 |---|---|---|---|
-| GET | `/api/fila/minhas-posicoes` | usuário | posição na fila de cada chamado aberto do usuário |
+| GET | `/api/fila/minhas-posicoes` | usuário | posição na fila de cada chamado aberto do usuário (pela `ordem_fila`) |
 | POST | `/api/chamados/{id}/confirmar` | solicitante do chamado | confirma que o problema foi resolvido; opcional `{ avaliacao: "bom"\|"ruim", comentario }` (avaliação do atendimento, vai para a linha do tempo) |
 | POST | `/api/chamados/{id}/reabrir` | solicitante do chamado | `{ motivo }` volta o chamado para a fila |
 | GET | `/api/chamados/semelhantes?categoria=ID` | usuário | chamados em aberto da mesma categoria no setor (evita duplicado) |
@@ -78,6 +85,12 @@ Qualquer outro status limpa o motivo. De `aguardando` dá para retomar (`em_anda
 | GET | `/api/ti/setores` | técnico | todos os setores com `pessoas` (quantas contas) → `{ itens }` |
 | POST | `/api/ti/setores` | **admin do TI** | `{ nome, predio?, ramal? }`; se o nome já existe, devolve o existente (`criado: false`) |
 | PATCH | `/api/ti/setores/{id}` | **admin do TI** | `{ nome?, predio?, ramal?, ativo? }` (setor inativo some da escolha; não se apaga) |
+| GET | `/api/ti/automacao` | técnico | regras em vigor → `{ versao, dados: { ajustes, quem, senao, tempo }, historico: [{ id, quando, autor, resumo }] }` (15 últimas) |
+| POST | `/api/ti/automacao` | **admin do TI** | `{ dados, resumo, base }` cria uma versão nova (o servidor limpa as regras). `base` = versão aberta na tela; se outra pessoa salvou depois, 400 |
+| POST | `/api/ti/automacao/testar` | técnico | `{ dados, chamado: { categoria, setor, impacto, prioridade, origem, texto, anexo, horario }, giro }` → `{ prioridade, prazo_min, pessoa, pessoa_nome, regra, giro_regra, efeitos, status, traco }` (nada é salvo; `status[id]` = `sim`/`nao`/`pulada`/`off`) |
+| POST | `/api/ti/automacao/rodar-tempo` | superusuário | roda a etapa 4 agora (o cron `automacao-tempo` roda a cada 5 min) → `{ aplicadas }` |
+| GET | `/api/ti/equipe` | técnico | técnicos com `carga`, ausência (`ausente_de`, `ausente_ate`, `ausencia_motivo`, `ausente_hoje`), `sem_automatico`, `disponivel` → `{ equipe, destino_ausencia }` |
+| PATCH | `/api/ti/equipe/{id}` | **admin do TI**, ou o próprio técnico (menos `sem_automatico`) | `{ ausente_de?, ausente_ate? ("AAAA-MM-DD" ou ""), ausencia_motivo?, sem_automatico? }` → `{ ok, devolvidos, ausente_hoje }`. Com `destino_ausencia = "fila"`, ficar ausente hoje devolve os chamados abertos da pessoa para a fila |
 
 Somente o **superusuário** pode mandar `ficticio: true` ou `senha` fixa em `/api/ti/usuarios`; em produção o servidor recusa fictício.
 Senha provisória: aleatória em 3 blocos (`k7Pm-x4Qz-9Rta`), mostrada uma única vez. Enquanto `trocar_senha = true`,

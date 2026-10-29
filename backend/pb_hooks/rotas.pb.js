@@ -4,7 +4,7 @@
 
 // Posição na fila dos chamados abertos do usuário logado.
 // "a_frente" = quantos chamados abertos serão atendidos antes deste
-// (maior prioridade primeiro; mesma prioridade, quem abriu antes).
+// (na ordem configurada pelo TI: pelo prazo, por prioridade ou por chegada).
 routerAdd("GET", "/api/fila/minhas-posicoes", (e) => {
   const meus = e.app.findRecordsByFilter(
     "chamados", "solicitante = {:u} && status = 'aberto'", "created", 0, 0, { u: e.auth.id },
@@ -13,9 +13,10 @@ routerAdd("GET", "/api/fila/minhas-posicoes", (e) => {
   const itens = {};
   for (const c of meus) {
     if (!c) continue;
+    // mesma ordem da Fila do TI (ordem_fila: definida em Configurações do TI > Fila e atendimento)
     const aFrente = e.app.countRecords("chamados", $dbx.exp(
-      "status = 'aberto' AND (peso > {:peso} OR (peso = {:peso} AND created < {:criado}))",
-      { peso: c.getInt("peso"), criado: c.getString("created") },
+      "status = 'aberto' AND (ordem_fila < {:o} OR (ordem_fila = {:o} AND created < {:criado}))",
+      { o: c.getFloat("ordem_fila"), criado: c.getString("created") },
     ));
     itens[c.id] = { a_frente: aFrente, posicao: aFrente + 1 };
   }

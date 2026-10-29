@@ -1,5 +1,5 @@
 import {
-  BarChart3, ChevronsLeft, ChevronsRight, ClipboardList, History, ListOrdered, Plus, SquarePen, Table2, Users,
+  BarChart3, ChevronsLeft, ChevronsRight, ClipboardList, History, ListOrdered, Plus, SlidersHorizontal, SquarePen, Table2, Users,
 } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent as KE, type PointerEvent as PE } from "react";
 import { Link, NavLink, useLocation, useSearchParams } from "react-router";
@@ -106,6 +106,7 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
         { para: "/ti/historico", rotulo: "Histórico", Icone: History, ativo: caminho === "/ti/historico" },
         { para: "/ti/painel", rotulo: "Painel", Icone: BarChart3, ativo: caminho === "/ti/painel" },
         { para: "/ti/usuarios", rotulo: ehAdmin(usuario) ? "Pessoas e setores" : "Pessoas", Icone: Users, ativo: caminho === "/ti/usuarios" },
+        ...(ehAdmin(usuario) ? [{ para: "/ti/configuracoes", rotulo: "Configurações do TI", Icone: SlidersHorizontal, ativo: caminho === "/ti/configuracoes", so: "admin" as const }] : []),
       ]
     : [
         { para: "/", rotulo: "Meus chamados", Icone: ClipboardList, ativo: caminho === "/" && aba !== "historico", numero: numeros?.meus, destaque: numeros?.precisaDeVoce },

@@ -45,7 +45,7 @@ export function useNumeros(): Numeros | null {
     if (tecnico) {
       const lista = await pb.collection("chamados").getFullList<Chamado>({
         filter: 'status != "resolvido"',
-        fields: "id,created,prioridade,status,responsavel,aguardando_motivo",
+        fields: "id,created,prioridade,prazo_em,status,responsavel,aguardando_motivo",
         requestKey: "menu-numeros",
       });
       const eu = usuario.id;

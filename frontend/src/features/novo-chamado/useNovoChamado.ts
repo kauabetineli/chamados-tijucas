@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useCategorias } from "../../components/CamposChamado";
 import { useAuth } from "../../lib/auth";
+import { PRIORIDADE_DO_IMPACTO, pedeMotivo, prioridadesDoServidor, useConfigTI } from "../../lib/configTI";
 import { criarComProgresso } from "../../lib/envio";
-import type { Categoria, Chamado, Impacto } from "../../lib/pb";
+import type { Categoria, Chamado, Impacto, Prioridade } from "../../lib/pb";
 
 // Rascunho: no Android, abrir a câmera às vezes faz o navegador recarregar a página.
 const CHAVE_RASCUNHO = "dinodesk:rascunho-chamado";
@@ -25,6 +26,15 @@ export function useNovoChamado() {
   const [categoria, setCategoria] = useState(rascunho.categoria ?? "");
   const [descricao, setDescricao] = useState(rascunho.descricao ?? "");
   const [impacto, setImpacto] = useState<Impacto | "">(rascunho.impacto ?? "");
+  // prioridade: o impacto sugere; se o TI liberou (Configurações do TI > Fila e atendimento), a pessoa ajusta
+  const { config } = useConfigTI();
+  const [prioridadePedida, setPrioridade] = useState<Prioridade | "">("");
+  const [motivoUrgencia, setMotivoUrgencia] = useState("");
+  const sugerida: Prioridade = impacto ? PRIORIDADE_DO_IMPACTO[impacto] : "normal";
+  const escolhePrioridade = config.servidor_prioridade;
+  const opcoesPrioridade = prioridadesDoServidor(config, sugerida);
+  const prioridade: Prioridade = escolhePrioridade && prioridadePedida && opcoesPrioridade.includes(prioridadePedida) ? prioridadePedida : sugerida;
+  const precisaMotivo = pedeMotivo(config, sugerida, prioridade);
   // o lugar do chamado é o setor da conta de quem abre (não há campo "local")
   const [arquivos, setArquivos] = useState<File[]>([]);
   const [preparandoAnexo, setPreparandoAnexo] = useState(false);
@@ -49,6 +59,10 @@ export function useNovoChamado() {
       dados.append("categoria", categoria);
       dados.append("descricao", descricao);
       dados.append("impacto", impacto);
+      if (escolhePrioridade) {
+        dados.append("prioridade", prioridade);
+        if (prioridade !== sugerida && motivoUrgencia.trim()) dados.append("motivo_urgencia", motivoUrgencia.trim());
+      }
       arquivos.forEach((f) => dados.append("anexos", f));
       const c = await criarComProgresso<Chamado>("chamados", dados, setProgresso);
       try { sessionStorage.removeItem(CHAVE_RASCUNHO); } catch { /* ok */ }
@@ -64,7 +78,8 @@ export function useNovoChamado() {
     categorias,
     categoria, setCategoria, categoriaEscolhida,
     descricao, setDescricao,
-    impacto, setImpacto,
+    impacto, setImpacto: (i: Impacto) => { setImpacto(i); setPrioridade(""); },
+    config, escolhePrioridade, opcoesPrioridade, sugerida, prioridade, setPrioridade, precisaMotivo, motivoUrgencia, setMotivoUrgencia,
     arquivos, setArquivos,
     preparandoAnexo, setPreparandoAnexo,
     progresso, enviando, enviar,

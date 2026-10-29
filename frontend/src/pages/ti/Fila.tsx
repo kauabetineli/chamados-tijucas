@@ -13,7 +13,8 @@ import { VisaoTI } from "../../components/VisaoTI";
 import { EtiquetaPrioridade, MarcaTeste } from "../../components/Selos";
 import { useAuth } from "../../lib/auth";
 import { atribuir, useTecnicos } from "../../lib/equipe";
-import { atrasado, cargaDaEquipe, META_ESPERA_HORAS, organizarFila } from "../../lib/fila";
+import { textoMinutos, useConfigTI } from "../../lib/configTI";
+import { atrasado, cargaDaEquipe, organizarFila } from "../../lib/fila";
 import { resumo, ROTULO_AGUARDANDO, ROTULO_ORIGEM, ROTULO_PRIORIDADE } from "../../lib/formato";
 import { EXPAND_CHAMADO, mensagemErro, nomeSolicitante, pb, type Chamado, type Usuario } from "../../lib/pb";
 import { useRealtime } from "../../lib/useRealtime";
@@ -24,6 +25,12 @@ import { avisar } from "../../lib/avisos";
 
 const TIPO_ARRASTE = "application/x-dinodesk-chamado";
 const primeiroNome = (n?: string) => (n || "").trim().split(/\s+/)[0] || "Técnico";
+
+/** Marca "escolhida por quem pediu" na etiqueta de prioridade, se o administrador ligou essa opção. */
+function useEscolhida() {
+  const { config } = useConfigTI();
+  return (c: Chamado) => (config.marcar_escolhida && c.prioridade_escolhida ? { motivo: c.motivo_urgencia } : false);
+}
 
 /** Tipo do problema: ícone da categoria num quadrado, sempre à esquerda (reconhece antes de ler). */
 function TipoCategoria({ c, grande }: { c: Chamado; grande?: boolean }) {
@@ -220,6 +227,7 @@ function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir
   arrastavel: boolean;
   aoArrastar: (id: string) => void;
 }) {
+  const escolhida = useEscolhida();
   const segurar = useSegurar(aoAcoes);
   return (
     <li
@@ -238,7 +246,7 @@ function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir
       <TipoCategoria c={c} />
       <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} draggable={false} className="min-w-0 flex-1 py-1">
         <p className="line-clamp-2 leading-snug font-semibold md:line-clamp-1">
-          <EtiquetaPrioridade prioridade={c.prioridade} />{resumo(c.descricao, 140)}
+          <EtiquetaPrioridade prioridade={c.prioridade} escolhida={escolhida(c)} />{resumo(c.descricao, 140)}
         </p>
         <LinhaApoio c={c} posicao={posicao} novaMensagem={novaMensagem} />
       </LinkChamado>
@@ -258,6 +266,7 @@ function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir
 
 /** O próximo chamado livre (ou passado para mim), em destaque, com começar e passar. */
 function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, realcado, novaMensagem }: { c: Chamado; eu: string; posicao: number; aoComecar: () => void; aoAtribuir: () => void; aoAcoes: () => void; ocupado: boolean; realcado?: boolean; novaMensagem?: boolean }) {
+  const escolhida = useEscolhida();
   const meu = c.responsavel === eu;
   return (
     <section id={`chamado-${c.id}`} aria-labelledby="titulo-proximo" className={`rounded-2xl bg-superficie p-4 ring-2 ring-acento md:p-5 ${realcado ? "animar-realce" : ""}`}>
@@ -270,7 +279,7 @@ function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, real
             {posicao > 1 && <span className="font-semibold tracking-normal text-tinta-2 normal-case" title="Os de cima estão com colegas">· {posicao}º da fila</span>}
             {meu && <span className="font-semibold tracking-normal text-tinta normal-case">· passado para você</span>}
           </p>
-          <p className="mt-1 text-lg leading-snug font-semibold"><EtiquetaPrioridade prioridade={c.prioridade} />{resumo(c.descricao, 220)}</p>
+          <p className="mt-1 text-lg leading-snug font-semibold"><EtiquetaPrioridade prioridade={c.prioridade} escolhida={escolhida(c)} />{resumo(c.descricao, 220)}</p>
           <p className="mt-1 text-sm text-tinta-2">
             {novaMensagem && <NovaMensagem />}
             {[c.expand?.categoria?.nome, c.expand?.setor?.nome, `${nomeSolicitante(c)}${c.origem !== "sistema" ? `, ${ROTULO_ORIGEM[c.origem].toLowerCase()}` : ""}`, c.protocolo].filter(Boolean).join(" · ")}
@@ -332,6 +341,7 @@ function Secao({ titulo, total, nota, vazio, arrastavel, children }: { titulo: s
  * Cada cartão mostra o dono; tocar nele atribui (eu, colega ou de volta para a fila).
  */
 export function Fila() {
+  const { config } = useConfigTI();
   const { usuario } = useAuth();
   const eu = usuario?.id ?? "";
   const navegar = useNavigate();
@@ -370,14 +380,14 @@ export function Fila() {
   const carregar = useCallback(async () => {
     const lista = await pb.collection("chamados").getFullList<Chamado>({
       filter: 'status != "resolvido"',
-      sort: "-peso,created", // a mesma ordem da senha que o servidor vê
+      sort: "ordem_fila,created", // a mesma ordem da senha que o servidor vê (Configurações do TI > Fila e atendimento)
       expand: EXPAND_CHAMADO,
     });
     setChamados(lista);
     // última mensagem de QUEM PEDIU em cada chamado aberto: marca "Nova mensagem" se você ainda não viu
     // (antes o TI só descobria a resposta abrindo o chamado; o servidor tem o "Nova resposta do TI")
     const msgs = await pb.collection("interacoes").getList<{ chamado: string; created: string }>(1, 200, {
-      filter: 'chamado.status != "resolvido" && tipo = "comentario" && interno = false && autor = chamado.solicitante',
+      filter: 'chamado.status != "resolvido" && tipo = "comentario" && interno = false && autor != "" && autor = chamado.solicitante',
       sort: "-created",
       fields: "chamado,created",
       requestKey: "fila-mensagens",
@@ -513,7 +523,7 @@ export function Fila() {
   );
   const nomeFiltro = filtro === "prazo" ? "Fora do prazo" : filtro === "livres" ? "Livres" : filtro === eu ? "Com você" : `Com ${primeiroNome(tecnicos.find((t) => t.id === filtro)?.name)}`;
 
-  const metas = (["urgente", "alta", "normal", "baixa"] as const).map((p) => `${ROTULO_PRIORIDADE[p]} ${META_ESPERA_HORAS[p]} h`).join(", ");
+  const metas = (["urgente", "alta", "normal", "baixa"] as const).map((p) => `${ROTULO_PRIORIDADE[p]} ${textoMinutos(config.prazos[p])}`).join(", ");
   const filtroTecnico = !!filtro && filtro !== "livres" && filtro !== "prazo";
   const secao = (titulo: string, itens: Chamado[], extra?: { nota?: string; vazio?: string; paginar?: boolean }) => (
     <Secao titulo={titulo} total={itens.length} nota={extra?.nota} vazio={extra?.vazio} arrastavel={podeArrastar}>

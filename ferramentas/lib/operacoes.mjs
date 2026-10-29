@@ -286,7 +286,7 @@ export async function simularRodadas(dino, { rodadas = 10, midia = true } = {}, 
   for (let i = 0; i < rodadas; i++) {
     const r = Math.random();
     const pegar = async (status) => {
-      const l = await dino.todos("chamados", { filtro: `ficticio = true && status = ${aspas(status)}`, ordem: "-peso,created", campos: "id,protocolo,origem,confirmado" });
+      const l = await dino.todos("chamados", { filtro: `ficticio = true && status = ${aspas(status)}`, ordem: "ordem_fila,created", campos: "id,protocolo,origem,confirmado" });
       return l;
     };
     let feito = null;

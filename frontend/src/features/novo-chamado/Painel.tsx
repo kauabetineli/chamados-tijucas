@@ -9,8 +9,11 @@ import { useCategorias } from "../../components/CamposChamado";
 import { ROTULO_IMPACTO } from "../../lib/formato";
 import { mensagemErro, type Impacto } from "../../lib/pb";
 import { AvisoSemelhantes } from "./AvisoSemelhantes";
-import { DICAS, DICAS_GERAIS, SUGESTOES } from "./sugestoes";
+import { EscolhaPrioridade } from "./EscolhaPrioridade";
 import type { FormularioChamado } from "./useNovoChamado";
+
+// perguntas para quando a categoria não tem as suas (Configurações do TI > Categorias)
+const DICAS_GERAIS = ["O que aparece na tela?", "Desde quando acontece?", "Já tentou alguma coisa?"];
 
 const DETALHE_IMPACTO: Record<Impacto, string> = {
   so_eu: "Consigo continuar trabalhando de outro jeito, ou só eu fui afetado.",
@@ -27,11 +30,13 @@ export function Painel({ f }: { f: FormularioChamado }) {
   const navegar = useNavigate();
   const categorias = useCategorias();
   const [erro, setErro] = useState("");
+  const [faltaMotivo, setFaltaMotivo] = useState(false);
   const anexos = useAnexos(f.setArquivos, f.setPreparandoAnexo);
   const caixa = useRef<HTMLTextAreaElement>(null);
   const nomeCategoria = f.categoriaEscolhida?.nome ?? "";
-  const sugestoes = SUGESTOES[nomeCategoria] ?? [];
-  const dicas = DICAS[nomeCategoria] ?? DICAS_GERAIS;
+  const sugestoes = f.categoriaEscolhida?.sugestoes ?? [];
+  const dicasCategoria = f.categoriaEscolhida?.dicas ?? [];
+  const dicas = dicasCategoria.length ? dicasCategoria : DICAS_GERAIS;
   const juntar = (trecho: string) => {
     f.setDescricao((atual) => (atual.trim() ? `${atual.trim()}\n${trecho} ` : `${trecho} `));
     caixa.current?.focus();
@@ -43,6 +48,7 @@ export function Painel({ f }: { f: FormularioChamado }) {
     if (!f.categoria) return setErro("Escolha o que está com problema (passo 1).");
     if (!f.descricao.trim()) return setErro("Conte o que está acontecendo (passo 2).");
     if (!f.impacto) return setErro("Diga quem está sendo afetado (passo 3).");
+    if (f.precisaMotivo && !f.motivoUrgencia.trim()) { setFaltaMotivo(true); return setErro("Conte por que é urgente (passo 3)."); }
     try {
       const c = await f.enviar();
       navegar(`/chamado/${c.id}`, { state: { novo: true } });
@@ -110,6 +116,7 @@ export function Painel({ f }: { f: FormularioChamado }) {
                 </label>
               ))}
             </div>
+            <div className="mt-3"><EscolhaPrioridade f={f} faltaMotivo={faltaMotivo && !f.motivoUrgencia.trim()} /></div>
           </Passo>
 
           {/* enviar: no fim do formulário; gruda embaixo enquanto o fim não aparece (notebook) */}
@@ -148,7 +155,7 @@ export function Painel({ f }: { f: FormularioChamado }) {
           <h2 className="font-display text-lg font-bold">Depois de enviar</h2>
           <ol className="mt-3 space-y-3 text-sm">
             <li className="flex gap-3"><Ticket className="size-5 shrink-0 text-acento" aria-hidden="true" /><span>Você recebe uma <b>senha da fila</b> e vê quantos chamados estão antes do seu.</span></li>
-            <li className="flex gap-3"><Clock className="size-5 shrink-0 text-acento" aria-hidden="true" /><span>A ordem segue a <b>urgência</b> e, depois, quem pediu primeiro.</span></li>
+            <li className="flex gap-3"><Clock className="size-5 shrink-0 text-acento" aria-hidden="true" /><span>{f.config.ordem_fila === "chegada" ? <>A fila segue a <b>ordem de chegada</b>.</> : f.config.ordem_fila === "prazo" ? <>A ordem segue o <b>prazo</b> de cada chamado: os mais urgentes têm prazo menor.</> : <>A ordem segue a <b>urgência</b> e, depois, quem pediu primeiro.</>}</span></li>
             <li className="flex gap-3"><Info className="size-5 shrink-0 text-acento" aria-hidden="true" /><span>O TI responde <b>por aqui</b>: não precisa mandar WhatsApp.</span></li>
           </ol>
         </section>

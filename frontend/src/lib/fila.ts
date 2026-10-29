@@ -2,9 +2,9 @@ import type { Chamado, Prioridade } from "./pb";
 import { paraData } from "./formato";
 
 /**
- * Tempo máximo de espera, em horas corridas, antes de o chamado aparecer como ATRASADO na fila do TI.
- * São metas internas para destacar quem está esperando demais (não mudam a ordem da fila).
- * Ajuste aqui depois de combinar com o Departamento de TI.
+ * Prazo para começar o atendimento. O certo vem do servidor (chamados.prazo_em, calculado com
+ * Configurações do TI > Fila e atendimento e as regras da automação). Este padrão só vale para
+ * chamado antigo sem prazo_em.
  */
 export const META_ESPERA_HORAS: Record<Prioridade, number> = {
   urgente: 1,
@@ -19,8 +19,18 @@ export function horasEsperando(c: Chamado, agora = Date.now()): number {
   return d ? (agora - d.getTime()) / 3_600_000 : 0;
 }
 
+/** Quando vence o prazo para começar o atendimento. */
+export function prazoDe(c: Chamado): Date | null {
+  const p = c.prazo_em ? paraData(c.prazo_em) : null;
+  if (p) return p;
+  const d = paraData(c.created);
+  return d ? new Date(d.getTime() + META_ESPERA_HORAS[c.prioridade] * 3_600_000) : null;
+}
+
 export function atrasado(c: Chamado, agora = Date.now()): boolean {
-  return c.status === "aberto" && horasEsperando(c, agora) > META_ESPERA_HORAS[c.prioridade];
+  if (c.status !== "aberto") return false;
+  const p = prazoDe(c);
+  return !!p && agora > p.getTime();
 }
 
 /** "12 min", "3 h", "2 dias": curto, para caber no cartão da fila. */
@@ -35,13 +45,13 @@ export function esperaCurta(horas: number): string {
 /**
  * Divide os chamados não resolvidos nas partes da fila do técnico:
  * - atendendo: em atendimento por mim agora;
- * - proximo: MEU próximo = o primeiro da fila (prioridade, depois chegada) que é meu ou está livre.
+ * - proximo: MEU próximo = o primeiro da fila (na ordem escolhida em Configurações do TI) que é meu ou está livre.
  *   Um chamado passado para mim e um livre disputam pela ordem da fila: urgente vem antes;
  * - depois: o resto dos abertos, na ordem (os meus aparecem destacados);
  * - comOutros: em atendimento por colegas;
  * - esperando: MEUS chamados em "aguardando" (peça, resposta, terceiro): fora da fila e da carga, mas não esquecidos.
  * `fila` = todos os abertos na ordem de atendimento (para numerar 1º, 2º...).
- * Espera a lista já ordenada por -peso,created.
+ * Espera a lista já ordenada por ordem_fila,created (a mesma ordem da senha que o servidor vê).
  */
 export function organizarFila(lista: Chamado[], eu: string) {
   const fila = lista.filter((c) => c.status === "aberto");

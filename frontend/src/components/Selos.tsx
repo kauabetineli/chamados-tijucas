@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronsUp, ChevronUp, Circle, CircleDot, FlaskConical, Hourglass } from "lucide-react";
+import { CheckCircle2, ChevronsUp, ChevronUp, Circle, CircleDot, FlaskConical, Hourglass, UserRound } from "lucide-react";
 import type { Prioridade, Status } from "../lib/pb";
 import { ROTULO_PRIORIDADE, ROTULO_STATUS } from "../lib/formato";
 
@@ -78,18 +78,29 @@ export function MarcaTeste({ ficticio }: { ficticio?: boolean }) {
  * simples, para colunas e cabeçalhos onde a ausência confundiria). Cor + ícone + texto: a cor nunca é a única pista.
  * Fica na frente do título do chamado, na mesma linha.
  */
-export function EtiquetaPrioridade({ prioridade, sempre }: { prioridade: Prioridade; sempre?: boolean }) {
+export function EtiquetaPrioridade({ prioridade, sempre, escolhida }: {
+  prioridade: Prioridade; sempre?: boolean;
+  /** quem pediu escolheu esta prioridade (Configurações do TI > Fila e atendimento): ícone de pessoa + motivo no title */
+  escolhida?: { motivo?: string } | false;
+}) {
+  const quem = escolhida ? (
+    <>
+      <UserRound className="ml-0.5 size-3.5" aria-hidden="true" />
+      <span className="sr-only">, escolhida por quem pediu{escolhida.motivo ? `: ${escolhida.motivo}` : ""}</span>
+    </>
+  ) : null;
+  const titulo = escolhida ? `Escolhida por quem pediu${escolhida.motivo ? `: “${escolhida.motivo}”` : ""}` : undefined;
   if (prioridade === "urgente") {
     return (
-      <span className="mr-1.5 inline-flex shrink-0 items-center gap-0.5 rounded-md bg-brasa-700 px-1.5 align-[1px] text-xs leading-5 font-bold whitespace-nowrap text-white">
-        <ChevronsUp className="size-3.5" aria-hidden="true" /> Urgente
+      <span title={titulo} className="mr-1.5 inline-flex shrink-0 items-center gap-0.5 rounded-md bg-brasa-700 px-1.5 align-[1px] text-xs leading-5 font-bold whitespace-nowrap text-white">
+        <ChevronsUp className="size-3.5" aria-hidden="true" /> Urgente{quem}
       </span>
     );
   }
   if (prioridade === "alta") {
     return (
-      <span className="mr-1.5 inline-flex shrink-0 items-center gap-0.5 rounded-md bg-sol-50 px-1.5 align-[1px] text-xs leading-5 font-bold whitespace-nowrap text-ambar-tinta ring-1 ring-ambar ring-inset">
-        <ChevronUp className="size-3.5" aria-hidden="true" /> Alta
+      <span title={titulo} className="mr-1.5 inline-flex shrink-0 items-center gap-0.5 rounded-md bg-sol-50 px-1.5 align-[1px] text-xs leading-5 font-bold whitespace-nowrap text-ambar-tinta ring-1 ring-ambar ring-inset">
+        <ChevronUp className="size-3.5" aria-hidden="true" /> Alta{quem}
       </span>
     );
   }

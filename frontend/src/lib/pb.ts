@@ -25,6 +25,12 @@ export interface Categoria extends RecordModel {
   icone: string;
   ordem: number;
   ativa: boolean;
+  /** botões "O que pode ter acontecido" (até 6), editados em Configurações do TI > Categorias */
+  sugestoes?: string[] | null;
+  /** perguntas "O que ajuda o TI" */
+  dicas?: string[] | null;
+  /** "Outro": sempre aparece, não dá para ocultar */
+  protegida?: boolean;
 }
 
 export interface Usuario extends RecordModel {
@@ -42,6 +48,11 @@ export interface Usuario extends RecordModel {
   trocar_senha?: boolean;
   bloqueado?: boolean;
   ficticio?: boolean;
+  /** ausência (só o TI vê): as regras de automação não mandam chamados para quem está ausente */
+  ausente_de?: string;
+  ausente_ate?: string;
+  ausencia_motivo?: string;
+  sem_automatico?: boolean;
   expand?: { setor?: Setor };
 }
 
@@ -73,6 +84,15 @@ export interface Chamado extends RecordModel {
   avaliacao_comentario?: string;
   midia_pendente: boolean;
   ficticio?: boolean;
+  /** prazo para COMEÇAR o atendimento (Configurações do TI > Fila e atendimento, ou uma regra) */
+  prazo_em?: string;
+  /** prazo dado por uma regra da automação (minutos; 0 = o da prioridade) */
+  prazo_regra_min?: number;
+  /** chave da ordem da fila (menor = antes); calculada no servidor */
+  ordem_fila?: number;
+  /** quem abriu escolheu uma prioridade diferente da sugerida pelo impacto */
+  prioridade_escolhida?: boolean;
+  motivo_urgencia?: string;
   iniciado_em: string;
   resolvido_em: string;
   created: string;

@@ -14,6 +14,8 @@ export interface Aviso {
   texto: string;
   tipo: TipoAviso;
   link?: { para: string; rotulo: string };
+  /** botão de ação no aviso (ex.: "Desfazer"); o aviso fecha ao clicar */
+  acao?: { rotulo: string; fazer: () => void };
   /** milissegundos na tela */
   duracao: number;
 }
@@ -27,10 +29,10 @@ function mudou() {
   for (const o of ouvintes) o();
 }
 
-export function avisar(texto: string, opcoes: { tipo?: TipoAviso; link?: Aviso["link"]; duracao?: number } = {}) {
+export function avisar(texto: string, opcoes: { tipo?: TipoAviso; link?: Aviso["link"]; acao?: Aviso["acao"]; duracao?: number } = {}) {
   const tipo = opcoes.tipo ?? "ok";
   // erro fica um pouco mais, para dar tempo de ler
-  const aviso: Aviso = { id: proximo++, texto, tipo, link: opcoes.link, duracao: opcoes.duracao ?? (tipo === "erro" ? 6000 : 3500) };
+  const aviso: Aviso = { id: proximo++, texto, tipo, link: opcoes.link, acao: opcoes.acao, duracao: opcoes.duracao ?? (tipo === "erro" || opcoes.acao ? 6000 : 3500) };
   // o mesmo texto de novo não empilha: substitui
   lista = [...lista.filter((a) => a.texto !== texto), aviso].slice(-MAXIMO);
   mudou();

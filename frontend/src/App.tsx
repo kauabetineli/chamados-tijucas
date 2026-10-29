@@ -10,6 +10,7 @@ import { NovoChamado } from "./pages/NovoChamado";
 import { Perfil } from "./pages/Perfil";
 import { Configuracoes } from "./pages/Configuracoes";
 import { TrocarSenha } from "./pages/TrocarSenha";
+import { ConfiguracoesTI } from "./pages/ti/ConfiguracoesTI";
 import { Fila } from "./pages/ti/Fila";
 import { Historico } from "./pages/ti/Historico";
 import { Painel } from "./pages/ti/Painel";
@@ -66,6 +67,7 @@ export function App() {
             <Route path="ti/painel" element={<SoTecnico><Painel /></SoTecnico>} />
             <Route path="ti/chamados" element={<SoTecnico><TodosChamados /></SoTecnico>} />
             <Route path="ti/usuarios" element={<SoTecnico><Usuarios /></SoTecnico>} />
+            <Route path="ti/configuracoes" element={<SoTecnico><ConfiguracoesTI /></SoTecnico>} />
             <Route path="ti/qrcodes" element={<SoTecnico><QrCodes /></SoTecnico>} />
             <Route path="ti/chamado/:id" element={<SoTecnico><Chamado /></SoTecnico>} />
           </Route>
