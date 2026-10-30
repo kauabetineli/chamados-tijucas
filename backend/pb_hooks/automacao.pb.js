@@ -33,6 +33,8 @@ routerAdd("POST", "/api/ti/automacao", (e) => {
     throw new BadRequestError("Outra pessoa salvou a automação enquanto você editava. Recarregue a página para ver a versão nova.");
   }
   const dados = A.normalizarAutomacao(b.dados);
+  const erros = A.validarAutomacao(dados);
+  if (erros.length) throw new BadRequestError(erros.join(" "));
   const col = e.app.findCollectionByNameOrId("automacao_versoes");
   const v = new Record(col);
   v.set("dados", dados);
@@ -42,31 +44,35 @@ routerAdd("POST", "/api/ti/automacao", (e) => {
   return e.json(200, { versao: v.id, dados });
 }, $apis.requireAuth());
 
-// ---------- automação: testar um chamado de exemplo com as regras da tela (sem salvar nada) ----------
-// Corpo: { dados, chamado: { categoria, setor, impacto, prioridade, origem, texto, anexo, horario, reaberto } }
+// ---------- automação: testar um chamado de exemplo com os fluxos da tela (sem salvar nada) ----------
+// Corpo: { dados, gatilho, chamado: { categoria, setor, impacto, prioridade, origem, texto, anexo, horario, responsavel }, giro }
+// Roda TODOS os fluxos ligados do gatilho pedido, na ordem da lista, como o servidor faria.
 routerAdd("POST", "/api/ti/automacao/testar", (e) => {
   const R = require(`${__hooks}/lib/regras.js`);
   const A = require(`${__hooks}/lib/automacao.js`);
   if (!e.hasSuperuserAuth() && !R.ehTecnico(e.auth)) throw new ForbiddenError("Somente o TI.");
   const b = e.requestInfo().body || {};
   const dados = A.normalizarAutomacao(b.dados);
+  const gatilho = A.GATILHOS.indexOf(b.gatilho) >= 0 ? b.gatilho : "novo";
   const ch = b.chamado || {};
   const info = {
     categoria: String(ch.categoria || ""), setor: String(ch.setor || ""), impacto: String(ch.impacto || "so_eu"),
     prioridade: A.NIVEL[ch.prioridade] ? ch.prioridade : (R.PRIORIDADE_POR_IMPACTO[ch.impacto] || "normal"),
     origem: String(ch.origem || "sistema"), texto: String(ch.texto || ""), anexo: ch.anexo === "sim" ? "sim" : "nao",
     horario: ["expediente", "fora", "fim_semana"].indexOf(ch.horario) >= 0 ? ch.horario : "expediente",
-    reaberto: ch.reaberto === "sim" ? "sim" : "nao",
+    responsavel: ch.responsavel === "sim" ? "sim" : "nao",
   };
   const ctx = A.contexto(e.app);
   const giro = b.giro || {}; // a tela soma "abrir outro igual" sem mexer no contador real
-  const r = A.avaliarChegada(dados, info, Object.assign({}, ctx, { giro: (id) => ctx.giro(id) + (parseInt(giro[id], 10) || 0) }));
+  const r = A.executar(dados, gatilho, info, Object.assign({}, ctx, { giro: (k) => ctx.giro(k) + (parseInt(giro[k], 10) || 0) }), { podeAtribuir: true });
   const cfg = A.lerConfig(e.app);
   return e.json(200, {
-    prioridade: r.prioridade,
+    gatilho,
+    prioridade: r.prioridade, prioridade_antes: info.prioridade,
     prazo_min: r.prazoMin || cfg.prazos[r.prioridade],
     pessoa: r.pessoa, pessoa_nome: ctx.nome(r.pessoa), regra: r.regraPessoa, giro_regra: r.giroUsado,
-    efeitos: r.efeitos, status: r.status, traco: r.traco,
+    devolver: r.devolver, efeitos: r.efeitos, fluxos: r.fluxos, traco: r.traco, conflitos: r.conflitos,
+    erros: A.validarAutomacao(dados),
   });
 }, $apis.requireAuth());
 
@@ -135,12 +141,12 @@ onRecordUpdateRequest((e) => {
   if (mudou("ordem_fila") || mudou("prazos") || mudou("horario")) A.recalcularFila(e.app, depois);
 }, "config_ti");
 
-// ---------- etapa 4: a cada 5 minutos ----------
+// ---------- fluxos de tempo: a cada 5 minutos ----------
 cronAdd("automacao-tempo", "*/5 * * * *", () => {
   try {
     require(`${__hooks}/lib/automacao.js`).rodarRegrasDeTempo($app);
   } catch (err) {
-    $app.logger().warn("Falha nas regras de tempo", "erro", String(err));
+    $app.logger().warn("Falha nos fluxos de tempo", "erro", String(err));
   }
 });
 
@@ -166,7 +172,7 @@ onRecordCreateRequest((e) => {
   e.next();
 }, "categorias");
 
-// Roda a etapa 4 na hora (para testes e para as ferramentas; o cron faz isso a cada 5 minutos).
+// Roda os fluxos de tempo na hora (para testes e para as ferramentas; o cron faz isso a cada 5 minutos).
 routerAdd("POST", "/api/ti/automacao/rodar-tempo", (e) => {
   if (!e.hasSuperuserAuth()) throw new ForbiddenError("Somente superusuário.");
   return e.json(200, { aplicadas: require(`${__hooks}/lib/automacao.js`).rodarRegrasDeTempo(e.app) });

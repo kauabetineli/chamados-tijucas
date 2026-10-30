@@ -252,3 +252,27 @@
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 }
+
+/* Editor de fluxos (React Flow): as cores saem dos tokens, então o desenho segue o tema claro/escuro. */
+.react-flow {
+  --xy-background-color: var(--color-fundo);
+  --xy-background-pattern-color: var(--color-linha);
+  --xy-edge-stroke: var(--color-tinta-2);
+  --xy-edge-stroke-selected: var(--color-acento);
+  --xy-connectionline-stroke: var(--color-acento);
+  --xy-attribution-background-color: transparent;
+  --xy-minimap-background-color: var(--color-superficie);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--color-fundo) 70%, transparent);
+  --xy-minimap-node-background-color: var(--color-linha);
+  --xy-controls-button-background-color: var(--color-superficie);
+  --xy-controls-button-background-color-hover: var(--color-fundo);
+  --xy-controls-button-color: var(--color-tinta);
+  --xy-controls-button-color-hover: var(--color-tinta);
+  --xy-controls-button-border-color: var(--color-linha);
+  --xy-selection-background-color: color-mix(in srgb, var(--color-acento) 10%, transparent);
+  --xy-selection-border: 1px dotted var(--color-acento);
+  color: var(--color-tinta);
+}
+.react-flow__attribution a { color: var(--color-tinta-2); }
+.react-flow__edge-textbg { fill: var(--color-superficie); }
+.react-flow__controls { box-shadow: none; border: 1px solid var(--color-linha); border-radius: 0.75rem; overflow: hidden; }

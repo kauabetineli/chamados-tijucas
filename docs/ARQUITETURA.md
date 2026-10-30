@@ -45,7 +45,7 @@ QR code / link  →  site da Prefeitura (/dinodesk, página estática)  →  htt
 | `setores` | nome, predio, ramal, ativo | leitura pública; criação e edição pelo admin do TI (`/api/ti/setores`) |
 | `categorias` | nome, icone (nome Lucide, lista em `components/Icone.tsx`), ordem, ativa, sugestoes (≤ 6), dicas, protegida ("Outro") | leitura para logados; criação e edição pelo admin do TI (Configurações do TI > Categorias); não se apaga, oculta |
 | `config_ti` | chave ("geral"), dados (ordem_fila, prazos, servidor_prioridade, teto_prioridade, pedir_motivo_urgente, marcar_escolhida, horario, destino_ausencia) | leitura para logados; edição pelo admin do TI |
-| `automacao_versoes` | dados (ajustes, quem, senao, tempo), autor, resumo | técnicos leem; versão nova só pela rota do admin. A mais nova vale |
+| `automacao_versoes` | dados (fluxos, senao), autor, resumo | técnicos leem; versão nova só pela rota do admin. A mais nova vale |
 | `chamados` | protocolo, descricao, categoria, solicitante / solicitante_nome, setor (é o lugar do chamado; `local` ficou só como legado), impacto, prioridade, peso, prazo_em, prazo_regra_min, ordem_fila, prioridade_escolhida, motivo_urgencia, regras_tempo, status (aberto/em_andamento/aguardando/resolvido), aguardando_motivo, aguardando_desde, origem, responsavel, registrado_por, anexos, diagnostico, solucao, confirmado, avaliacao (bom/ruim), avaliacao_comentario, iniciado_em, resolvido_em | solicitante vê os seus; técnicos veem e alteram todos |
 | `interacoes` | chamado, autor, tipo (comentario/status/prioridade/atribuicao/sistema), texto, interno | solicitante vê a linha do tempo dos seus chamados, sem as notas internas |
 
@@ -62,12 +62,16 @@ QR code / link  →  site da Prefeitura (/dinodesk, página estática)  →  htt
   Mudar a ordem, os prazos ou o horário recalcula todos os não resolvidos. Fila (`sort=ordem_fila,created`) e
   `/api/fila/minhas-posicoes` usam a mesma ordem.
 - **Automação (Configurações do TI):** motor em `pb_hooks/lib/automacao.js`, só no servidor (a tela "Testar" chama
-  `/api/ti/automacao/testar`, então mostra exatamente o que vai acontecer). Etapas: **1** prioridade, prazo e avisos (todas
-  as regras que combinam valem; maior prioridade e menor prazo ganham) → **2** quem atende (de cima para baixo, vale a
-  primeira que escolhe uma pessoa disponível; blocos de regras têm condição própria e um "se nenhuma servir": continua,
-  livre ou pessoa) → **3** se ninguém foi escolhido → **4** com o passar do tempo (cron a cada 5 min; cada regra age uma vez
-  por chamado, guardado em `regras_tempo`). Pessoa ausente ou fora dos automáticos é pulada. Cada salvamento é uma versão
-  (`automacao_versoes`), com histórico. Nada de regra fica no código.
+  `/api/ti/automacao/testar`, então mostra exatamente o que vai acontecer). A automação é feita de **fluxos independentes**
+  (como jobs/DAGs): cada fluxo começa num **gatilho** (`novo`, `reaberto`, e os de tempo `sem_inicio`, `vencido`, `espera`,
+  conferidos pelo cron a cada 5 min) e segue **blocos ligados**: perguntas (saídas Sim/Não) e ações. Um bloco roda depois de
+  todos os que apontam para ele e só se alguma ligação que chega nele estiver ativa; ciclos são recusados ao salvar.
+  Fluxos do mesmo gatilho rodam na ordem da lista. **Conflitos (regra fixa):** o primeiro fluxo que escolher uma pessoa
+  disponível trava o responsável; na prioridade vale a maior; no prazo, o menor; avisos, respostas e notas somam.
+  "Se nenhum fluxo escolher alguém" (só chamado novo): livre ou uma pessoa. Fluxo de tempo age uma vez por chamado (quando
+  alguma ação dele rodou; guardado em `regras_tempo`). Pessoa ausente ou fora dos automáticos é pulada. Cada salvamento é
+  uma versão (`automacao_versoes`), com histórico. Nada de regra fica no código. Editor: `features/configuracoes/fluxo/`
+  (React Flow `@xyflow/react`, cores pelos tokens em `index.css`).
 - **Ausências:** `users.ausente_de/ate` (o fim encerra sozinho), `sem_automatico`. O admin marca em Equipe e ausências;
   cada técnico marca a própria no Perfil. `destino_ausencia` decide se os chamados da pessoa ficam com ela ou voltam à fila.
 - **Causa e solução são opcionais ao resolver** (desde 18/10/2026). Rotina que o TI já sabe resolver fecha sem texto;

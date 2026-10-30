@@ -47,7 +47,7 @@ O hook (`pb_hooks/chamados.pb.js`) completa o resto:
 - **técnico** (registro de pedido de fora): manda também `solicitante` (id) ou `solicitante_nome` (os dois podem faltar se vier `setor`), `origem`
   (`whatsapp`|`ligacao`|`presencial`) e pode mandar `status: "resolvido"` (com `diagnostico` e `solucao` opcionais);
 - sempre: protocolo `AAAA-NNNNN`, setor do solicitante, `ficticio` copiado do solicitante, linha do tempo e aviso ntfy;
-- automação (etapas 1 a 3 de `automacao_versoes`, a versão mais nova): prioridade, prazo, responsável, avisos, resposta automática
+- automação (fluxos com gatilho "Chamado novo" de `automacao_versoes`, a versão mais nova): prioridade, prazo, responsável, avisos, resposta automática
   (comentário sem `autor`) e nota interna; depois `prazo_em` (em horário de atendimento, se ligado) e `ordem_fila`.
 
 ### Mudar status (técnico)
@@ -72,7 +72,7 @@ Qualquer outro status limpa o motivo. De `aguardando` dá para retomar (`em_anda
 |---|---|---|---|
 | GET | `/api/fila/minhas-posicoes` | usuário | posição na fila de cada chamado aberto do usuário (pela `ordem_fila`) |
 | POST | `/api/chamados/{id}/confirmar` | solicitante do chamado | confirma que o problema foi resolvido; opcional `{ avaliacao: "bom"\|"ruim", comentario }` (avaliação do atendimento, vai para a linha do tempo) |
-| POST | `/api/chamados/{id}/reabrir` | solicitante do chamado | `{ motivo }` volta o chamado para a fila |
+| POST | `/api/chamados/{id}/reabrir` | solicitante do chamado | `{ motivo }` volta o chamado para a fila e roda os fluxos "Chamado reaberto" da automação |
 | GET | `/api/chamados/semelhantes?categoria=ID` | usuário | chamados em aberto da mesma categoria no setor (evita duplicado) |
 | GET | `/api/painel/resumo?dias=30` | técnico | indicadores do painel: totais, tempos, por origem/categoria/setor/dia/técnico, `agora` (aberto, em_andamento, aguardando) e `avaliacao` (bom, ruim, confirmados) |
 | GET | `/api/painel/tecnico?ano=2026&tecnico=ID` | técnico (outro técnico: só **admin do TI**) | "Meus números": `hoje`, `semana` (7 dias), `mes` (cada um `{ resolvidos, horas_media, iniciados, bom, ruim }`), `agora`, `anos` e `por_mes` com os 12 meses (zerados inclusive). Datas no fuso de Brasília |
@@ -85,10 +85,10 @@ Qualquer outro status limpa o motivo. De `aguardando` dá para retomar (`em_anda
 | GET | `/api/ti/setores` | técnico | todos os setores com `pessoas` (quantas contas) → `{ itens }` |
 | POST | `/api/ti/setores` | **admin do TI** | `{ nome, predio?, ramal? }`; se o nome já existe, devolve o existente (`criado: false`) |
 | PATCH | `/api/ti/setores/{id}` | **admin do TI** | `{ nome?, predio?, ramal?, ativo? }` (setor inativo some da escolha; não se apaga) |
-| GET | `/api/ti/automacao` | técnico | regras em vigor → `{ versao, dados: { ajustes, quem, senao, tempo }, historico: [{ id, quando, autor, resumo }] }` (15 últimas) |
-| POST | `/api/ti/automacao` | **admin do TI** | `{ dados, resumo, base }` cria uma versão nova (o servidor limpa as regras). `base` = versão aberta na tela; se outra pessoa salvou depois, 400 |
-| POST | `/api/ti/automacao/testar` | técnico | `{ dados, chamado: { categoria, setor, impacto, prioridade, origem, texto, anexo, horario }, giro }` → `{ prioridade, prazo_min, pessoa, pessoa_nome, regra, giro_regra, efeitos, status, traco }` (nada é salvo; `status[id]` = `sim`/`nao`/`pulada`/`off`) |
-| POST | `/api/ti/automacao/rodar-tempo` | superusuário | roda a etapa 4 agora (o cron `automacao-tempo` roda a cada 5 min) → `{ aplicadas }` |
+| GET | `/api/ti/automacao` | técnico | fluxos em vigor → `{ versao, dados: { fluxos, senao }, historico: [{ id, quando, autor, resumo }] }` (15 últimas). Formato de um fluxo: topo de `backend/pb_hooks/lib/automacao.js` |
+| POST | `/api/ti/automacao` | **admin do TI** | `{ dados, resumo, base }` cria uma versão nova (o servidor limpa os fluxos e recusa ciclos ou ação que não vale para o gatilho, 400). `base` = versão aberta na tela; se outra pessoa salvou depois, 400 |
+| POST | `/api/ti/automacao/testar` | técnico | `{ dados, gatilho, chamado: { categoria, setor, impacto, prioridade, origem, texto, anexo, horario, responsavel }, giro }` → `{ gatilho, prioridade, prioridade_antes, prazo_min, pessoa, pessoa_nome, regra, giro_regra, devolver, efeitos, fluxos: { [id]: { status: { [bloco]: sim/nao/ignorada }, ativas: [ligação] } }, traco, conflitos, erros }` (roda todos os fluxos ligados do gatilho; nada é salvo) |
+| POST | `/api/ti/automacao/rodar-tempo` | superusuário | roda os fluxos de tempo agora (o cron `automacao-tempo` roda a cada 5 min) → `{ aplicadas }` |
 | GET | `/api/ti/equipe` | técnico | técnicos com `carga`, ausência (`ausente_de`, `ausente_ate`, `ausencia_motivo`, `ausente_hoje`), `sem_automatico`, `disponivel` → `{ equipe, destino_ausencia }` |
 | PATCH | `/api/ti/equipe/{id}` | **admin do TI**, ou o próprio técnico (menos `sem_automatico`) | `{ ausente_de?, ausente_ate? ("AAAA-MM-DD" ou ""), ausencia_motivo?, sem_automatico? }` → `{ ok, devolvidos, ausente_hoje }`. Com `destino_ausencia = "fila"`, ficar ausente hoje devolve os chamados abertos da pessoa para a fila |
 

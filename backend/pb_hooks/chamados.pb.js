@@ -84,7 +84,7 @@ onRecordCreateRequest((e) => {
 
   if (!superuser) rec.set("registrado_por", auth.id);
   rec.set("confirmado", false);
-  // automação do TI (etapas 1 a 3): prioridade, prazo, avisos e quem atende. Registro já resolvido não passa por ela.
+  // automação do TI (fluxos "Chamado novo"): prioridade, prazo, avisos e quem atende. Registro já resolvido não passa por ela.
   let aplicado = null;
   if (rec.getString("status") !== "resolvido") {
     aplicado = A.aplicarNaAbertura(e.app, rec, !rec.getString("responsavel") && rec.getString("status") === "aberto");

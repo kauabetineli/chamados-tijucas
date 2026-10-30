@@ -4,7 +4,7 @@ import { EsqueletoLinhas } from "../../components/Esqueleto";
 import { BarraSalvar } from "./BarraSalvar";
 import { ICONES, IconeCategoria } from "../../components/Icone";
 import { avisar } from "../../lib/avisos";
-import { ehBloco, type Automacao, type Regra } from "../../lib/automacao";
+import type { Automacao } from "../../lib/automacao";
 import { limparCache } from "../../lib/cache";
 import { mensagemErro, pb, type Categoria } from "../../lib/pb";
 
@@ -19,16 +19,14 @@ const doBanco = (c: Categoria): Rasc => ({
 });
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-/** Em quantas regras da automação a categoria aparece. */
+/** Em quantos fluxos da automação a categoria aparece. */
 function usoNasRegras(a: Automacao | null): Record<string, number> {
   const n: Record<string, number> = {};
   if (!a) return n;
-  const ver = (r: { conds: Regra["conds"] }) => {
-    const ids = new Set(r.conds.filter((c) => c.campo === "categoria").flatMap((c) => c.valores));
+  for (const f of a.fluxos) {
+    const ids = new Set(f.nos.flatMap((x) => (x.cond?.campo === "categoria" ? x.cond.valores : [])));
     ids.forEach((id) => { n[id] = (n[id] ?? 0) + 1; });
-  };
-  a.ajustes.forEach(ver); a.tempo.forEach(ver);
-  a.quem.forEach((x) => { ver(x); if (ehBloco(x)) x.regras.forEach(ver); });
+  }
   return n;
 }
 
@@ -213,7 +211,7 @@ function EdicaoCategoria({ c, uso, erro, mudar, descartarNova }: {
       {uso > 0 && (
         <p className="flex items-start gap-2 rounded-xl bg-sol-50 px-3 py-2 text-sm font-semibold text-ambar-tinta">
           <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          Usada em {uso} regra{uso > 1 ? "s" : ""} da automação. {c.ativa ? "Mudar o nome não muda as regras." : "Oculta, ninguém escolhe esta categoria: essas regras deixam de valer para chamados novos."}
+          Usada em {uso} fluxo{uso > 1 ? "s" : ""} da automação. {c.ativa ? "Mudar o nome não muda os fluxos." : "Oculta, ninguém escolhe esta categoria: essas perguntas deixam de combinar com chamados novos."}
         </p>
       )}
 

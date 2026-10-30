@@ -18,16 +18,16 @@ backend/                     PocketBase 0.40.4 (um executável + SQLite)
   pb_hooks/
     chamados.pb.js           abrir/atualizar chamado, comentários (protocolo, prioridade, histórico, avisos)
     rotas.pb.js              /api/fila, /api/chamados/{id}/confirmar|reabrir|solucoes-parecidas, /api/painel/resumo|tecnico, /api/chamados/semelhantes
-    automacao.pb.js          Configurações do TI: /api/ti/automacao(/testar), /api/ti/equipe, config_ti, cron da etapa 4
+    automacao.pb.js          Configurações do TI: /api/ti/automacao(/testar), /api/ti/equipe, config_ti, cron dos fluxos de tempo
     usuarios.pb.js           /api/sistema/info, /api/ti/usuarios, /api/ti/setores; protege o campo "ficticio"
     videos.pb.js             cron que comprime vídeos com ffmpeg
-    lib/                     regras.js, automacao.js (motor das regras e da fila), avisos.js (ntfy), config.js, usuarios.js, videos.js
+    lib/                     regras.js, automacao.js (motor dos fluxos e da fila), avisos.js (ntfy), config.js, usuarios.js, videos.js
   config.json                (fora do Git) ambiente, ntfy. Modelo: config.exemplo.json
 frontend/src/                React 19 + Vite + TypeScript + Tailwind v4 (tokens em index.css)
   pages/                     telas do servidor (MeusChamados, NovoChamado, Chamado)
   pages/ti/                  telas do TI (Fila, TodosChamados = tabela com filtros, Registrar, Historico, Painel, Usuarios, QrCodes)
   features/novo-chamado/     abertura de chamado em ETAPAS modulares (etapas.tsx); celular = passo a passo, PC = painel
-  features/configuracoes/    Configurações do TI (só admin, /ti/configuracoes): Automação, Equipe, Categorias, Fila e atendimento
+  features/configuracoes/    Configurações do TI (só admin, /ti/configuracoes): Automação (editor de fluxos em fluxo/, React Flow), Equipe, Categorias, Fila e atendimento
   components/                peças reutilizadas (Anexos, Selos, Layout, BarraLateral, PainelChamado, MuralAvisos...)
   lib/pb.ts                  cliente PocketBase, TIPOS das coleções, mensagemErro()
 ferramentas/                 CLI + servidor MCP para gerar dados de teste e operar o sistema (ver abaixo)
@@ -119,7 +119,7 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 - `setores`: nome, predio, ramal (do setor), ativo (desativar em vez de apagar). `categorias`: nome, icone (lucide, lista em
   `components/Icone.tsx`), ordem, ativa, sugestoes, dicas, protegida ("Outro"). Tudo editável pelo admin do TI.
 - `config_ti` (registro "geral"): ordem da fila, prazos por prioridade, prioridade escolhida pelo servidor, horário, destino
-  das ausências. `automacao_versoes`: regras da automação (a versão mais nova vale). **Nada disso fica chumbado no código:**
+  das ausências. `automacao_versoes`: fluxos da automação (a versão mais nova vale). **Nada disso fica chumbado no código:**
   leia com `lib/configTI.ts` (front) ou `lib/automacao.js` (hooks).
 - `chamados`: protocolo (2026-00001), descricao, categoria, solicitante | solicitante_nome, setor (o lugar do chamado; `local` é legado e não é usado),
   impacto (`so_eu`|`setor`|`publico`) → prioridade (`normal`|`alta`|`urgente`, `baixa` só pelo TI), peso,

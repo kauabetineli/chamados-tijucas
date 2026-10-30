@@ -1,26 +1,28 @@
 // Automação dos chamados (tela "Configurações do TI" > "Automação dos chamados").
 //
-// O caminho de um chamado novo:
-//   1. "ajustes": TODAS as regras que combinarem são aplicadas (prioridade: vale a maior; prazo: vale o menor;
-//      avisos, respostas automáticas e notas internas somam).
-//   2. "quem": de cima para baixo, vale a PRIMEIRA regra que escolher uma pessoa disponível. Blocos agrupam regras:
-//      as de dentro só são verificadas se o chamado combinar com o bloco; o rodapé do bloco diz o que fazer se
-//      nenhuma de dentro servir (continuar para baixo, deixar livre ou mandar para alguém).
-//   3. "senao": se ninguém foi escolhido (inclusive porque a pessoa está ausente).
-//   4. "tempo": vigia os chamados abertos (cron a cada 5 min). Cada regra age no máximo UMA vez por chamado.
+// FLUXOS independentes, como jobs: cada fluxo começa num GATILHO e segue um desenho de blocos ligados (um DAG).
+//   gatilhos: "novo" (chamado chegando), "reaberto" (quem pediu reabriu) e, conferidos a cada 5 minutos,
+//             "sem_inicio" (ninguém começou em X min), "vencido" (passou do prazo), "espera" (quem pediu não respondeu em X min)
+//   blocos:   "inicio" (um por fluxo, é o gatilho), "cond" (pergunta: saídas "sim" e "nao"), "acao" (faz algo: saída "segue")
+// Um bloco roda depois que TODOS os blocos que apontam para ele foram decididos, e só se pelo menos uma ligação
+// que chega nele estiver ativa (como o "one_success" do Airflow). Bloco sem ligação chegando nunca roda.
+// Ciclos são recusados ao salvar (validarAutomacao).
 //
-// As regras ficam em automacao_versoes (a versão mais recente vale). O MESMO motor responde a rota de teste
-// (POST /api/ti/automacao/testar), então o "Testar" da tela mostra exatamente o que o servidor faria.
+// Vários fluxos com o mesmo gatilho rodam um depois do outro, na ordem da lista, sobre o mesmo chamado. Conflitos:
+//   responsável: o PRIMEIRO fluxo que escolher uma pessoa disponível trava a escolha (os seguintes são ignorados e o teste avisa);
+//   prioridade: vale a MAIOR que os fluxos definirem; prazo: vale o MENOR. Avisos, respostas e notas somam.
+// "senao": chamado novo que nenhum fluxo mandou para alguém fica livre na fila ou vai para uma pessoa.
 //
-// Formato (JSON):
-//   regra = { id, nome, ativa, conds: [{ campo, op, valores: [] }], acoes: [{ tipo, valor?, pessoas?, modo? }] }
-//   bloco = { tipo: "bloco", id, nome, ativa, conds, senao: { tipo: "continua"|"livre"|"pessoa", pessoa? }, regras: [regra] }
-//   regra de tempo = regra + { gatilho: "sem_inicio"|"vencido"|"espera", minutos }
-//   campos: categoria (id), setor (id), impacto, prioridade, origem, texto (palavras), anexo, horario, reaberto
+// Formato (JSON salvo em automacao_versoes.dados):
+//   { fluxos: [fluxo], senao: { tipo: "livre"|"pessoa", pessoa } }
+//   fluxo   = { id, nome, ativo, gatilho, minutos, nos: [no], ligacoes: [{ id, de, saida: "sim"|"nao"|"segue", para }] }
+//   no      = { id, tipo: "inicio"|"cond"|"acao", x, y, cond?: { campo, op, valores }, acao?: { tipo, valor, pessoas, modo } }
+//   campos: categoria (id), setor (id), impacto, prioridade, origem, texto (palavras), anexo, horario, responsavel (sim|nao)
 //   ops: "e" | "nao_e" | "contem" | "nao_contem"
-//   ações: prioridade, prazo (minutos), avisar (equipe|responsavel|id), resposta (texto), nota (texto),
-//          atribuir (id), rodizio (pessoas, modo: sequencia|carga), subir, devolver
+//   ações: prioridade, prazo (minutos), subir, atribuir (id), rodizio (pessoas, modo: sequencia|carga), devolver,
+//          avisar (equipe|responsavel|id), resposta (texto), nota (texto). Quais valem em cada gatilho: ACOES_POR_GATILHO.
 //
+// O MESMO motor responde a rota de teste (POST /api/ti/automacao/testar): a tela mostra exatamente o que o servidor faria.
 // Atenção (PocketBase/goja): importe DENTRO do handler: const A = require(`${__hooks}/lib/automacao.js`)
 
 const NIVEL = { baixa: 1, normal: 2, alta: 3, urgente: 4 };
@@ -37,15 +39,23 @@ const CONFIG_PADRAO = {
   horario: { ativo: false, dias: [1, 2, 3, 4, 5], inicio: "08:00", fim: "17:00" },
   destino_ausencia: "fica",
 };
-const AUTOMACAO_VAZIA = { ajustes: [], quem: [], senao: { tipo: "livre" }, tempo: [] };
+const AUTOMACAO_VAZIA = { fluxos: [], senao: { tipo: "livre", pessoa: "" } };
 
-const CAMPOS = ["categoria", "setor", "impacto", "prioridade", "origem", "texto", "anexo", "horario", "reaberto"];
-const ACOES_POR_ETAPA = {
-  ajustes: ["prioridade", "prazo", "avisar", "resposta", "nota"],
-  quem: ["atribuir", "rodizio", "avisar", "nota"],
-  tempo: ["avisar", "subir", "devolver", "resposta", "nota"],
+const GATILHOS = ["novo", "reaberto", "sem_inicio", "vencido", "espera"];
+const GATILHOS_TEMPO = ["sem_inicio", "vencido", "espera"];
+const CAMPOS = ["categoria", "setor", "impacto", "prioridade", "origem", "texto", "anexo", "horario", "responsavel"];
+const OPS = ["e", "nao_e", "contem", "nao_contem"];
+const NO_TEMPO = ["prioridade", "subir", "atribuir", "rodizio", "devolver", "avisar", "resposta", "nota"];
+const ACOES_POR_GATILHO = {
+  novo: ["prioridade", "prazo", "subir", "atribuir", "rodizio", "avisar", "resposta", "nota"],
+  reaberto: ["prioridade", "subir", "atribuir", "rodizio", "avisar", "resposta", "nota"],
+  sem_inicio: NO_TEMPO, vencido: NO_TEMPO, espera: NO_TEMPO,
 };
-const GATILHOS = ["sem_inicio", "vencido", "espera"];
+const ROTULO_GATILHO = {
+  novo: "Chamado novo", reaberto: "Chamado reaberto", sem_inicio: "Ninguém começou o atendimento",
+  vencido: "Passou do prazo", espera: "Quem pediu não respondeu",
+};
+const LIMITES = { fluxos: 40, nos: 60, ligacoes: 120 };
 
 // ---------- leitura ----------
 
@@ -98,56 +108,113 @@ function jsonCampo(rec, campo) {
   try { return JSON.parse(toString(raw)); } catch (_) { return jsonDe(raw); }
 }
 
-// valida e limpa o que veio da tela (nunca confia no corpo da requisição)
+// ---------- limpeza do que veio da tela (nunca confia no corpo da requisição) ----------
+
+function lista(v) { return Array.isArray(v) ? v : []; }
+function txt(v, max) { return v === undefined || v === null ? "" : String(v).slice(0, max); }
+function num(v) { const n = Math.round(Number(v)); return isFinite(n) ? Math.max(-100000, Math.min(100000, n)) : 0; }
+function novoId() { return "n" + Math.random().toString(36).slice(2, 10); }
+
 function normalizarAutomacao(bruto) {
   const d = jsonDe(bruto) || {};
-  const regra = (r, etapa) => {
-    if (!r || typeof r !== "object") return null;
-    const out = {
-      id: String(r.id || "").slice(0, 40) || novoId(),
-      nome: String(r.nome || "").slice(0, 120),
-      ativa: r.ativa !== false,
-      conds: (Array.isArray(r.conds) ? r.conds : []).map((c) => ({
-        campo: CAMPOS.indexOf(c && c.campo) >= 0 ? c.campo : "",
-        op: ["e", "nao_e", "contem", "nao_contem"].indexOf(c && c.op) >= 0 ? c.op : "e",
-        valores: (Array.isArray(c && c.valores) ? c.valores : []).map((v) => String(v).slice(0, 80)).slice(0, 30),
-      })).filter((c) => c.campo),
-      acoes: (Array.isArray(r.acoes) ? r.acoes : []).map((a) => ({
-        tipo: String((a && a.tipo) || ""),
-        valor: a && a.valor !== undefined ? String(a.valor).slice(0, 500) : "",
-        pessoas: Array.isArray(a && a.pessoas) ? a.pessoas.map(String).slice(0, 30) : undefined,
-        modo: a && a.modo === "sequencia" ? "sequencia" : "carga",
-      })).filter((a) => ACOES_POR_ETAPA[etapa].indexOf(a.tipo) >= 0).slice(0, 10),
-    };
-    if (etapa === "tempo") {
-      out.gatilho = GATILHOS.indexOf(r.gatilho) >= 0 ? r.gatilho : "sem_inicio";
-      out.minutos = Math.max(0, parseInt(r.minutos, 10) || 0);
-    }
-    return out;
-  };
-  const quem = (Array.isArray(d.quem) ? d.quem : []).map((it) => {
-    if (it && it.tipo === "bloco") {
-      const b = regra(Object.assign({}, it, { acoes: [] }), "quem");
-      const s = it.senao || {};
-      b.tipo = "bloco";
-      b.senao = { tipo: ["continua", "livre", "pessoa"].indexOf(s.tipo) >= 0 ? s.tipo : "continua", pessoa: s.pessoa ? String(s.pessoa) : "" };
-      b.regras = (Array.isArray(it.regras) ? it.regras : []).map((r) => regra(r, "quem")).filter(Boolean);
-      delete b.acoes;
-      return b;
-    }
-    return regra(it, "quem");
-  }).filter(Boolean);
   const s = d.senao || {};
+  const vistos = {};
+  const fluxos = [];
+  for (const f of lista(d.fluxos).slice(0, LIMITES.fluxos)) {
+    const n = normalizarFluxo(f);
+    if (!n || vistos[n.id]) continue;
+    vistos[n.id] = true;
+    fluxos.push(n);
+  }
   return {
-    ajustes: (Array.isArray(d.ajustes) ? d.ajustes : []).map((r) => regra(r, "ajustes")).filter(Boolean),
-    quem,
-    senao: { tipo: s.tipo === "pessoa" && s.pessoa ? "pessoa" : "livre", pessoa: s.tipo === "pessoa" ? String(s.pessoa || "") : "" },
-    tempo: (Array.isArray(d.tempo) ? d.tempo : []).map((r) => regra(r, "tempo")).filter(Boolean),
+    fluxos,
+    senao: { tipo: s.tipo === "pessoa" && s.pessoa ? "pessoa" : "livre", pessoa: s.tipo === "pessoa" ? txt(s.pessoa, 40) : "" },
   };
 }
 
-function novoId() {
-  return "r" + Math.random().toString(36).slice(2, 10);
+function normalizarFluxo(f) {
+  if (!f || typeof f !== "object") return null;
+  const gatilho = GATILHOS.indexOf(f.gatilho) >= 0 ? f.gatilho : "novo";
+  const ids = {};
+  const nos = [];
+  for (const n of lista(f.nos).slice(0, LIMITES.nos)) {
+    if (!n || typeof n !== "object" || ["inicio", "cond", "acao"].indexOf(n.tipo) < 0) continue;
+    const id = n.tipo === "inicio" ? "inicio" : txt(n.id, 40) || novoId();
+    if (ids[id]) continue;
+    const out = { id, tipo: n.tipo, x: num(n.x), y: num(n.y) };
+    if (n.tipo === "cond") {
+      const c = n.cond || {};
+      const campo = CAMPOS.indexOf(c.campo) >= 0 ? c.campo : "categoria";
+      const opOk = campo === "texto" ? ["contem", "nao_contem"] : ["e", "nao_e"];
+      out.cond = {
+        campo,
+        op: opOk.indexOf(c.op) >= 0 ? c.op : opOk[0],
+        valores: lista(c.valores).map((v) => txt(v, 80).trim()).filter(Boolean).slice(0, 30),
+      };
+    }
+    if (n.tipo === "acao") {
+      const a = n.acao || {};
+      out.acao = {
+        tipo: txt(a.tipo, 20), valor: txt(a.valor, 500),
+        pessoas: lista(a.pessoas).map((p) => txt(p, 40)).filter(Boolean).slice(0, 30),
+        modo: a.modo === "sequencia" ? "sequencia" : "carga",
+      };
+    }
+    ids[id] = n.tipo;
+    nos.push(out);
+  }
+  if (!ids.inicio) { nos.unshift({ id: "inicio", tipo: "inicio", x: 0, y: 0 }); ids.inicio = "inicio"; }
+  const ligacoes = [];
+  const usadas = {};
+  for (const l of lista(f.ligacoes).slice(0, LIMITES.ligacoes)) {
+    if (!l) continue;
+    const de = txt(l.de, 40), para = txt(l.para, 40);
+    if (!ids[de] || !ids[para] || de === para || para === "inicio") continue;
+    const saida = ids[de] === "cond" ? (l.saida === "nao" ? "nao" : "sim") : "segue";
+    const k = de + ">" + saida + ">" + para;
+    if (usadas[k]) continue;
+    usadas[k] = true;
+    ligacoes.push({ id: txt(l.id, 40) || novoId(), de, saida, para });
+  }
+  return {
+    id: txt(f.id, 40) || novoId(),
+    nome: txt(f.nome, 120).trim(),
+    ativo: f.ativo !== false,
+    gatilho,
+    minutos: gatilho === "sem_inicio" || gatilho === "espera" ? Math.max(5, parseInt(f.minutos, 10) || 30) : 0,
+    nos, ligacoes,
+  };
+}
+
+/** Ordem em que os blocos rodam (cada um depois de todos os que apontam para ele). null = tem ciclo. */
+function ordemTopologica(f) {
+  const entra = {}; const saem = {};
+  f.nos.forEach((n) => { entra[n.id] = 0; saem[n.id] = []; });
+  f.ligacoes.forEach((l) => { entra[l.para]++; saem[l.de].push(l.para); });
+  const fila = f.nos.filter((n) => entra[n.id] === 0).map((n) => n.id);
+  const ordem = [];
+  while (fila.length) {
+    const id = fila.shift();
+    ordem.push(id);
+    for (const p of saem[id]) { entra[p]--; if (entra[p] === 0) fila.push(p); }
+  }
+  return ordem.length === f.nos.length ? ordem : null;
+}
+
+const nomeFluxo = (f) => f.nome || "Fluxo sem nome";
+
+/** Erros que impedem salvar (a tela mostra os mesmos antes). */
+function validarAutomacao(auto) {
+  const erros = [];
+  for (const f of auto.fluxos) {
+    if (!ordemTopologica(f)) erros.push("O fluxo “" + nomeFluxo(f) + "” tem um caminho que volta para trás. Tire uma das ligações.");
+    for (const n of f.nos) {
+      if (n.tipo === "acao" && ACOES_POR_GATILHO[f.gatilho].indexOf(n.acao.tipo) < 0) {
+        erros.push("No fluxo “" + nomeFluxo(f) + "”, uma ação não vale para o gatilho “" + ROTULO_GATILHO[f.gatilho] + "”.");
+      }
+    }
+  }
+  return erros;
 }
 
 // ---------- horário e prazo ----------
@@ -225,106 +292,138 @@ function recalcularFila(app, cfg) {
 
 // ---------- o motor ----------
 
-function combina(regra, info) {
-  return (regra.conds || []).every((c) => {
-    const vals = c.valores || [];
-    if (c.campo === "texto") {
-      if (!vals.length) return true;
-      const t = String(info.texto || "").toLowerCase();
-      const tem = vals.some((w) => w && t.indexOf(String(w).toLowerCase()) >= 0);
-      return c.op === "nao_contem" ? !tem : tem;
-    }
-    const v = String(info[c.campo] === undefined ? "" : info[c.campo]);
-    const esta = vals.indexOf(v) >= 0;
-    return c.op === "nao_e" ? !esta : esta;
-  });
+function avaliarCondicao(c, info) {
+  const vals = c.valores || [];
+  if (c.campo === "texto") {
+    if (!vals.length) return true;
+    const t = String(info.texto || "").toLowerCase();
+    const tem = vals.some((w) => w && t.indexOf(String(w).toLowerCase()) >= 0);
+    return c.op === "nao_contem" ? !tem : tem;
+  }
+  const v = String(info[c.campo] === undefined ? "" : info[c.campo]);
+  const esta = vals.indexOf(v) >= 0;
+  return c.op === "nao_e" ? !esta : esta;
 }
 
 /**
- * Aplica as etapas 1 a 3 a um chamado que está chegando.
- * info: { categoria, setor, impacto, prioridade, origem, texto, anexo: "sim"|"nao", horario, reaberto: "sim"|"nao" }
- * ctx:  { disponivel(id) -> bool, carga: { id: n }, giro(regraId) -> n, nome(id) -> texto }
- * Devolve { prioridade, prazoMin, pessoa, regraPessoa, giroUsado, efeitos: [{ tipo, valor, regra }], status, traco }
+ * Roda os fluxos ligados de um gatilho sobre um chamado, na ordem da lista.
+ * info: { categoria, setor, impacto, prioridade, origem, texto, anexo: "sim"|"nao", horario, responsavel: "sim"|"nao" }
+ * ctx:  { disponivel(id) -> bool, carga: { id: n }, giro(chave) -> n, nome(id) -> texto }
+ * op:   { podeAtribuir }  (false quando quem registrou já escolheu o responsável)
+ * Devolve { prioridade, regraPrio, prazoMin, pessoa, regraPessoa, giroUsado, devolver, regraDevolver, efeitos,
+ *           fluxos: { [id]: { status: { [no]: "sim"|"nao"|"ignorada" }, ativas: [ligação] } }, traco, conflitos }
  */
-function avaliarChegada(auto, info, ctx) {
-  const status = {}; const traco = []; const efeitos = [];
+function executar(auto, gatilho, info, ctx, op) {
   const nome = (id) => (ctx.nome ? ctx.nome(id) : id) || "alguém";
-  const prio0 = info.prioridade || "normal";
-  let prio = prio0; let prazoMin = 0;
-  traco.push({ etapa: 0, texto: "Começa com prioridade " + prio0 + "." });
+  const prio0 = NIVEL[info.prioridade] ? info.prioridade : "normal";
+  const est = {
+    prioridade: prio0, prioDefinida: false, regraPrio: "", prazoMin: 0, pessoa: "", regraPessoa: "", giroUsado: "",
+    devolver: false, regraDevolver: "", efeitos: [], traco: [], conflitos: [],
+  };
+  const val = Object.assign({}, info, { prioridade: prio0 });
+  const permitidas = ACOES_POR_GATILHO[gatilho] || [];
+  const fluxos = {};
+  est.traco.push({ texto: "Começa com prioridade " + prio0 + "." });
 
-  for (const r of auto.ajustes) {
-    if (!r.ativa) { status[r.id] = "off"; continue; }
-    const ok = combina(r, info); // a etapa 1 olha a prioridade de entrada: a ordem das regras não importa
-    status[r.id] = ok ? "sim" : "nao";
-    if (!ok) continue;
-    const feitos = [];
-    for (const a of r.acoes) {
-      if (a.tipo === "prioridade" && NIVEL[a.valor] > NIVEL[prio]) { prio = a.valor; }
-      if (a.tipo === "prioridade") feitos.push("prioridade " + a.valor);
-      if (a.tipo === "prazo") { const m = parseInt(a.valor, 10); if (m > 0 && (!prazoMin || m < prazoMin)) prazoMin = m; feitos.push("prazo " + m + " min"); }
-      if (a.tipo === "avisar" || a.tipo === "resposta" || a.tipo === "nota") { efeitos.push({ tipo: a.tipo, valor: a.valor, regra: r.nome }); feitos.push(a.tipo); }
+  for (const f of auto.fluxos) {
+    if (f.gatilho !== gatilho) continue;
+    const res = { status: {}, ativas: [] };
+    fluxos[f.id] = res;
+    if (!f.ativo) continue;
+    const ordem = ordemTopologica(f);
+    if (!ordem) { est.traco.push({ fluxo: f.id, texto: nomeFluxo(f) + ": tem um ciclo e não rodou." }); continue; }
+    const porId = {}; f.nos.forEach((n) => { porId[n.id] = n; });
+    const ativa = {};
+    for (const id of ordem) {
+      const n = porId[id];
+      const alcancado = n.tipo === "inicio" || f.ligacoes.some((l) => l.para === id && ativa[l.id]);
+      if (!alcancado) continue;
+      let saida = "segue";
+      if (n.tipo === "inicio") res.status[id] = "sim";
+      else if (n.tipo === "cond") { saida = avaliarCondicao(n.cond, val) ? "sim" : "nao"; res.status[id] = saida; }
+      else res.status[id] = aplicarAcao(n, f, est, val, ctx, permitidas, op, nome);
+      for (const l of f.ligacoes) {
+        if (l.de !== id) continue;
+        ativa[l.id] = l.saida === saida;
+        if (ativa[l.id]) res.ativas.push(l.id);
+      }
     }
-    traco.push({ etapa: 1, regra: r.id, texto: (r.nome || "Regra") + ": " + feitos.join(", ") + "." });
   }
 
-  const val = Object.assign({}, info, { prioridade: prio });
-  let pessoa = ""; let regraPessoa = ""; let decidido = false; let usarSenao = true; let giroUsado = "";
-  const pular = (r) => { status[r.id] = r.ativa ? "pulada" : "off"; };
-  const escolher = (r) => {
-    const e = escolherPessoa(r);
-    if (e) for (const a of r.acoes) if (a.tipo === "avisar" || a.tipo === "nota") efeitos.push({ tipo: a.tipo, valor: a.valor, regra: r.nome });
-    return e;
-  };
-  const escolherPessoa = (r) => {
-    for (const a of r.acoes) {
-      if (a.tipo === "atribuir") {
-        if (ctx.disponivel(a.valor)) return { p: a.valor };
-        traco.push({ etapa: 2, regra: r.id, texto: nome(a.valor) + " não está disponível; a regra foi pulada." });
-      }
-      if (a.tipo === "rodizio") {
-        const disp = (a.pessoas || []).filter((p) => ctx.disponivel(p));
-        if (!disp.length) { traco.push({ etapa: 2, regra: r.id, texto: "Ninguém da divisão está disponível." }); continue; }
-        if (a.modo === "sequencia") { const g = ctx.giro(r.id) || 0; return { p: disp[g % disp.length], giro: r.id }; }
-        const ord = disp.slice().sort((x, y) => (ctx.carga[x] || 0) - (ctx.carga[y] || 0));
-        return { p: ord[0] };
-      }
-    }
-    return null;
-  };
-  for (const it of auto.quem) {
-    if (decidido) { pular(it); if (it.tipo === "bloco") it.regras.forEach(pular); continue; }
-    if (!it.ativa) { status[it.id] = "off"; if (it.tipo === "bloco") it.regras.forEach(pular); continue; }
-    if (it.tipo === "bloco") {
-      const ok = combina(it, val); status[it.id] = ok ? "sim" : "nao";
-      if (!ok) { it.regras.forEach(pular); continue; }
-      for (const r of it.regras) {
-        if (decidido || !r.ativa) { pular(r); continue; }
-        const okr = combina(r, val); status[r.id] = okr ? "sim" : "nao";
-        if (!okr) continue;
-        const e = escolher(r);
-        if (e) { pessoa = e.p; regraPessoa = r.nome || it.nome; giroUsado = e.giro || ""; decidido = true; traco.push({ etapa: 2, regra: r.id, texto: (r.nome || "Regra") + ": vai para " + nome(pessoa) + "." }); }
-      }
-      if (!decidido && it.senao.tipo !== "continua") {
-        decidido = true; usarSenao = false; status["fim:" + it.id] = "sim";
-        if (it.senao.tipo === "pessoa" && ctx.disponivel(it.senao.pessoa)) { pessoa = it.senao.pessoa; regraPessoa = it.nome; }
-        traco.push({ etapa: 2, regra: it.id, texto: "Bloco " + (it.nome || "") + ": nenhuma regra de dentro serviu; " + (pessoa ? "vai para " + nome(pessoa) : "fica livre") + "." });
-      }
+  if (gatilho === "novo" && op.podeAtribuir && !est.pessoa) {
+    if (auto.senao.tipo === "pessoa" && ctx.disponivel(auto.senao.pessoa)) {
+      est.pessoa = auto.senao.pessoa; est.regraPessoa = "Se nenhum fluxo escolher alguém";
+      est.traco.push({ texto: "Nenhum fluxo escolheu alguém: vai para " + nome(est.pessoa) + "." });
     } else {
-      const ok = combina(it, val); status[it.id] = ok ? "sim" : "nao";
-      if (!ok) continue;
-      const e = escolher(it);
-      if (e) { pessoa = e.p; regraPessoa = it.nome; giroUsado = e.giro || ""; decidido = true; traco.push({ etapa: 2, regra: it.id, texto: (it.nome || "Regra") + ": vai para " + nome(pessoa) + "." }); }
+      est.traco.push({ texto: "Nenhum fluxo escolheu alguém: fica livre na fila." });
     }
   }
-  // (avisos/notas de uma regra da etapa 2 só entram se foi ela que escolheu a pessoa)
-  const ef = efeitos;
-  if (!decidido && usarSenao) {
-    status.senao = "sim";
-    if (auto.senao.tipo === "pessoa" && ctx.disponivel(auto.senao.pessoa)) { pessoa = auto.senao.pessoa; regraPessoa = "Se ninguém foi escolhido"; }
-    traco.push({ etapa: 3, texto: pessoa ? "Ninguém foi escolhido: vai para " + nome(pessoa) + "." : "Ninguém foi escolhido: fica livre na fila." });
+  return {
+    prioridade: est.prioridade, regraPrio: est.regraPrio, prazoMin: est.prazoMin, pessoa: est.pessoa, regraPessoa: est.regraPessoa,
+    giroUsado: est.giroUsado, devolver: est.devolver && !est.pessoa, regraDevolver: est.regraDevolver,
+    efeitos: est.efeitos, fluxos, traco: est.traco, conflitos: est.conflitos,
+  };
+}
+
+function aplicarAcao(n, f, est, val, ctx, permitidas, op, nome) {
+  const a = n.acao;
+  const quem = nomeFluxo(f);
+  const anotar = (texto) => est.traco.push({ fluxo: f.id, no: n.id, texto: quem + ": " + texto });
+  const conflito = (texto) => { est.conflitos.push({ fluxo: f.id, no: n.id, texto: quem + ": " + texto }); anotar(texto); return "ignorada"; };
+  if (permitidas.indexOf(a.tipo) < 0) { anotar("esta ação não vale para este gatilho."); return "ignorada"; }
+
+  const definirPrio = (p) => {
+    if (est.prioDefinida && NIVEL[p] < NIVEL[est.prioridade]) {
+      return conflito("quis prioridade " + p + ", mas “" + est.regraPrio + "” já definiu " + est.prioridade + " (vale a maior).");
+    }
+    est.prioridade = p; est.prioDefinida = true; est.regraPrio = quem; val.prioridade = p;
+    anotar("prioridade " + p + ".");
+    return "sim";
+  };
+  const escolher = (p, giro) => {
+    if (!op.podeAtribuir) { anotar("quem registrou já escolheu o responsável."); return "ignorada"; }
+    if (est.pessoa) return conflito("quis mandar para " + nome(p) + ", mas “" + est.regraPessoa + "” já tinha escolhido " + nome(est.pessoa) + ".");
+    est.pessoa = p; est.regraPessoa = quem; est.giroUsado = giro || ""; val.responsavel = "sim";
+    anotar("vai para " + nome(p) + ".");
+    return "sim";
+  };
+
+  switch (a.tipo) {
+    case "prioridade":
+      return NIVEL[a.valor] ? definirPrio(a.valor) : "ignorada";
+    case "subir":
+      return definirPrio(PRIO_DO_NIVEL[Math.min(4, (NIVEL[val.prioridade] || 2) + 1)]);
+    case "prazo": {
+      const m = parseInt(a.valor, 10);
+      if (!(m > 0)) return "ignorada";
+      if (est.prazoMin && m > est.prazoMin) return conflito("quis prazo de " + m + " min, mas já há um prazo menor (vale o menor).");
+      est.prazoMin = m; anotar("prazo de " + m + " min.");
+      return "sim";
+    }
+    case "atribuir":
+      if (!ctx.disponivel(a.valor)) { anotar(nome(a.valor) + " não está disponível."); return "ignorada"; }
+      return escolher(a.valor);
+    case "rodizio": {
+      const disp = (a.pessoas || []).filter((p) => ctx.disponivel(p));
+      if (!disp.length) { anotar("ninguém da divisão está disponível."); return "ignorada"; }
+      if (a.modo === "sequencia") {
+        const chave = "rodizio-" + f.id + "-" + n.id;
+        return escolher(disp[(ctx.giro(chave) || 0) % disp.length], chave);
+      }
+      const ord = disp.slice().sort((x, y) => (ctx.carga[x] || 0) - (ctx.carga[y] || 0));
+      return escolher(ord[0]);
+    }
+    case "devolver":
+      est.devolver = true; est.regraDevolver = quem; val.responsavel = "nao";
+      anotar("volta para a fila, sem responsável.");
+      return "sim";
+    case "avisar": case "resposta": case "nota":
+      if (a.tipo !== "avisar" && !String(a.valor || "").trim()) { anotar("mensagem vazia."); return "ignorada"; }
+      est.efeitos.push({ tipo: a.tipo, valor: a.tipo === "avisar" ? a.valor || "equipe" : a.valor, regra: quem });
+      anotar(a.tipo === "avisar" ? "avisa no celular." : a.tipo === "resposta" ? "responde a quem pediu." : "deixa uma nota interna.");
+      return "sim";
   }
-  return { prioridade: prio, prazoMin, pessoa, regraPessoa, giroUsado, efeitos: ef, status, traco };
+  return "ignorada";
 }
 
 // ---------- contexto real (banco) ----------
@@ -370,7 +469,6 @@ function somarContador(app, nome) {
 }
 
 function infoDoChamado(rec, extra) {
-  const criado = dataDe(rec.getString("created")) || new Date();
   return Object.assign({
     categoria: rec.getString("categoria"),
     setor: rec.getString("setor"),
@@ -380,13 +478,12 @@ function infoDoChamado(rec, extra) {
     texto: rec.getString("descricao"),
     anexo: rec.getStringSlice("anexos").length ? "sim" : "nao",
     horario: "expediente",
-    reaberto: "nao",
-    _criado: criado,
+    responsavel: rec.getString("responsavel") ? "sim" : "nao",
   }, extra || {});
 }
 
 /**
- * Chamado sendo aberto (antes de salvar): aplica as etapas 1 a 3 e devolve os efeitos para depois de salvo.
+ * Chamado sendo aberto (antes de salvar): roda os fluxos "Chamado novo" e devolve os efeitos para depois de salvo.
  * `podeAtribuir` = false quando quem registrou já escolheu o responsável.
  */
 function aplicarNaAbertura(app, rec, podeAtribuir) {
@@ -394,13 +491,13 @@ function aplicarNaAbertura(app, rec, podeAtribuir) {
   const auto = lerAutomacao(app);
   const info = infoDoChamado(rec, { horario: situacaoHorario(new Date(), cfg.horario) });
   const ctx = contexto(app);
-  const r = avaliarChegada(auto, info, ctx);
+  const r = executar(auto, "novo", info, ctx, { podeAtribuir });
   if (r.prioridade !== rec.getString("prioridade")) rec.set("prioridade", r.prioridade);
   rec.set("peso", PESO[r.prioridade] || 2);
   if (r.prazoMin) rec.set("prazo_regra_min", r.prazoMin);
   const atribuiu = podeAtribuir && !!r.pessoa;
   if (atribuiu) rec.set("responsavel", r.pessoa);
-  if (atribuiu && r.giroUsado) somarContador(app, "rodizio-" + r.giroUsado);
+  if (atribuiu && r.giroUsado) somarContador(app, r.giroUsado);
   return { cfg, resultado: r, atribuiu, nomePessoa: ctx.nome(r.pessoa), prioAntes: info.prioridade };
 }
 
@@ -411,13 +508,45 @@ function depoisDaAbertura(app, rec, aplicado) {
   app.saveNoValidate(rec);
   const r = aplicado.resultado;
   if (r.prioridade !== aplicado.prioAntes) {
-    R.registrar(app, rec.id, "", "prioridade", "Prioridade definida pela automação do TI: " + R.ROTULO_PRIORIDADE[r.prioridade] + ".", true);
+    R.registrar(app, rec.id, "", "prioridade", "Prioridade definida pelo fluxo “" + (r.regraPrio || "do TI") + "”: " + R.ROTULO_PRIORIDADE[r.prioridade] + ".", true);
   }
   if (aplicado.atribuiu) {
     R.registrar(app, rec.id, "", "atribuicao", "Responsável: " + (aplicado.nomePessoa || "técnico"), false);
-    R.registrar(app, rec.id, "", "sistema", "Encaminhado pela regra \u201c" + (r.regraPessoa || "automação") + "\u201d.", true);
+    R.registrar(app, rec.id, "", "sistema", "Encaminhado pelo fluxo “" + (r.regraPessoa || "do TI") + "”.", true);
   }
   aplicarEfeitos(app, rec, r.efeitos);
+}
+
+/** Chamado que já existe (reaberto ou fluxo de tempo): aplica o resultado de executar() e salva. */
+function aplicarNoChamado(app, c, r, cfg, ctx) {
+  const R = require(`${__hooks}/lib/regras.js`);
+  const antes = c.getString("prioridade") || "normal";
+  if (r.prioridade !== antes) {
+    c.set("prioridade", r.prioridade); c.set("peso", PESO[r.prioridade] || 2);
+    R.registrar(app, c.id, "", "prioridade", "Prioridade: " + R.ROTULO_PRIORIDADE[antes] + " → " + R.ROTULO_PRIORIDADE[r.prioridade] + " (fluxo “" + (r.regraPrio || "do TI") + "”)", true);
+  }
+  if (r.pessoa && r.pessoa !== c.getString("responsavel")) {
+    c.set("responsavel", r.pessoa);
+    if (r.giroUsado) somarContador(app, r.giroUsado);
+    R.registrar(app, c.id, "", "atribuicao", "Responsável: " + (ctx.nome(r.pessoa) || "técnico") + " (fluxo “" + (r.regraPessoa || "do TI") + "”)", false);
+  } else if (r.devolver && c.getString("responsavel")) {
+    c.set("responsavel", "");
+    if (c.getString("status") !== "aberto") { c.set("status", "aberto"); c.set("aguardando_motivo", ""); c.set("aguardando_desde", ""); }
+    R.registrar(app, c.id, "", "atribuicao", "Devolvido para a fila, sem responsável (fluxo “" + (r.regraDevolver || "do TI") + "”)", false);
+  }
+  calcularPrazoEOrdem(c, cfg);
+  app.saveNoValidate(c);
+  aplicarEfeitos(app, c, r.efeitos);
+}
+
+/** Depois que quem pediu reabre o chamado: roda os fluxos "Chamado reaberto". */
+function aplicarNaReabertura(app, c) {
+  const auto = lerAutomacao(app);
+  if (!auto.fluxos.some((f) => f.ativo && f.gatilho === "reaberto")) return;
+  const cfg = lerConfig(app);
+  const ctx = contexto(app);
+  const r = executar(auto, "reaberto", infoDoChamado(c, { horario: situacaoHorario(new Date(), cfg.horario) }), ctx, { podeAtribuir: true });
+  aplicarNoChamado(app, c, r, cfg, ctx);
 }
 
 function aplicarEfeitos(app, rec, efeitos) {
@@ -438,49 +567,35 @@ function aplicarEfeitos(app, rec, efeitos) {
   }
 }
 
-// ---------- etapa 4: com o passar do tempo ----------
+// ---------- fluxos de tempo (cron a cada 5 minutos) ----------
+// Cada fluxo de tempo age no máximo UMA vez em cada chamado: quando pelo menos uma ação dele rodou,
+// o id do fluxo entra em chamados.regras_tempo. Se nenhuma ação rodou (as perguntas disseram "não"), ele confere de novo depois.
 
 function rodarRegrasDeTempo(app) {
   const auto = lerAutomacao(app);
-  const regras = auto.tempo.filter((r) => r.ativa && r.acoes.length);
-  if (!regras.length) return 0;
+  const fluxos = auto.fluxos.filter((f) => f.ativo && GATILHOS_TEMPO.indexOf(f.gatilho) >= 0 && f.ligacoes.length);
+  if (!fluxos.length) return 0;
   const cfg = lerConfig(app);
-  const R = require(`${__hooks}/lib/regras.js`);
+  const ctx = contexto(app);
   const agora = new Date();
   let feitos = 0;
-  for (const r of regras) {
-    const limite = textoData(new Date(agora.getTime() - (r.minutos || 0) * 60000));
+  for (const f of fluxos) {
+    const limite = textoData(new Date(agora.getTime() - (f.minutos || 0) * 60000));
     let filtro, params;
-    if (r.gatilho === "sem_inicio") { filtro = "status = 'aberto' && created <= {:l}"; params = { l: limite }; }
-    else if (r.gatilho === "vencido") { filtro = "status = 'aberto' && prazo_em != '' && prazo_em <= {:l}"; params = { l: textoData(agora) }; }
+    if (f.gatilho === "sem_inicio") { filtro = "status = 'aberto' && created <= {:l}"; params = { l: limite }; }
+    else if (f.gatilho === "vencido") { filtro = "status = 'aberto' && prazo_em != '' && prazo_em <= {:l}"; params = { l: textoData(agora) }; }
     else { filtro = "status = 'aguardando' && aguardando_motivo = 'solicitante' && aguardando_desde != '' && aguardando_desde <= {:l}"; params = { l: limite }; }
+    const so = { fluxos: [f], senao: AUTOMACAO_VAZIA.senao };
     for (const c of app.findRecordsByFilter("chamados", filtro, "created", 200, 0, params)) {
       if (!c) continue;
       const feitas = jsonCampo(c, "regras_tempo") || [];
-      if (feitas.indexOf(r.id) >= 0) continue;
-      if (!combina(r, infoDoChamado(c))) continue;
-      const efeitos = [];
-      for (const a of r.acoes) {
-        if (a.tipo === "subir") {
-          const n = Math.min(4, (NIVEL[c.getString("prioridade")] || 2) + 1);
-          if (PRIO_DO_NIVEL[n] !== c.getString("prioridade")) {
-            const antes = c.getString("prioridade");
-            c.set("prioridade", PRIO_DO_NIVEL[n]); c.set("peso", PESO[PRIO_DO_NIVEL[n]]);
-            R.registrar(app, c.id, "", "prioridade", "Prioridade: " + R.ROTULO_PRIORIDADE[antes] + " → " + R.ROTULO_PRIORIDADE[PRIO_DO_NIVEL[n]] + " (regra \u201c" + (r.nome || "do TI") + "\u201d)", true);
-          }
-        } else if (a.tipo === "devolver") {
-          if (c.getString("responsavel")) {
-            c.set("responsavel", "");
-            if (c.getString("status") !== "aberto") { c.set("status", "aberto"); c.set("aguardando_motivo", ""); c.set("aguardando_desde", ""); }
-            R.registrar(app, c.id, "", "atribuicao", "Devolvido para a fila, sem responsável (regra \u201c" + (r.nome || "do TI") + "\u201d)", false);
-          }
-        } else efeitos.push({ tipo: a.tipo, valor: a.valor, regra: r.nome });
-      }
-      feitas.push(r.id);
+      if (feitas.indexOf(f.id) >= 0) continue;
+      const r = executar(so, f.gatilho, infoDoChamado(c, { horario: situacaoHorario(agora, cfg.horario) }), ctx, { podeAtribuir: true });
+      const agiu = f.nos.some((n) => n.tipo === "acao" && r.fluxos[f.id].status[n.id] === "sim");
+      if (!agiu) continue;
+      feitas.push(f.id);
       c.set("regras_tempo", feitas);
-      calcularPrazoEOrdem(c, cfg);
-      app.saveNoValidate(c);
-      aplicarEfeitos(app, c, efeitos);
+      aplicarNoChamado(app, c, r, cfg, ctx);
       feitos++;
     }
   }
@@ -507,9 +622,9 @@ function devolverChamadosDe(app, usuarioId) {
 }
 
 module.exports = {
-  NIVEL, CONFIG_PADRAO, AUTOMACAO_VAZIA, CAMPOS, ACOES_POR_ETAPA,
-  lerConfig, normalizarConfig, lerAutomacao, normalizarAutomacao, jsonCampo,
+  NIVEL, CONFIG_PADRAO, AUTOMACAO_VAZIA, CAMPOS, GATILHOS, ACOES_POR_GATILHO,
+  lerConfig, normalizarConfig, lerAutomacao, normalizarAutomacao, validarAutomacao, ordemTopologica, jsonCampo,
   situacaoHorario, somarMinutos, calcularPrazoEOrdem, recalcularFila,
-  combina, avaliarChegada, contexto, ausenteHoje, infoDoChamado,
-  aplicarNaAbertura, depoisDaAbertura, aplicarEfeitos, rodarRegrasDeTempo, devolverChamadosDe,
+  avaliarCondicao, executar, contexto, ausenteHoje, infoDoChamado,
+  aplicarNaAbertura, depoisDaAbertura, aplicarNaReabertura, aplicarEfeitos, rodarRegrasDeTempo, devolverChamadosDe,
 };

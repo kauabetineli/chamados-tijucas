@@ -59,6 +59,9 @@ routerAdd("POST", "/api/chamados/{id}/reabrir", (e) => {
   R.registrar(e.app, c.id, e.auth.id, "status", "Status: Resolvido → Aberto (reaberto pelo solicitante)", false);
   R.registrar(e.app, c.id, e.auth.id, "comentario", motivo, false);
   require(`${__hooks}/lib/avisos.js`).avisarTecnicos(e.app, c, "Chamado reaberto", "O solicitante disse que o problema continua.");
+  // fluxos "Chamado reaberto" da automação do TI
+  try { require(`${__hooks}/lib/automacao.js`).aplicarNaReabertura(e.app, c); }
+  catch (err) { e.app.logger().warn("Falha nos fluxos de reabertura", "erro", String(err)); }
   return e.json(200, { ok: true });
 }, $apis.requireAuth("users"));
 
