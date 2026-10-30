@@ -1,11 +1,11 @@
-import { ArrowDown, ArrowUp, Copy, GripVertical, History, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, GripVertical, History, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { Bloco as BlocoCinza } from "../../components/Esqueleto";
 import { avisar } from "../../lib/avisos";
 import { textoMinutos } from "../../lib/configTI";
 import {
-  ACOES_POR_ETAPA, AUTOMACAO_VAZIA, CAMPOS_POR_ETAPA, ROTULO_ACAO, ROTULO_CAMPO, ehBloco, novaAcao, novaCondicao, novoId, opcoesDoCampo,
-  textoAcao,
+  ACOES_POR_ETAPA, AUTOMACAO_VAZIA, CAMPOS_POR_ETAPA, ROTULO_ACAO, ROTULO_CAMPO, avisosDaRegra, ehBloco, nomeAuto, novaAcao, novaCondicao, novoId,
+  opcoesDoCampo, textoAcao,
   type Acao, type Automacao as TAutomacao, type Bloco, type Campo, type Etapa, type ItemQuem, type Listas, type Regra, type TipoAcao,
 } from "../../lib/automacao";
 import { dataHora } from "../../lib/formato";
@@ -14,6 +14,15 @@ import { AssistenteRegra } from "./AssistenteRegra";
 import { BarraSalvar } from "./BarraSalvar";
 import { BotaoIcone, CartaoRegra, ChipsCondicoes, MarcaResultado, type Marca } from "./CartaoRegra";
 import type { Tecnico } from "./dados";
+import { CartoesReceita, FormReceita, type Receita } from "./Receitas";
+
+const CHAVE_AVANCADO = "dino.automacao.avancado";
+function lerAvancado(): boolean {
+  try { return localStorage.getItem(CHAVE_AVANCADO) === "1"; } catch { return false; }
+}
+function gravarAvancado(v: boolean) {
+  try { localStorage.setItem(CHAVE_AVANCADO, v ? "1" : "0"); } catch { /* sem armazenamento: vale só nesta visita */ }
+}
 
 /* ------------------------------------------------------------------ */
 /* Estado: rascunho x versão salva                                     */
@@ -91,7 +100,11 @@ export function Automacao({ equipe, listas, respostas, pronto }: {
   const [assistente, setAssistente] = useState<Etapa | null>(null);
   const [novaId, setNovaId] = useState("");
   const [alvo, setAlvo] = useState("");
+  const [avancado, setAvancadoEstado] = useState(lerAvancado);
+  const [receita, setReceita] = useState<Receita | null>(null);
+  const [editando, setEditando] = useState("");
   const arraste = useRef<Arraste | null>(null);
+  const setAvancado = (v: boolean) => { setAvancadoEstado(v); gravarAvancado(v); };
 
   const carregar = useCallback(() => {
     pb.send<{ versao: string; dados: TAutomacao; historico: Versao[] }>("/api/ti/automacao", {})
@@ -153,7 +166,7 @@ export function Automacao({ equipe, listas, respostas, pronto }: {
     }, 250);
     return () => window.clearTimeout(t);
   }, [rasc, sim, giro, salvo]);
-  const marca = (id: string): Marca => (testar && res ? res.status[id] ?? "pulada" : undefined);
+  const marca = (id: string): Marca => (avancado && testar && res ? res.status[id] ?? "pulada" : undefined);
 
   const indisponiveis = useMemo(() => new Set((equipe ?? []).filter((t) => !t.disponivel).map((t) => t.id)), [equipe]);
 
@@ -174,10 +187,13 @@ export function Automacao({ equipe, listas, respostas, pronto }: {
 
   function criarPeloAssistente(etapa: Etapa, regra: Regra) {
     mudar((d) => { (d[etapa] as (Regra | ItemQuem)[]).push(regra); },
-      `Regra criada na etapa ${{ ajustes: "1 (Prioridade, prazo e avisos)", quem: "2 (Quem atende)", tempo: "4 (Com o passar do tempo)" }[etapa]}.`);
+      avancado
+        ? `Regra criada na etapa ${{ ajustes: "1 (Prioridade, prazo e avisos)", quem: "2 (Quem atende)", tempo: "4 (Com o passar do tempo)" }[etapa]}.`
+        : "Regra criada. Clique em Salvar para ela valer.");
     setAssistente(null);
+    setReceita(null);
     setNovaId(regra.id);
-    window.setTimeout(() => document.getElementById(`regra-${regra.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+    window.setTimeout(() => (document.getElementById(`regra-${regra.id}`) ?? document.getElementById(`linha-${regra.id}`))?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
   }
 
   /* ---------- arrastar e soltar ---------- */
@@ -278,14 +294,126 @@ export function Automacao({ equipe, listas, respostas, pronto }: {
 
   const opcoesPessoa = listas.pessoas;
 
+  /* ---------- modo simples: regras em frases ---------- */
+  const TIPO_DA_LISTA = { ajustes: "Muda prioridade ou prazo", quem: "Escolhe quem atende", tempo: "Age com o passar do tempo" } as const;
+
+  const ligado = ({ ativa, aoMudar, nome }: { ativa: boolean; aoMudar: () => void; nome: string }) => (
+    <label className="flex min-h-11 cursor-pointer items-center gap-2 font-semibold text-tinta-2">
+      <input type="checkbox" role="switch" aria-label={`Regra ${nome} ligada`} checked={ativa} onChange={aoMudar} className="size-5 accent-acento" />
+      {ativa ? "Ligada" : "Desligada"}
+    </label>
+  );
+
+  const linhaSimples = (chave: "ajustes" | "quem" | "tempo", r: Regra, idx: number, total: number) => {
+    const aberta = editando === r.id;
+    const avisos = avisosDaRegra(r, listas, indisponiveis);
+    const nome = r.nome || nomeAuto(r, listas);
+    return (
+      <li key={r.id} id={`linha-${r.id}`} className={`rounded-2xl bg-superficie ring-1 ${novaId === r.id ? "ring-2 ring-acento" : "ring-linha"} ${r.ativa ? "" : "opacity-70"}`}>
+        <div className="flex flex-wrap items-center gap-3 p-4">
+          <div className="min-w-0 flex-[1_1_260px]">
+            <p className="text-xs font-extrabold tracking-wider text-tinta-2 uppercase">{TIPO_DA_LISTA[chave]}</p>
+            <p className="text-lg font-bold">{nome}</p>
+            {r.nome && <p className="text-tinta-2">{nomeAuto(r, listas)}</p>}
+            {avisos.map((a) => (
+              <p key={a} className="mt-1 flex items-start gap-1.5 text-sm font-semibold text-ambar-tinta">
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />{a}
+              </p>
+            ))}
+          </div>
+          {ligado({ ativa: r.ativa, nome, aoMudar: () => mudarRegra(chave, r.id, { ...r, ativa: !r.ativa }) })}
+          <div className="flex items-center gap-1">
+            {chave === "quem" && total > 1 && (
+              <>
+                <BotaoIcone rotulo="Subir na lista" desabilitado={idx === 0} aoClicar={() => mover("quem", idx, idx - 1)}><ArrowUp className="size-4" /></BotaoIcone>
+                <BotaoIcone rotulo="Descer na lista" desabilitado={idx === total - 1} aoClicar={() => mover("quem", idx, idx + 1)}><ArrowDown className="size-4" /></BotaoIcone>
+              </>
+            )}
+            <button type="button" className="btn-secundario" aria-expanded={aberta} onClick={() => setEditando(aberta ? "" : r.id)}>
+              {aberta ? "Fechar" : "Editar"}
+            </button>
+            <BotaoIcone rotulo={`Apagar a regra ${nome}`} aoClicar={() => apagar(chave, r.id)}><Trash2 className="size-4" /></BotaoIcone>
+          </div>
+        </div>
+        {aberta && <div className="border-t border-linha p-2">{cartao(chave, r, idx, total)}</div>}
+      </li>
+    );
+  };
+
+  const linhaBloco = (b: Bloco) => (
+    <li key={b.id} id={`linha-${b.id}`} className={`rounded-2xl bg-superficie ring-1 ring-linha ${b.ativa ? "" : "opacity-70"}`}>
+      <div className="flex flex-wrap items-center gap-3 p-4">
+        <div className="min-w-0 flex-[1_1_260px]">
+          <p className="text-xs font-extrabold tracking-wider text-tinta-2 uppercase">Grupo de regras</p>
+          <p className="text-lg font-bold">{b.nome || "Grupo sem nome"} · {b.regras.length} regra{b.regras.length === 1 ? "" : "s"}</p>
+          <p className="text-sm text-tinta-2">Criado no modo avançado. Para mexer nas regras de dentro, abra o modo avançado.</p>
+        </div>
+        {ligado({ ativa: b.ativa, nome: b.nome || "grupo", aoMudar: () => mudarRegra("quem", b.id, { ...b, ativa: !b.ativa }) })}
+        <div className="flex items-center gap-1">
+          <button type="button" className="btn-secundario" onClick={() => setAvancado(true)}>Abrir no avançado</button>
+          <BotaoIcone rotulo={`Apagar o grupo ${b.nome || ""}`} aoClicar={() => apagar("quem", b.id)}><Trash2 className="size-4" /></BotaoIcone>
+        </div>
+      </div>
+    </li>
+  );
+
+  const secaoSimples = (
+    <section className="min-w-0 flex-1 space-y-6" aria-label="Regras automáticas">
+      <div>
+        <h2 className="font-display text-xl font-extrabold">O que o sistema deve fazer sozinho?</h2>
+        <p className="mt-1 max-w-2xl text-tinta-2">
+          Sem nenhuma regra, todo chamado novo fica livre na fila, com a prioridade que veio na abertura. Escolha uma situação para ensinar o sistema a agir sozinho.
+        </p>
+      </div>
+      <CartoesReceita aoEscolher={setReceita} />
+
+      <div className="space-y-3">
+        <h3 className="font-display text-lg font-extrabold">Quando o chamado chega</h3>
+        <p className="text-sm text-tinta-2">Ao escolher quem atende, vale a primeira regra da lista que encontrar uma pessoa disponível. Use as setas para mudar a ordem.</p>
+        <ul className="space-y-2">
+          {rasc.ajustes.map((r, i) => linhaSimples("ajustes", r, i, rasc.ajustes.length))}
+          {rasc.quem.map((it, i) => (ehBloco(it) ? linhaBloco(it) : linhaSimples("quem", it, i, rasc.quem.length)))}
+        </ul>
+        {!rasc.ajustes.length && !rasc.quem.length && <Vazio>Nenhuma regra ainda. Escolha uma situação acima para começar.</Vazio>}
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
+          <label className="flex flex-wrap items-center gap-2.5 font-bold">
+            Se nenhuma regra escolher alguém, o chamado
+            <select className="campo w-auto font-bold" value={rasc.senao.tipo === "pessoa" ? rasc.senao.pessoa ?? "" : ""}
+              onChange={(e) => { const v = e.target.value; mudar((d) => { d.senao = v ? { tipo: "pessoa", pessoa: v } : { tipo: "livre" }; }); }}>
+              <option value="">fica livre na fila</option>
+              {opcoesPessoa.map((p) => <option key={p.v} value={p.v}>vai para {p.rot}</option>)}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="font-display text-lg font-extrabold">Com o passar do tempo</h3>
+        <p className="text-sm text-tinta-2">O sistema confere os chamados abertos a cada 5 minutos e age uma vez em cada um.</p>
+        {rasc.tempo.length > 0
+          ? <ul className="space-y-2">{rasc.tempo.map((r, i) => linhaSimples("tempo", r, i, rasc.tempo.length))}</ul>
+          : <Vazio>Nenhuma regra de tempo.</Vazio>}
+      </div>
+
+      <Historico historico={historico} />
+    </section>
+  );
+
   return (
     <div className="space-y-4">
       <datalist id="respostas-prontas">{respostas.map((t) => <option key={t} value={t} />)}</datalist>
 
+      <div className="flex justify-end">
+        <label className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl bg-superficie px-3.5 font-semibold ring-1 ring-linha">
+          <input type="checkbox" role="switch" checked={avancado} onChange={() => setAvancado(!avancado)} className="size-5 accent-acento" />
+          Modo avançado
+          <span className="hidden text-sm font-normal text-tinta-2 sm:inline">(etapas, grupos e arrastar)</span>
+        </label>
+      </div>
 
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
         {/* paleta (só com mouse: no celular cada regra tem "+ Se" e "+ Então") */}
-        <aside className="hidden w-56 shrink-0 space-y-4 rounded-2xl bg-superficie p-4 ring-1 ring-linha xl:sticky xl:top-4 xl:block xl:max-h-[calc(100dvh-2rem)] xl:overflow-y-auto">
+        {avancado && <aside className="hidden w-56 shrink-0 space-y-4 rounded-2xl bg-superficie p-4 ring-1 ring-linha xl:sticky xl:top-4 xl:block xl:max-h-[calc(100dvh-2rem)] xl:overflow-y-auto">
           <div>
             <h2 className="font-display text-lg font-extrabold">Blocos</h2>
             <p className="mt-1 text-sm text-tinta-2">Arraste para dentro de uma regra ou para o título de uma etapa.</p>
@@ -306,10 +434,10 @@ export function Automacao({ equipe, listas, respostas, pronto }: {
           <Paleta titulo="Organizar" cor="text-ambar-tinta">
             <ItemPaleta estilo="bg-sol-50 ring-ambar" aoComecar={comecar({ tipo: "bloco" })} aoTerminar={terminar}>Bloco de regras</ItemPaleta>
           </Paleta>
-        </aside>
+        </aside>}
 
-        {/* etapas */}
-        <section className="min-w-0 flex-1 space-y-2" aria-label="Etapas da automação">
+        {/* etapas (modo avançado) ou situações (modo simples) */}
+        {!avancado ? secaoSimples : <section className="min-w-0 flex-1 space-y-2" aria-label="Etapas da automação">
           <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="font-display text-xl font-extrabold">O caminho de um chamado</h2>
@@ -372,10 +500,11 @@ export function Automacao({ equipe, listas, respostas, pronto }: {
           <BotaoNova aoClicar={() => setAssistente("tempo")}>Nova regra de tempo</BotaoNova>
 
           <Historico historico={historico} />
-        </section>
+        </section>}
 
         {/* testar */}
         <PainelTeste
+          simples={!avancado}
           sim={sim} setSim={(o) => { setSim((s) => ({ ...s, ...o })); setGiro({}); }} listas={listas} res={res}
           testar={testar} setTestar={setTestar} equipe={equipe}
           outroIgual={() => res?.giro_regra && setGiro((g) => ({ ...g, [res.giro_regra]: (g[res.giro_regra] ?? 0) + 1 }))}
@@ -389,6 +518,9 @@ export function Automacao({ equipe, listas, respostas, pronto }: {
       {assistente && (
         <AssistenteRegra listas={listas} respostas={respostas} inicio={assistente}
           aoCriar={criarPeloAssistente} aoFechar={() => setAssistente(null)} />
+      )}
+      {receita && (
+        <FormReceita receita={receita} listas={listas} aoCriar={criarPeloAssistente} aoFechar={() => setReceita(null)} />
       )}
     </div>
   );
@@ -548,8 +680,8 @@ function Historico({ historico }: { historico: Versao[] }) {
 
 type Sim = { categoria: string; setor: string; impacto: string; prioridade: string; origem: string; texto: string; anexo: string; horario: string };
 
-function PainelTeste({ sim, setSim, listas, res, testar, setTestar, equipe, outroIgual }: {
-  sim: Sim; setSim: (o: Partial<Sim>) => void; listas: Listas; res: Resultado | null;
+function PainelTeste({ simples, sim, setSim, listas, res, testar, setTestar, equipe, outroIgual }: {
+  simples: boolean; sim: Sim; setSim: (o: Partial<Sim>) => void; listas: Listas; res: Resultado | null;
   testar: boolean; setTestar: (v: boolean) => void; equipe: Tecnico[] | null; outroIgual: () => void;
 }) {
   const campos: { k: keyof Sim; rot: string; opcoes: { v: string; rot: string }[] }[] = [
@@ -565,15 +697,21 @@ function PainelTeste({ sim, setSim, listas, res, testar, setTestar, equipe, outr
   return (
     <aside aria-label="Testar as regras" className="space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha xl:sticky xl:top-4 xl:w-80 xl:shrink-0">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-display text-lg font-extrabold">Testar</h2>
-        <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm font-semibold">
-          <input type="checkbox" role="switch" checked={testar} onChange={() => setTestar(!testar)} className="size-5 accent-acento" />
-          Mostrar nas regras
-        </label>
+        <h2 className="font-display text-lg font-extrabold">{simples ? "Ver o que acontece" : "Testar"}</h2>
+        {!simples && (
+          <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm font-semibold">
+            <input type="checkbox" role="switch" checked={testar} onChange={() => setTestar(!testar)} className="size-5 accent-acento" />
+            Mostrar nas regras
+          </label>
+        )}
       </div>
-      <p className="text-sm text-tinta-2">
-        Monte um chamado de exemplo. Nas regras aparece <b className="text-ok">✓ aplicada</b>, <b>– não combinou</b> ou <b>· não chegou a ser verificada</b>. Nada é salvo.
-      </p>
+      {simples ? (
+        <p className="text-sm text-tinta-2">Imagine um chamado e veja para quem ele iria, com que prioridade e prazo, usando as regras como estão na tela. Nada é salvo.</p>
+      ) : (
+        <p className="text-sm text-tinta-2">
+          Monte um chamado de exemplo. Nas regras aparece <b className="text-ok">✓ aplicada</b>, <b>– não combinou</b> ou <b>· não chegou a ser verificada</b>. Nada é salvo.
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-2">
         {campos.map((c) => (
           <label key={c.k} className="flex flex-col gap-0.5 text-sm font-bold">
@@ -589,7 +727,7 @@ function PainelTeste({ sim, setSim, listas, res, testar, setTestar, equipe, outr
         <input className="campo min-h-11 text-sm font-normal" value={sim.texto} onChange={(e) => setSim({ texto: e.target.value })} placeholder="Ex.: impressora sem toner" />
       </label>
       <div className="rounded-xl bg-noite p-4 text-white" aria-live="polite">
-        <p className="text-xs font-bold tracking-wider uppercase opacity-85">Resultado</p>
+        <p className="text-xs font-bold tracking-wider uppercase opacity-85">{simples ? "O sistema faria isto" : "Resultado"}</p>
         {res ? (
           <>
             <p className="mt-1 font-display text-2xl font-extrabold">{res.pessoa_nome || "Fica livre na fila"}</p>
@@ -604,7 +742,7 @@ function PainelTeste({ sim, setSim, listas, res, testar, setTestar, equipe, outr
       )}
       {res && res.traco.length > 0 && (
         <details className="text-sm">
-          <summary className="min-h-10 cursor-pointer py-2 font-bold text-acento">Passo a passo</summary>
+          <summary className="min-h-10 cursor-pointer py-2 font-bold text-acento">{simples ? "Por que deu isso?" : "Passo a passo"}</summary>
           <ol className="list-decimal space-y-1 pl-5 text-tinta-2">{res.traco.map((t, i) => <li key={i}>{t.texto}</li>)}</ol>
         </details>
       )}
