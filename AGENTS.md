@@ -35,6 +35,14 @@ scripts/                     PowerShell de instalação/backup/atualização no 
 docs/                        ARQUITETURA, API, FERRAMENTAS-IA, IMPLANTACAO, DADOS-TESTE, BACKLOG
 ```
 
+## Branches (o que está em produção e o que está em desenvolvimento)
+
+- `main` = **produção**: só o que está (ou vai agora) instalado no PC do Setor de TI. Não se desenvolve direto nela.
+- `develop` = **desenvolvimento**: todo trabalho novo entra aqui (commits direto ou branches curtas saindo dela).
+- Para instalar: merge da `develop` na `main` → `scripts\gerar-pacote.ps1` (só gera na `main` limpa e grava o commit
+  em `VERSAO.txt` dentro do zip) → instala → tag `prod-AAAA-MM-DD` no commit instalado. A última tag `prod-*` é o que
+  roda na Prefeitura. Correção urgente em produção: commit na `main`, gera o pacote e depois merge da `main` na `develop`.
+
 ## Comandos
 
 ```bash

@@ -60,6 +60,9 @@ para rodar todo dia, depois do backup automático. Se o disco do PC falhar, o hi
 
 ## Atualizar para uma versão nova
 
+O pacote sai sempre da branch `main` (produção). O arquivo `VERSAO.txt` dentro dele diz qual commit foi instalado.
+Depois de instalar, marque no Git: `git tag -a prod-AAAA-MM-DD -m "Instalado na Prefeitura"` e `git push origin --tags`.
+
 Extraia o pacote novo por cima de `C:\DinoDesk` (a pasta `backend\pb_data` não vem no pacote e não é tocada)
 e rode `scripts\atualizar.ps1` como Administrador.
 
