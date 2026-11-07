@@ -1,3 +1,4 @@
+import { CabecalhoPagina } from "../../components/CabecalhoPagina";
 import { Clock, Info, Lightbulb, Send, Ticket } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
@@ -60,10 +61,10 @@ export function Painel({ f }: { f: FormularioChamado }) {
   return (
     <form onSubmit={enviar} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
       <div className="space-y-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-3xl font-bold">Novo chamado</h1>
-          {f.setor && <p className="text-tinta-2">Para o TI, a partir de <span className="font-semibold text-tinta">{f.setor}</span></p>}
-        </div>
+        <CabecalhoPagina
+          titulo="Novo chamado"
+          subtitulo={f.setor ? <>Para o TI, a partir de <span className="font-semibold text-tinta">{f.setor}</span></> : "Conte o que aconteceu. O TI vê na fila e responde por aqui."}
+        />
 
         <div className="space-y-8 rounded-2xl bg-superficie p-5 ring-1 ring-linha md:p-8">
           {/* 1 */}

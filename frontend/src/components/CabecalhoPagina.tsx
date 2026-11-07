@@ -4,6 +4,7 @@ import { Link } from "react-router";
 /**
  * Cabeçalho de página: o título fica SEMPRE no mesmo lugar e na mesma altura em todas as telas
  * (o conteúdo começa alinhado à esquerda, no Layout). Ações à direita, abas embaixo.
+ * Sem margem própria: a página usa space-y-* (ou passe className="mb-6").
  *
  *   <CabecalhoPagina titulo="Fila" subtitulo="31 na fila" acoes={<button className="btn-primario">…</button>}
  *     abas={<AbasPagina rotulo="Visões" itens={[{ rotulo: "Fila", para: "/ti", ativo: true }]} />} />
@@ -16,7 +17,7 @@ export function CabecalhoPagina({ titulo, subtitulo, acoes, abas, className = ""
   className?: string;
 }) {
   return (
-    <header className={`mb-6 ${className}`}>
+    <header className={className}>
       <div className="flex min-h-[4.5rem] flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
           <h1 className="text-3xl leading-tight font-bold break-words">{titulo}</h1>

@@ -81,7 +81,7 @@ export function Perfil() {
   ];
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="max-w-2xl space-y-6">
       <section className="flex flex-col items-center gap-2 text-center">
         <Avatar id={u.id} nome={u.name} tamanho="lg" />
         <h1 className="text-3xl font-bold break-words">{u.name}</h1>

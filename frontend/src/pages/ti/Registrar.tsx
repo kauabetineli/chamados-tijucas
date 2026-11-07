@@ -1,3 +1,4 @@
+import { CabecalhoPagina } from "../../components/CabecalhoPagina";
 import { CheckCircle2, ClipboardList, ListOrdered, MessageCircle, Phone, RotateCcw, Send, UserRound, X } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useAnexos } from "../../components/Anexos";
@@ -138,10 +139,7 @@ export function Registrar() {
   return (
     <form onSubmit={registrar} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Registrar pedido</h1>
-          <p className="mt-1 text-tinta-2">Para o que chegou por WhatsApp, ligação ou no corredor. Leva menos de um minuto.</p>
-        </div>
+        <CabecalhoPagina titulo="Registrar pedido" subtitulo="Para o que chegou por WhatsApp, ligação ou no corredor. Leva menos de um minuto." />
 
         <div className="space-y-8 rounded-2xl bg-superficie p-5 ring-1 ring-linha md:p-8">
           {/* 1 */}

@@ -164,6 +164,16 @@
   }
 }
 
+/* Ícones (lucide) em tamanhos inteiros: com a base de 17 px, size-4/size-5 dariam 17 e 21,25 px.
+   Régua: 14 (detalhe), 16 (ao lado de texto), 20 (menu e botões), 24, 28, 32. Escala junto com "Tamanho do texto". */
+svg.lucide.size-3 { width: calc(12rem / 17); height: calc(12rem / 17); }
+svg.lucide.size-3\.5 { width: calc(14rem / 17); height: calc(14rem / 17); }
+svg.lucide.size-4 { width: calc(16rem / 17); height: calc(16rem / 17); }
+svg.lucide.size-5 { width: calc(20rem / 17); height: calc(20rem / 17); }
+svg.lucide.size-6 { width: calc(24rem / 17); height: calc(24rem / 17); }
+svg.lucide.size-7 { width: calc(28rem / 17); height: calc(28rem / 17); }
+svg.lucide.size-8 { width: calc(32rem / 17); height: calc(32rem / 17); }
+
 @utility btn {
   @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 font-semibold active:scale-[0.98] disabled:cursor-not-allowed disabled:active:scale-100 disabled:opacity-50;
 }

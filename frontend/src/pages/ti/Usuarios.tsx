@@ -1,3 +1,4 @@
+import { AbasPagina, CabecalhoPagina } from "../../components/CabecalhoPagina";
 import {
   Ban, Building2, Check, Copy, KeyRound, Lock, Pencil, Phone, Plus, Printer, Search, ShieldCheck, UserPlus, Users,
 } from "lucide-react";
@@ -643,35 +644,19 @@ export function Usuarios() {
   const depoisDeSalvar = (msg: string) => { avisar(msg); setVersao((v) => v + 1); recarregar(); };
   const totalPessoas = (setores ?? []).reduce((n, s) => n + s.pessoas, 0);
 
-  const aba_ = (id: "pessoas" | "setores", rotulo: string, Icone: typeof Users, n?: number) => (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={aba === id}
-      onClick={() => irPara(id)}
-      className={`flex min-h-11 items-center gap-2 rounded-lg px-4 font-semibold ${aba === id ? "bg-mar-700 text-white" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
-    >
-      <Icone className="size-4" aria-hidden="true" /> {rotulo}
-      {n !== undefined && <span className="font-display">{n}</span>}
-    </button>
-  );
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">Pessoas e setores</h1>
-          <p className="mt-1 text-tinta-2">
-            {admin
-              ? "Crie setores e contas. Cada pessoa entra com a matrícula e uma senha provisória."
-              : "Consulta. Só o administrador do TI cria e edita contas e setores."}
-          </p>
-        </div>
-        <div role="tablist" aria-label="O que ver" className="flex gap-1 rounded-xl bg-superficie p-1 ring-1 ring-linha">
-          {aba_("pessoas", "Pessoas", Users)}
-          {aba_("setores", "Setores", Building2, setores?.filter((s) => s.ativo).length)}
-        </div>
-      </div>
+      <CabecalhoPagina
+        titulo="Pessoas e setores"
+        subtitulo={admin
+          ? "Crie setores e contas. Cada pessoa entra com a matrícula e uma senha provisória."
+          : "Consulta. Só o administrador do TI cria e edita contas e setores."}
+        abas={<AbasPagina rotulo="O que ver" itens={[
+          { rotulo: "Pessoas", ativo: aba === "pessoas", aoClicar: () => irPara("pessoas"), numero: setores ? totalPessoas : undefined },
+          { rotulo: "Setores", ativo: aba === "setores", aoClicar: () => irPara("setores"), numero: setores?.filter((s) => s.ativo).length },
+        ]} />}
+      />
 
 
       {setores === null ? (

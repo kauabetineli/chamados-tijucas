@@ -1,3 +1,4 @@
+import { CabecalhoPagina } from "../../components/CabecalhoPagina";
 import { ChevronRight, History, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LinkChamado, useVerChamado } from "../../lib/verChamado";
@@ -83,11 +84,8 @@ export function Historico() {
   const nomeCategoria = categorias.find((c) => c.id === categoria)?.nome;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
-      <div>
-        <h1 className="text-3xl font-bold">Histórico de soluções</h1>
-        <p className="mt-1 text-tinta-2">Antes de atender, veja como o TI já resolveu problemas parecidos.</p>
-      </div>
+    <div className="max-w-3xl space-y-5">
+      <CabecalhoPagina titulo="Soluções" subtitulo="Antes de atender, veja como o TI já resolveu problemas parecidos." />
 
       <label className="relative block">
         <span className="sr-only">Pesquisar no histórico</span>

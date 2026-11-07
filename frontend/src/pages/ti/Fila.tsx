@@ -1,3 +1,4 @@
+import { CabecalhoPagina } from "../../components/CabecalhoPagina";
 import { ChevronDown, ChevronRight, GripVertical, MessageCircle, MoreVertical, Table2, Users, Wrench } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
@@ -532,20 +533,18 @@ export function Fila() {
   );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       {/* cabeçalho curto: os números numa linha só; "fora do prazo" é um filtro, não um alarme em cada chamado */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">Fila</h1>
-          {chamados === null ? <Bloco className="mt-2 h-6 w-64" /> : (
-            <p className="mt-1 text-tinta-2">
+      <CabecalhoPagina
+        titulo="Fila"
+        subtitulo={chamados === null ? <Bloco className="mt-2 h-6 w-64" /> : (
+            <p>
               <b className="font-display text-tinta">{fila.length}</b> na fila
               {" · "}<b className="font-display text-tinta">{atendendo.length + comOutros.length}</b> em atendimento
               {esperando.length > 0 && <>{" · "}<b className="font-display text-tinta">{esperando.length}</b> seus em espera</>}
             </p>
           )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+        acoes={<>
           {atrasados > 0 && (
             <button
               type="button"
@@ -561,8 +560,8 @@ export function Fila() {
             </button>
           )}
           <span className="hidden md:block"><VisaoTI /></span>
-        </div>
-      </div>
+        </>}
+      />
 
       {/* celular: abas das visões (no PC elas ficam na barra lateral), a Equipe e o atalho para Todos os chamados */}
       <div className="sem-barra -mx-4 flex gap-2 overflow-x-auto px-4 md:hidden">

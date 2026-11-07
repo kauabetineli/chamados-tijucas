@@ -1,4 +1,5 @@
-import { CheckCircle2, History, Hourglass, Inbox, MessageCircleQuestion, Plus, Search, Wrench } from "lucide-react";
+import { AbasPagina, CabecalhoPagina } from "../components/CabecalhoPagina";
+import { CheckCircle2, Hourglass, MessageCircleQuestion, Plus, Search, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { EsqueletoLinhas } from "../components/Esqueleto";
@@ -90,8 +91,8 @@ export function MeusChamados() {
 
   if (chamados === null) {
     return (
-      <div className="mx-auto max-w-2xl space-y-7">
-        <h1 className="text-3xl font-bold">Meus chamados</h1>
+      <div className="max-w-2xl space-y-7">
+        <CabecalhoPagina titulo="Meus chamados" />
         <EsqueletoLinhas quantos={3} rotulo="Carregando seus chamados..." />
       </div>
     );
@@ -128,27 +129,16 @@ export function MeusChamados() {
     p.delete("ver");
     setParams(p, { replace: true });
   };
-  const aba_ = (id: "abertos" | "historico", rotulo: string, Icone: typeof Plus, n: number) => (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={aba === id}
-      onClick={() => irPara(id)}
-      className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 font-semibold sm:flex-none ${aba === id ? "bg-mar-700 text-white" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
-    >
-      <Icone className="size-4" aria-hidden="true" /> {rotulo} <span className="font-display">{n}</span>
-    </button>
-  );
 
   return (
-    <div className="mx-auto max-w-2xl space-y-7">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold">Meus chamados</h1>
-        <div role="tablist" aria-label="Quais chamados" className="flex w-full gap-1 rounded-xl bg-superficie p-1 ring-1 ring-linha sm:w-auto">
-          {aba_("abertos", "Em aberto", Inbox, emAberto)}
-          {aba_("historico", "Histórico", History, totalHistorico)}
-        </div>
-      </div>
+    <div className="max-w-2xl space-y-7">
+      <CabecalhoPagina
+        titulo="Meus chamados"
+        abas={<AbasPagina rotulo="Quais chamados" itens={[
+          { rotulo: "Em aberto", ativo: aba === "abertos", aoClicar: () => irPara("abertos"), numero: emAberto },
+          { rotulo: "Histórico", ativo: aba === "historico", aoClicar: () => irPara("historico"), numero: totalHistorico },
+        ]} />}
+      />
 
       {/* no PC o mural fica na barra lateral */}
       <MuralAvisos className="md:hidden" />

@@ -1,4 +1,5 @@
-import { BarChart3, Download, QrCode, ThumbsDown, ThumbsUp, UserRound } from "lucide-react";
+import { AbasPagina, CabecalhoPagina } from "../../components/CabecalhoPagina";
+import { Download, QrCode, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
 import { useEffect, useState } from "react";
 import { Bloco } from "../../components/Esqueleto";
@@ -36,26 +37,16 @@ export function Painel() {
     if (a === "meus") p.set("aba", "meus"); else p.delete("aba");
     setParams(p, { replace: true });
   };
-  const botaoAba = (id: "equipe" | "meus", rotulo: string, Icone: typeof BarChart3) => (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={aba === id}
-      onClick={() => irPara(id)}
-      className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 font-semibold sm:flex-none ${aba === id ? "bg-mar-700 text-white" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
-    >
-      <Icone className="size-4" aria-hidden="true" /> {rotulo}
-    </button>
-  );
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold">Painel</h1>
-        <div role="tablist" aria-label="Quais números" className="flex w-full gap-1 rounded-xl bg-superficie p-1 ring-1 ring-linha sm:w-auto">
-          {botaoAba("equipe", "Equipe", BarChart3)}
-          {botaoAba("meus", "Meus números", UserRound)}
-        </div>
-      </div>
+      <CabecalhoPagina
+        titulo="Painel"
+        subtitulo="Quanto chegou, quanto foi resolvido e quanto tempo levou."
+        abas={<AbasPagina rotulo="Quais números" itens={[
+          { rotulo: "Equipe", ativo: aba === "equipe", aoClicar: () => irPara("equipe") },
+          { rotulo: "Meus números", ativo: aba === "meus", aoClicar: () => irPara("meus") },
+        ]} />}
+      />
       {aba === "meus" ? <MeusNumeros /> : <PainelEquipe />}
     </div>
   );

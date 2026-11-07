@@ -1,3 +1,5 @@
+import { Bloco } from "../../components/Esqueleto";
+import { CabecalhoPagina } from "../../components/CabecalhoPagina";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Download, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
@@ -197,13 +199,11 @@ export function TodosChamados() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">Todos os chamados</h1>
-          <p className="mt-1 text-tinta-2">{itens ? `${total} ${total === 1 ? "chamado" : "chamados"}` : "Carregando..."}</p>
-        </div>
-        <VisaoTI />
-      </div>
+      <CabecalhoPagina
+        titulo="Todos os chamados"
+        subtitulo={itens ? `${total} ${total === 1 ? "chamado" : "chamados"}` : <Bloco className="mt-1 h-6 w-32" />}
+        acoes={<VisaoTI />}
+      />
 
       {/* filtros */}
       <div className="space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">

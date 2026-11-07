@@ -1,3 +1,4 @@
+import { CabecalhoPagina } from "../../components/CabecalhoPagina";
 import { Printer } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
@@ -35,12 +36,7 @@ export function QrCodes() {
   return (
     <div className="space-y-6">
       <div className="space-y-5 print:hidden">
-        <div>
-          <h1 className="text-3xl font-bold">QR code para abrir chamado</h1>
-          <p className="mt-1 max-w-2xl text-tinta-2">
-            Imprima e cole perto dos computadores e impressoras. Quem escanear cai direto no formulário de novo chamado.
-          </p>
-        </div>
+        <CabecalhoPagina titulo="QR code para abrir chamado" subtitulo="Imprima e cole perto dos computadores e impressoras. Quem escanear cai direto no formulário de novo chamado." />
         <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_12rem]">
           <div>
             <label htmlFor="base" className="rotulo">Endereço que o QR abre</label>

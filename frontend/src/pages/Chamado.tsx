@@ -61,7 +61,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
 
   if (erro && !c) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="max-w-2xl">
         <p className="font-semibold text-alerta">Não foi possível abrir este chamado. {erro}</p>
         {!embutido && <Link to={voltar} className="btn-secundario mt-4">Voltar</Link>}
       </div>
@@ -78,7 +78,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
   const rotuloEtapa = (s: Status) => (s === "em_andamento" && c.status === "aguardando" ? "Em espera" : ROTULO_STATUS[s]);
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="max-w-5xl">
       {!embutido && (
         <Link to={voltar} className="mb-4 inline-flex items-center gap-1.5 font-semibold text-acento">
           <ArrowLeft className="size-5" aria-hidden="true" /> {tecnico ? "Fila" : "Meus chamados"}
