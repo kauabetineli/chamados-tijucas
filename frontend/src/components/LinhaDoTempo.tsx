@@ -218,15 +218,17 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
           return (
             <Fragment key={i.id}>
               {dia && <li className="pt-1 text-center text-sm text-tinta-2">{dia}</li>}
-              <li className={`flex items-end gap-2 ${doSolicitante ? "" : "flex-row-reverse"} ${continua ? "-mb-1.5" : ""}`}>
+              {/* o space-y-3 do Tailwind v4 é margin-bottom: margem negativa aqui fazia um balão cobrir o outro.
+                  Mensagens seguidas da mesma pessoa ficam só mais juntas (4 px). */}
+              <li className={`flex items-end gap-2 ${doSolicitante ? "" : "flex-row-reverse"} ${continua ? "mb-1!" : ""}`}>
                 {rosto}
                 <div
                   className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
                     i.interno
                       ? "bg-sol-50 ring-1 ring-linha"
                       : doSolicitante
-                        ? "rounded-bl-md bg-superficie ring-1 ring-linha"
-                        : "rounded-br-md bg-mar-50"
+                        ? `bg-superficie ring-1 ring-linha ${continua ? "" : "rounded-bl-md"}`
+                        : `bg-mar-50 ${continua ? "" : "rounded-br-md"}`
                   }`}
                 >
                   {i.interno && (
@@ -256,7 +258,8 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
                     </ul>
                   )}
                   <p className="mt-1 text-xs text-tinta-2" title={dataHora(i.created)}>
-                    {nome}{!doSolicitante && !automatica && !i.interno && " (TI)"} · {hora(i.created)}
+                    {/* em sequência da mesma pessoa, o nome só aparece no último balão */}
+                    {continua ? hora(i.created) : <>{nome}{!doSolicitante && !automatica && !i.interno && " (TI)"} · {hora(i.created)}</>}
                   </p>
                 </div>
               </li>
