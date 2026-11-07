@@ -18,13 +18,12 @@ export const useTelaLarga = () => useMediaQuery(TELA_LARGA);
 
 const LISTAS = ["/ti", "/ti/chamados", "/ti/historico", "/ti/usuarios", "/projeto/feedback"];
 
-export function moldeDaRota(caminho: string, params: URLSearchParams, tecnico: boolean): { molde: Molde; max: string } {
+export function moldeDaRota(caminho: string, _params: URLSearchParams, tecnico: boolean): { molde: Molde; max: string } {
   if ((tecnico && LISTAS.includes(caminho)) || caminho === "/projeto/feedback") return { molde: "lista", max: "100%" };
   if (caminho === "/ti/painel") return { molde: "painel", max: "100%" };
-  if (caminho === "/ti/configuracoes") {
-    const aba = params.get("aba");
-    return !aba || aba === "automacao" ? { molde: "painel", max: "100%" } : { molde: "formulario", max: "76rem" };
-  }
+  // Configurações: sempre largura toda, para o título e as abas não pularem de lugar ao trocar de aba;
+  // as abas de formulário limitam a própria largura (alinhadas à esquerda) em ConfiguracoesTI.tsx
+  if (caminho === "/ti/configuracoes") return { molde: "painel", max: "100%" };
   if (caminho === "/" || caminho === "/novo" || caminho === "/ti/registrar") return { molde: "formulario", max: "76rem" };
   if (caminho.startsWith("/chamado/") || caminho.startsWith("/ti/chamado/") || caminho === "/ti/qrcodes") return { molde: "formulario", max: "64rem" };
   return { molde: "formulario", max: "48rem" };

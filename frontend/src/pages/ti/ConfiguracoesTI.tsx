@@ -49,7 +49,7 @@ export function ConfiguracoesTI() {
         }))} />}
       />
       {ABAS.map((a) => (abertas.has(a.id) || aba === a.id) && (
-        <div key={a.id} id={`painel-${a.id}`} hidden={aba !== a.id} aria-label={a.rotulo}>
+        <div key={a.id} id={`painel-${a.id}`} hidden={aba !== a.id} aria-label={a.rotulo} className={a.id === "automacao" ? "" : "max-w-[76rem]"}>
           {a.id === "automacao" && <Automacao equipe={equipe} listas={listas} respostas={respostas} pronto={pronto} />}
           {a.id === "equipe" && <Equipe equipe={equipe} recarregar={recarregar} />}
           {a.id === "categorias" && <Categorias />}
