@@ -9,7 +9,12 @@ export function baixarCsvChamados(lista: Chamado[], nomeArquivo: string) {
     nomeSolicitante(c), ROTULO_PRIORIDADE[c.prioridade], ROTULO_STATUS[c.status], c.expand?.responsavel?.name ?? "",
     dataHora(c.iniciado_em), dataHora(c.resolvido_em), c.descricao, c.diagnostico, c.solucao,
   ]);
-  const csv = [cab, ...linhas].map((l) => l.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
+  baixarCsv(cab, linhas, nomeArquivo);
+}
+
+/** CSV genérico (";" e acentos, abre direto no Excel em português). */
+export function baixarCsv(cabecalho: string[], linhas: unknown[][], nomeArquivo: string) {
+  const csv = [cabecalho, ...linhas].map((l) => l.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
   const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
   const a = Object.assign(document.createElement("a"), { href: url, download: nomeArquivo });
   a.click();

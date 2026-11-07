@@ -1,9 +1,10 @@
-import { BarChart3, Building2, ChevronRight, Settings, ShieldCheck, SlidersHorizontal, Users, Wrench } from "lucide-react";
+import { BarChart3, Building2, ChevronRight, MessageSquare, Settings, ShieldCheck, SlidersHorizontal, Users, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { MinhaAusencia } from "../features/configuracoes/Equipe";
 import { Avatar } from "../components/Avatar";
 import { useAuth } from "../lib/auth";
+import { abrirOpiniao } from "../lib/opiniao";
 import { ehAdmin, ehTecnico, pb, type Usuario } from "../lib/pb";
 
 /** Números rápidos: do servidor (chamados que abriu) ou do técnico (que atendeu). */
@@ -75,6 +76,7 @@ export function Perfil() {
     ...(admin ? [
       { para: "/ti/configuracoes", Icone: SlidersHorizontal, titulo: "Configurações do TI", detalhe: "Automação, equipe, categorias e a fila" },
     ] : []),
+    ...(u.equipe_projeto ? [{ para: "/projeto/feedback", Icone: MessageSquare, titulo: "Feedback do sistema", detalhe: "Equipe do projeto: o que as pessoas acharam" }] : []),
     { para: "/configuracoes", Icone: Settings, titulo: "Configurações", detalhe: "Aparência, senha, meus dados e sair" },
   ];
 
@@ -108,6 +110,16 @@ export function Perfil() {
           ))}
         </ul>
       </nav>
+
+      {/* "Sua opinião": no PC também há o botão no canto; no celular este é o caminho */}
+      <button type="button" onClick={() => abrirOpiniao()} className="flex min-h-16 w-full items-center gap-4 rounded-2xl bg-campo-50 px-4 py-3 text-left ring-1 ring-linha hover:ring-acento">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-campo text-white"><MessageSquare className="size-5" aria-hidden="true" /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-bold text-tinta">Sua opinião sobre o sistema</span>
+          <span className="block text-sm text-tinta-2">Problema, ideia ou elogio, direto para quem faz o Dino Desk</span>
+        </span>
+        <ChevronRight className="size-5 shrink-0 text-tinta-2" aria-hidden="true" />
+      </button>
     </div>
   );
 }

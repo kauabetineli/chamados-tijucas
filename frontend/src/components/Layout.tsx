@@ -5,6 +5,7 @@ import { useAuth } from "../lib/auth";
 import { Avisos } from "./Avisos";
 import { Avatar } from "./Avatar";
 import { BarraLateral } from "./BarraLateral";
+import { Opiniao } from "./Opiniao";
 import { PainelChamado } from "./PainelChamado";
 import { ehTecnico } from "../lib/pb";
 import { useNumeros, VISOES, type Numeros } from "../lib/numeros";
@@ -26,7 +27,7 @@ const TECNICO: Item[] = [
   { para: "/perfil", rotulo: "Você", Icone: UserRound, avatar: true },
 ];
 // telas que moram dentro de "Você" no celular (o item fica marcado nelas)
-const DENTRO_DE_VOCE = ["/configuracoes", "/ti/painel", "/ti/usuarios", "/ti/configuracoes"];
+const DENTRO_DE_VOCE = ["/configuracoes", "/ti/painel", "/ti/usuarios", "/ti/configuracoes", "/projeto/feedback"];
 
 export function Layout() {
   const { usuario } = useAuth();
@@ -62,6 +63,7 @@ export function Layout() {
         <Outlet />
         <Avisos />
         <PainelChamado />
+        <Opiniao />
       </main>
 
       {/* barra inferior no celular */}

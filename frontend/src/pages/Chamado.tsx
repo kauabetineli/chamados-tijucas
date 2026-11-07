@@ -13,6 +13,7 @@ import { useAuth } from "../lib/auth";
 import { dentroDoHorario, mensagemForaDoHorario, useConfigTI } from "../lib/configTI";
 import { dataHora, ROTULO_AGUARDANDO, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS } from "../lib/formato";
 import { EXPAND_CHAMADO, ehTecnico, mensagemErro, nomeSolicitante, pb, type Chamado as TChamado, type Status, ramalDe } from "../lib/pb";
+import { convidarOpiniao } from "../lib/opiniao";
 import { useRealtime } from "../lib/useRealtime";
 import { useMediaQuery } from "../lib/useMediaQuery";
 
@@ -248,6 +249,7 @@ function Confirmacao({ chamadoId, aoConcluir }: { chamadoId: string; aoConcluir:
     try {
       await pb.send(`/api/chamados/${chamadoId}/${acao}`, { method: "POST", body: corpo });
       aoConcluir();
+      if (acao === "confirmar") convidarOpiniao();
     } catch (err) {
       setErro(mensagemErro(err));
     } finally {

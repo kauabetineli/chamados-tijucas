@@ -18,6 +18,7 @@ import { QrCodes } from "./pages/ti/QrCodes";
 import { Registrar } from "./pages/ti/Registrar";
 import { TodosChamados } from "./pages/ti/TodosChamados";
 import { Usuarios } from "./pages/ti/Usuarios";
+import { Feedback } from "./pages/projeto/Feedback";
 
 function Protegida({ children }: { children: ReactNode }) {
   const { usuario } = useAuth();
@@ -34,6 +35,12 @@ function Protegida({ children }: { children: ReactNode }) {
 function SoTecnico({ children }: { children: ReactNode }) {
   const { usuario } = useAuth();
   return ehTecnico(usuario) ? children : <Navigate to="/" replace />;
+}
+
+/** Área da equipe do projeto (extensão): contas marcadas com equipe_projeto. */
+function SoEquipe({ children }: { children: ReactNode }) {
+  const { usuario } = useAuth();
+  return usuario?.equipe_projeto ? children : <Navigate to="/" replace />;
 }
 
 function Inicio() {
@@ -68,6 +75,7 @@ export function App() {
             <Route path="ti/chamados" element={<SoTecnico><TodosChamados /></SoTecnico>} />
             <Route path="ti/usuarios" element={<SoTecnico><Usuarios /></SoTecnico>} />
             <Route path="ti/configuracoes" element={<SoTecnico><ConfiguracoesTI /></SoTecnico>} />
+            <Route path="projeto/feedback" element={<SoEquipe><Feedback /></SoEquipe>} />
             <Route path="ti/qrcodes" element={<SoTecnico><QrCodes /></SoTecnico>} />
             <Route path="ti/chamado/:id" element={<SoTecnico><Chamado /></SoTecnico>} />
           </Route>

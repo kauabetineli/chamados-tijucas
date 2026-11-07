@@ -53,6 +53,25 @@ export interface Usuario extends RecordModel {
   ausente_ate?: string;
   ausencia_motivo?: string;
   sem_automatico?: boolean;
+  /** conta da equipe do projeto (extensão): vê o feedback do sistema. Só o superusuário marca */
+  equipe_projeto?: boolean;
+  expand?: { setor?: Setor };
+}
+
+/** "Sua opinião" sobre o sistema (coleção feedbacks; só a equipe do projeto lê) */
+export interface Feedback extends RecordModel {
+  autor: string;
+  autor_nome?: string;
+  tipo: "problema" | "ideia" | "elogio" | "nota";
+  texto: string;
+  tela: string;
+  nota: number;
+  papel: string;
+  setor: string;
+  situacao: "novo" | "visto" | "resolvido" | "melhoria";
+  anotacao: string;
+  ficticio: boolean;
+  created: string;
   expand?: { setor?: Setor };
 }
 
