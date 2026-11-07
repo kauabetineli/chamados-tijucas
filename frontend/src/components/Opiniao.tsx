@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth";
 import { aoAbrirOpiniao, nomeDaTela } from "../lib/opiniao";
 import { ehTecnico, mensagemErro, pb } from "../lib/pb";
 import { prepararArquivo } from "../lib/imagem";
+import { Dica } from "./Dica";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import { PainelRapido } from "./PainelRapido";
 import { useVerChamado } from "../lib/verChamado";
@@ -108,13 +109,13 @@ function JanelaOpiniao({ soNota, tecnico, tela, aoFechar }: { soNota: boolean; t
     <PainelRapido
       idTitulo="titulo-opiniao"
       largura="max-w-md"
-      titulo="Sua opinião"
-      subtitulo={
+      titulo={<span className="flex items-center gap-1.5">Sua opinião <Dica rotulo="Para quem vai">Vai para quem faz o Dino Desk.</Dica></span>}
+      subtitulo={!tecnico && (
+        // para o servidor, o atalho continua à vista: problema no computador é chamado, não opinião
         <p className="mt-0.5 text-sm text-tinta-2">
-          Vai para quem faz o Dino Desk.
-          {!tecnico && <> Problema no computador? <Link to="/novo" onClick={aoFechar} className="font-bold text-acento underline">Abra um chamado</Link>.</>}
+          Problema no computador? <Link to="/novo" onClick={aoFechar} className="font-bold text-acento underline">Abra um chamado</Link>.
         </p>
-      }
+      )}
       aoTentarFechar={aoFechar}
       rodape={
         <button type="button" className="btn-primario w-full" disabled={enviando} onClick={enviar}>{enviando ? "Enviando..." : "Enviar"}</button>
