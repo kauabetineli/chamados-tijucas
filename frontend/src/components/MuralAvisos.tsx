@@ -1,23 +1,30 @@
-import { AlertTriangle, Info, Megaphone, PenLine, Plus, Users, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, Megaphone, PenLine, Plus, Users, X } from "lucide-react";
 import { Dica } from "./Dica";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "../lib/auth";
 import { avisar } from "../lib/avisos";
-import { encerrarAviso, MODELOS, PRAZOS, publicarAviso, someEm, tambemEstou, useAvisosTI, type AvisoTI, type Prazo } from "../lib/avisosTI";
+import { encerrarAviso, encerrarAvisoCompleto, MODELOS, PRAZOS, publicarAviso, someEm, tambemEstou, useAvisosTI, type AvisoTI, type Prazo } from "../lib/avisosTI";
 import { tempoRelativo } from "../lib/formato";
-import { ehTecnico, mensagemErro } from "../lib/pb";
+import { ehTecnico, mensagemErro, pb } from "../lib/pb";
 import { PainelRapido } from "./PainelRapido";
 
 const ESTILO = {
   problema: { Icone: AlertTriangle, caixa: "bg-brasa-50 ring-alerta/40", icone: "text-alerta" },
   info: { Icone: Info, caixa: "bg-mar-50 ring-acento/30", icone: "text-acento" },
+  resolvido: { Icone: CheckCircle2, caixa: "bg-campo-50 ring-ok/30", icone: "text-ok" },
 };
 
 const quantasPessoas = (n: number) => `${n} ${n === 1 ? "pessoa disse" : "pessoas disseram"} que também ${n === 1 ? "está" : "estão"} com esse problema`;
 
+/**
+ * Encerrar um aviso. Comunicado ou recado de resolvido: encerra direto. Aviso de PROBLEMA: abre a janela que resolve
+ * também os chamados ligados a ele e avisa todos que voltou (POST /api/avisos/{id}/encerrar).
+ */
 function useEncerrar(a: AvisoTI) {
   const [encerrando, setEncerrando] = useState(false);
+  const [janela, setJanela] = useState(false);
   async function encerrar() {
+    if (a.tipo === "problema") return setJanela(true);
     setEncerrando(true);
     try {
       await encerrarAviso(a.id);
@@ -27,14 +34,134 @@ function useEncerrar(a: AvisoTI) {
       setEncerrando(false);
     }
   }
-  return { encerrando, encerrar };
+  return { encerrando, encerrar, janela: janela && <JanelaEncerrar a={a} aoFechar={() => setJanela(false)} /> };
+}
+
+function JanelaEncerrar({ a, aoFechar }: { a: AvisoTI; aoFechar: () => void }) {
+  const [ligados, setLigados] = useState<number | null>(null);
+  const [resolver, setResolver] = useState(true);
+  const [mensagem, setMensagem] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+  useEffect(() => {
+    pb.collection("chamados").getList(1, 1, { filter: pb.filter("aviso = {:a} && status != 'resolvido'", { a: a.id }), fields: "id", requestKey: null })
+      .then((r) => setLigados(r.totalItems)).catch(() => setLigados(0));
+  }, [a.id]);
+  const pessoas = a.tambem_total ?? 0;
+
+  async function confirmar(e?: FormEvent) {
+    e?.preventDefault();
+    setErro("");
+    setSalvando(true);
+    try {
+      const r = await encerrarAvisoCompleto(a.id, { resolver: resolver && !!ligados, mensagem: mensagem.trim() });
+      avisar(r.resolvidos ? `Aviso encerrado. ${r.resolvidos} ${r.resolvidos === 1 ? "chamado resolvido" : "chamados resolvidos"} junto.` : "Aviso encerrado.");
+      aoFechar();
+    } catch (err) {
+      setErro(mensagemErro(err));
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <PainelRapido
+      idTitulo="titulo-encerrar-aviso"
+      largura="max-w-lg"
+      titulo="O problema foi resolvido?"
+      subtitulo={<p className="mt-0.5 text-sm text-tinta-2 texto-livre">“{a.texto}”</p>}
+      aoTentarFechar={aoFechar}
+      rodape={
+        <>
+          {erro && <p role="alert" className="mb-2 font-semibold text-alerta">{erro}</p>}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+            <button type="button" className="btn-secundario" onClick={aoFechar}>Cancelar</button>
+            <button type="submit" form="form-encerrar" className="btn-sucesso" disabled={salvando || ligados === null}>
+              {salvando ? "Encerrando..." : "Encerrar aviso"}
+            </button>
+          </div>
+        </>
+      }
+    >
+      <form id="form-encerrar" onSubmit={confirmar} className="space-y-4">
+        <div>
+          <label htmlFor="msg-resolvido" className="rotulo">Avisar a todos <span className="font-normal text-tinta-2">(opcional)</span></label>
+          <textarea id="msg-resolvido" className="campo min-h-20" maxLength={240} value={mensagem} onChange={(e) => setMensagem(e.target.value)}
+            placeholder="Ex.: A internet voltou. Se ainda estiver sem, reinicie o computador." />
+          <p className="ajuda">
+            {mensagem.trim()
+              ? `Aparece para todos por 4 horas${pessoas ? `, inclusive para as ${pessoas} ${pessoas === 1 ? "pessoa que disse" : "pessoas que disseram"} que também estavam sem` : ""}.`
+              : "Em branco, o aviso só some."}
+          </p>
+        </div>
+        {ligados === null ? null : ligados > 0 ? (
+          <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl px-3 ring-1 ring-linha hover:ring-acento">
+            <input type="checkbox" className="size-5 accent-acento" checked={resolver} onChange={() => setResolver(!resolver)} />
+            <span>
+              <b>Resolver também {ligados === 1 ? "o chamado ligado" : `os ${ligados} chamados ligados`} a este aviso</b>
+              <span className="block text-sm text-tinta-2">Quem abriu recebe a mensagem acima e confirma se deu certo.</span>
+            </span>
+          </label>
+        ) : (
+          <p className="text-sm text-tinta-2">Nenhum chamado ligado a este aviso.</p>
+        )}
+      </form>
+    </PainelRapido>
+  );
+}
+
+/** No chamado (TI): liga ou desliga o chamado de um aviso de problema no ar ("é o problema do aviso"). */
+export function LigarAoAviso({ chamadoId, aviso, aoMudar }: { chamadoId: string; aviso?: string; aoMudar: () => void }) {
+  const avisos = useAvisosTI();
+  const [salvando, setSalvando] = useState(false);
+  const problemas = (avisos ?? []).filter((x) => x.tipo === "problema");
+  const atual = problemas.find((x) => x.id === aviso);
+  if (!avisos || (!aviso && !problemas.length)) return null;
+
+  async function ligar(id: string) {
+    setSalvando(true);
+    try {
+      await pb.collection("chamados").update(chamadoId, { aviso: id });
+      avisar(id ? "Ligado ao aviso. Ao encerrar o aviso, ele pode ser resolvido junto." : "Desligado do aviso.");
+      aoMudar();
+    } catch (err) {
+      avisar(mensagemErro(err), { tipo: "erro" });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-brasa-50 px-3 py-2 text-sm ring-1 ring-alerta/40">
+      <AlertTriangle className="size-4 shrink-0 text-alerta" aria-hidden="true" />
+      {aviso ? (
+        <>
+          <span className="min-w-0 flex-1"><b>Faz parte do aviso</b> {atual ? <span className="texto-livre">“{atual.texto}”</span> : "(já encerrado)"}</span>
+          <button type="button" className="min-h-9 rounded-lg px-2 font-semibold text-acento hover:bg-superficie" disabled={salvando} onClick={() => ligar("")}>Desligar</button>
+        </>
+      ) : problemas.length === 1 ? (
+        <>
+          <span className="texto-livre min-w-0 flex-1">Aviso no ar: “{problemas[0].texto}”</span>
+          <button type="button" className="min-h-9 rounded-lg px-2 font-semibold text-acento hover:bg-superficie" disabled={salvando} onClick={() => ligar(problemas[0].id)}>É este problema</button>
+        </>
+      ) : (
+        <label className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <span className="font-semibold">É o problema de um aviso?</span>
+          <select className="campo min-h-9 w-auto py-1 text-sm" value="" disabled={salvando} onChange={(e) => e.target.value && ligar(e.target.value)}>
+            <option value="">Escolha o aviso</option>
+            {problemas.map((x) => <option key={x.id} value={x.id}>{x.texto.slice(0, 60)}</option>)}
+          </select>
+        </label>
+      )}
+    </div>
+  );
 }
 
 function CartaoAviso({ a, podeEncerrar }: { a: AvisoTI; podeEncerrar: boolean }) {
   const { Icone, caixa, icone } = ESTILO[a.tipo];
-  const { encerrando, encerrar } = useEncerrar(a);
+  const { encerrando, encerrar, janela } = useEncerrar(a);
   return (
     <li className={`flex gap-2.5 rounded-xl p-3 text-sm ring-1 ${caixa}`}>
+      {janela}
       <Icone className={`mt-0.5 size-4 shrink-0 ${icone}`} aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="texto-livre font-semibold">{a.texto}</p>
@@ -243,10 +370,11 @@ export function LinhaAvisos({ compacto }: { compacto?: boolean }) {
 
 function LinhaAviso({ a, podeEncerrar }: { a: AvisoTI; podeEncerrar: boolean }) {
   const { Icone, caixa, icone } = ESTILO[a.tipo];
-  const { encerrando, encerrar } = useEncerrar(a);
+  const { encerrando, encerrar, janela } = useEncerrar(a);
   const fim = someEm(a.ate);
   return (
     <div className={`rounded-xl p-2.5 text-sm ring-1 ${caixa}`}>
+      {janela}
       <p className="flex gap-2">
         <Icone className={`mt-0.5 size-4 shrink-0 ${icone}`} aria-hidden="true" />
         <span className="texto-livre line-clamp-2 min-w-0 flex-1 font-semibold" title={a.texto}>{a.texto}</span>
@@ -260,7 +388,7 @@ function LinhaAviso({ a, podeEncerrar }: { a: AvisoTI; podeEncerrar: boolean }) 
         )}
         {podeEncerrar && (
           <button type="button" onClick={encerrar} disabled={encerrando} className="ml-auto min-h-8 rounded-lg px-2 font-semibold text-acento hover:bg-superficie">
-            {encerrando ? "Encerrando..." : "Resolvido, encerrar"}
+            {encerrando ? "Encerrando..." : a.tipo === "problema" ? "Resolvido, encerrar" : "Encerrar"}
           </button>
         )}
       </p>

@@ -95,6 +95,10 @@ export interface Chamado extends RecordModel {
   diagnostico: string;
   solucao: string;
   confirmado: boolean;
+  /** considerado resolvido sozinho, sem resposta do servidor (não conta como satisfação) */
+  confirmado_auto?: boolean;
+  /** aviso do TI de que este chamado faz parte ("internet fora do ar") */
+  aviso?: string;
   /** só com status "aguardando": o que falta para continuar */
   aguardando_motivo?: MotivoAguardando | "";
   aguardando_desde?: string;

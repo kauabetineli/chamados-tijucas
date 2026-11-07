@@ -1,4 +1,7 @@
-import { ArrowLeft, Check, Hourglass, MessageCircleQuestion, ThumbsDown, ThumbsUp } from "lucide-react";
+import { LinkChamado } from "../lib/verChamado";
+import { Bloco } from "../components/Esqueleto";
+import { LigarAoAviso } from "../components/MuralAvisos";
+import { ArrowLeft, History as IconeHistorico, Check, Hourglass, MessageCircleQuestion, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { GaleriaAnexos } from "../components/Anexos";
@@ -12,7 +15,7 @@ import { ListaParecidas, SolucoesParecidas, useSolucoesParecidas } from "../comp
 import { AbasPagina } from "../components/CabecalhoPagina";
 import { Espera } from "../components/Espera";
 import { useAuth } from "../lib/auth";
-import { dentroDoHorario, mensagemForaDoHorario, useConfigTI } from "../lib/configTI";
+import { dentroDoHorario, diasParaConfirmar, mensagemForaDoHorario, useConfigTI } from "../lib/configTI";
 import { dataHora, ROTULO_AGUARDANDO, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS } from "../lib/formato";
 import { EXPAND_CHAMADO, ehTecnico, mensagemErro, nomeSolicitante, pb, type Chamado as TChamado, type Status, ramalDe } from "../lib/pb";
 import { convidarOpiniao } from "../lib/opiniao";
@@ -96,7 +99,7 @@ export function DetalheChamado({ id, embutido, gaveta, controles, etiqueta }: {
         <SenhaFila aFrente={aFrente} protocolo={c.protocolo} categoria={c.expand?.categoria?.nome} icone={c.expand?.categoria?.icone} animar={novo} />
       )}
       {c.status === "aguardando" && c.aguardando_motivo && !tecnico && <AvisoEspera c={c} />}
-      {c.status === "resolvido" && doSolicitante && !c.confirmado && <Confirmacao chamadoId={c.id} aoConcluir={carregar} />}
+      {c.status === "resolvido" && doSolicitante && !c.confirmado && <Confirmacao chamadoId={c.id} resolvidoEm={c.resolvido_em} aoConcluir={carregar} />}
     </>
   );
   const oQueOTIFez = c.status === "resolvido" && (c.diagnostico || c.solucao) ? <OQueOTIFez c={c} doSolicitante={doSolicitante} /> : null;
@@ -337,6 +340,24 @@ function Gaveta({ c, etiqueta, tecnico, controles, aoMudar, paraOServidor, oQueO
 
       <p className="texto-livre text-lg whitespace-pre-wrap">{c.descricao}</p>
 
+      {/* a foto costuma ser a primeira coisa que o técnico quer ver: miniaturas logo abaixo do problema */}
+      {fotos > 0 && (
+        <ul className="flex flex-wrap gap-2" aria-label="Fotos e vídeos do chamado">
+          {c.anexos!.slice(0, 4).map((nome) => (
+            <li key={nome}>
+              <button type="button" onClick={() => setAba("fotos")} className="block size-20 overflow-hidden rounded-xl ring-1 ring-linha hover:ring-2 hover:ring-acento" aria-label="Ver fotos e vídeos">
+                {/\.(mp4|mov|webm|3gp)$/i.test(nome)
+                  ? <span className="grid size-full place-items-center bg-fundo text-xs font-semibold text-tinta-2">Vídeo</span>
+                  : <img src={pb.files.getURL(c, nome, { thumb: "200x200" })} alt="" className="size-full object-cover" />}
+              </button>
+            </li>
+          ))}
+          {fotos > 4 && (
+            <li><button type="button" onClick={() => setAba("fotos")} className="grid size-20 place-items-center rounded-xl bg-fundo font-semibold text-tinta-2 ring-1 ring-linha hover:ring-acento">+{fotos - 4}</button></li>
+          )}
+        </ul>
+      )}
+
       <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
         {tecnico && <Dado termo="Quem pediu" valor={`${nomeSolicitante(c)}${ramal ? ` (ramal ${ramal})` : ""}`} />}
         <Dado termo="Setor" valor={c.expand?.setor?.nome} />
@@ -349,7 +370,9 @@ function Gaveta({ c, etiqueta, tecnico, controles, aoMudar, paraOServidor, oQueO
         {!tecnico && <Dado termo="Responsável no TI" valor={c.expand?.responsavel?.name} />}
       </dl>
 
+      {tecnico && c.solicitante && <HistoricoDaPessoa c={c} />}
       {paraOServidor}
+      {tecnico && c.status !== "resolvido" && <LigarAoAviso chamadoId={c.id} aviso={c.aviso} aoMudar={aoMudar} />}
       {tecnico && <PainelTecnico chamado={c} aoMudar={aoMudar} linha />}
       {oQueOTIFez}
 
@@ -371,6 +394,50 @@ function Gaveta({ c, etiqueta, tecnico, controles, aoMudar, paraOServidor, oQueO
   );
 }
 
+/**
+ * Histórico de quem pediu (painel de contexto, como nos sistemas de mercado): quantos chamados a pessoa abriu
+ * nos últimos 30 dias e de qual tipo, para notar problema que se repete.
+ */
+function HistoricoDaPessoa({ c }: { c: TChamado }) {
+  const [lista, setLista] = useState<TChamado[] | null>(null);
+  const [aberto, setAberto] = useState(false);
+  useEffect(() => {
+    const desde = new Date(Date.now() - 30 * 86400000).toISOString().replace("T", " ");
+    pb.collection("chamados").getList<TChamado>(1, 30, {
+      filter: pb.filter("solicitante = {:s} && id != {:id} && created >= {:d}", { s: c.solicitante, id: c.id, d: desde }),
+      sort: "-created", expand: "categoria", fields: "id,protocolo,descricao,status,created,categoria,expand.categoria.nome", requestKey: null,
+    }).then((r) => setLista(r.items)).catch(() => setLista([]));
+  }, [c.id, c.solicitante]);
+  if (lista === null) return <Bloco className="h-6 w-72" />;
+  const nome = nomeSolicitante(c).split(" ")[0];
+  if (!lista.length) return <p className="text-sm text-tinta-2">Primeiro chamado de {nome} nos últimos 30 dias.</p>;
+  const porTipo = new Map<string, number>();
+  lista.forEach((x) => { const t = x.expand?.categoria?.nome ?? "Outro"; porTipo.set(t, (porTipo.get(t) ?? 0) + 1); });
+  const [tipo, n] = [...porTipo.entries()].sort((a, b) => b[1] - a[1])[0];
+  const mesmo = c.expand?.categoria?.nome === tipo ? " (o mesmo deste)" : "";
+  return (
+    <div className="text-sm">
+      <button type="button" aria-expanded={aberto} onClick={() => setAberto(!aberto)} className="inline-flex min-h-9 items-center gap-1.5 text-left font-semibold text-acento hover:underline">
+        <IconeHistorico className="size-4 shrink-0" aria-hidden="true" />
+        {nome} abriu mais {lista.length} {lista.length === 1 ? "chamado" : "chamados"} nos últimos 30 dias{n > 1 ? ` · ${n} de ${tipo}${mesmo}` : ""}
+      </button>
+      {aberto && (
+        <ul className="mt-1 divide-y divide-linha rounded-xl ring-1 ring-linha">
+          {lista.map((x) => (
+            <li key={x.id}>
+              <LinkChamado id={x.id} para={`/ti/chamado/${x.id}`} className="flex items-center gap-3 px-3 py-2 hover:bg-fundo">
+                <span className="w-24 shrink-0 font-display font-bold">{x.protocolo}</span>
+                <span className="texto-livre min-w-0 flex-1 truncate">{x.descricao}</span>
+                <SeloStatus status={x.status} />
+              </LinkChamado>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function Dado({ termo, valor }: { termo: string; valor?: string }) {
   return (
     <div>
@@ -385,7 +452,9 @@ function Dado({ termo, valor }: { termo: string; valor?: string }) {
  * comentário opcional): é o indicador de satisfação do piloto. Pode pular; a confirmação vale do mesmo jeito.
  * "Não resolveu" reabre com o motivo.
  */
-function Confirmacao({ chamadoId, aoConcluir }: { chamadoId: string; aoConcluir: () => void }) {
+function Confirmacao({ chamadoId, aoConcluir, resolvidoEm }: { chamadoId: string; aoConcluir: () => void; resolvidoEm?: string }) {
+  const { config } = useConfigTI();
+  const faltam = diasParaConfirmar(resolvidoEm, config.dias_confirmar);
   const [etapa, setEtapa] = useState<"pergunta" | "avaliar" | "reabrir">("pergunta");
   const [motivo, setMotivo] = useState("");
   const [avaliacao, setAvaliacao] = useState<"bom" | "ruim" | "">("");
@@ -423,6 +492,11 @@ function Confirmacao({ chamadoId, aoConcluir }: { chamadoId: string; aoConcluir:
       {etapa === "pergunta" && (
         <>
           <h2 className="text-xl font-bold">O TI marcou como resolvido. Deu certo?</h2>
+          {faltam !== null && (
+            <p className="mt-1 text-sm text-tinta-2">
+              {faltam === 0 ? "Sem resposta, ele é considerado resolvido ainda hoje." : `Sem resposta, ele é considerado resolvido em ${faltam} ${faltam === 1 ? "dia útil" : "dias úteis"}.`}
+            </p>
+          )}
           <div className="mt-4 flex flex-wrap gap-2">
             <button className="btn-sucesso flex-1" onClick={() => setEtapa("avaliar")}>Sim, resolveu</button>
             <button className="btn-secundario flex-1" onClick={() => setEtapa("reabrir")}>Não resolveu</button>

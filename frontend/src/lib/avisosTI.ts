@@ -6,7 +6,8 @@ import { useRealtime } from "./useRealtime";
 export interface AvisoTI {
   id: string;
   texto: string;
-  tipo: "info" | "problema";
+  /** "resolvido": o recado de que o problema acabou (publicado ao encerrar um aviso de problema) */
+  tipo: "info" | "problema" | "resolvido";
   /** some depois desta data/hora ("" = até alguém encerrar) */
   ate: string;
   autor: string;
@@ -99,6 +100,11 @@ export async function publicarAviso(texto: string, tipo: AvisoTI["tipo"], prazo:
 }
 
 /** Encerrar = o prazo vira agora (o aviso some, mas fica registrado). */
+/** Encerra pelo servidor: resolve os chamados ligados e publica o recado de resolvido para todos. */
+export function encerrarAvisoCompleto(id: string, corpo: { resolver: boolean; mensagem: string }) {
+  return pb.send<{ resolvidos: number; aviso_resolvido: string; pessoas: number }>(`/api/avisos/${id}/encerrar`, { method: "POST", body: corpo });
+}
+
 export async function encerrarAviso(id: string) {
   return pb.collection("avisos").update(id, { ate: iso(new Date(Date.now() - 1000)) });
 }

@@ -148,6 +148,12 @@ cronAdd("automacao-tempo", "*/5 * * * *", () => {
   } catch (err) {
     $app.logger().warn("Falha nos fluxos de tempo", "erro", String(err));
   }
+  // resolvido sem resposta há N dias úteis: considerado resolvido (lib/ciclo.js)
+  try {
+    require(`${__hooks}/lib/ciclo.js`).confirmarSozinho($app);
+  } catch (err) {
+    $app.logger().warn("Falha na confirmação automática", "erro", String(err));
+  }
 });
 
 // ---------- categorias: o admin edita; "Outro" (protegida) sempre aparece ----------
@@ -175,5 +181,8 @@ onRecordCreateRequest((e) => {
 // Roda os fluxos de tempo na hora (para testes e para as ferramentas; o cron faz isso a cada 5 minutos).
 routerAdd("POST", "/api/ti/automacao/rodar-tempo", (e) => {
   if (!e.hasSuperuserAuth()) throw new ForbiddenError("Somente superusuário.");
-  return e.json(200, { aplicadas: require(`${__hooks}/lib/automacao.js`).rodarRegrasDeTempo(e.app) });
+  return e.json(200, {
+    aplicadas: require(`${__hooks}/lib/automacao.js`).rodarRegrasDeTempo(e.app),
+    confirmados: require(`${__hooks}/lib/ciclo.js`).confirmarSozinho(e.app),
+  });
 });

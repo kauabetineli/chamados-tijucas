@@ -164,6 +164,17 @@ export function FilaAtendimento() {
             )}
           </section>
 
+          <Secao titulo="Resolvido sem resposta"
+            ajuda="Se quem pediu não responder “Deu certo?”, o chamado é considerado resolvido depois desse prazo. A pessoa vê quantos dias faltam. Não conta como satisfação no Painel, e ela ainda pode reabrir.">
+            <label className="flex flex-wrap items-center gap-3 font-semibold">
+              Considerar resolvido depois de
+              <select className="campo w-auto" value={cfg.dias_confirmar} onChange={(e) => set({ dias_confirmar: parseInt(e.target.value, 10) })}>
+                <option value={0}>nunca (espera a resposta)</option>
+                {[1, 2, 3, 5, 7, 10].map((n) => <option key={n} value={n}>{n} {n === 1 ? "dia útil" : "dias úteis"}</option>)}
+              </select>
+            </label>
+          </Secao>
+
           <section className="space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha md:p-5">
             <label className="flex cursor-pointer items-start gap-3">
               <input type="checkbox" role="switch" className="mt-1 size-5 accent-acento" checked={cfg.horario.ativo} onChange={() => set({ horario: { ...cfg.horario, ativo: !cfg.horario.ativo } })} />

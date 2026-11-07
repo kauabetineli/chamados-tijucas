@@ -38,6 +38,8 @@ const CONFIG_PADRAO = {
   marcar_escolhida: true,
   horario: { ativo: false, dias: [1, 2, 3, 4, 5], inicio: "08:00", fim: "17:00" },
   destino_ausencia: "fica",
+  // resolvido sem resposta do servidor: considerado resolvido depois de N dias úteis (0 = nunca)
+  dias_confirmar: 3,
 };
 const AUTOMACAO_VAZIA = { fluxos: [], senao: { tipo: "livre", pessoa: "" } };
 
@@ -84,6 +86,7 @@ function normalizarConfig(bruto) {
     if (/^\d\d:\d\d$/.test(d.horario.fim || "")) c.horario.fim = d.horario.fim;
   }
   if (d.destino_ausencia === "fila") c.destino_ausencia = "fila";
+  if (d.dias_confirmar !== undefined) { const n = parseInt(d.dias_confirmar, 10); if (n >= 0 && n <= 30) c.dias_confirmar = n; }
   return c;
 }
 

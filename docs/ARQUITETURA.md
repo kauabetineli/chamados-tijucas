@@ -295,6 +295,24 @@ GOV.UK) trocou isso por **um sinal = um significado, sempre no mesmo lugar**:
 - **Registrar pedido** usa o mesmo desenho do Novo chamado no PC (uma coluna numerada, anexo no rodapé da caixa de texto,
   botão que gruda embaixo; peças em `components/FormularioPassos.tsx`) e mostra à direita o que o técnico registrou hoje.
 
+## Fim do ciclo do chamado (novembro de 2026)
+
+Ideias tiradas dos sistemas de chamados de mercado (fechamento automático, incidente-pai, macros), no tamanho do TI de Tijucas:
+
+- **Resolvido sem resposta.** O chamado resolvido espera a confirmação de quem pediu. Se ninguém responde em
+  `dias_confirmar` dias úteis (padrão 3; 0 = nunca; Configurações > Fila e atendimento), o cron dos fluxos de tempo
+  (`lib/ciclo.js`, `confirmarSozinho`) marca `confirmado` e `confirmado_auto` e deixa uma mensagem automática.
+  A tela de quem pediu mostra quantos dias faltam. Na satisfação do Painel, esses não contam como "confirmados por quem pediu".
+- **Aviso que resolve os ligados.** No chamado, o técnico liga o pedido a um aviso de problema em vigor
+  ("É este problema"). Ao encerrar o aviso ("Resolvido, encerrar"), pode resolver de uma vez todos os chamados ligados
+  e publicar um aviso "resolvido" (verde, some em 4 h). Rota `POST /api/avisos/{id}/encerrar`.
+- **Resposta pronta com ação.** Cada resposta pronta pode, ao ser enviada, pôr o chamado em espera (peça, resposta
+  de quem pediu, terceiro) ou resolver. O chip "Ao enviar: …" aparece antes de mandar; "Só mandar" desfaz.
+- **Contexto para o técnico.** Na gaveta: miniaturas das fotos logo abaixo da descrição e "Fulano abriu mais N chamados
+  nos últimos 30 dias" (com o tipo mais comum), para notar problema que se repete.
+- **Meta do piloto.** No Painel, a meta da AC2 (50% dos pedidos registrados no sistema) compara o total do período com
+  a contagem manual da equipe, digitada ali e guardada só naquele navegador.
+
 ## Perfil
 
 Clicar no próprio nome (topo) abre `/perfil`: dados que o TI cadastrou (matrícula, setor, ramal, e-mail),

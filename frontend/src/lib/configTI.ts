@@ -16,6 +16,8 @@ export interface ConfigTI {
   marcar_escolhida: boolean;
   horario: { ativo: boolean; dias: number[]; inicio: string; fim: string };
   destino_ausencia: "fica" | "fila";
+  /** resolvido sem resposta do servidor: considerado resolvido depois de N dias úteis (0 = nunca) */
+  dias_confirmar: number;
 }
 
 export const CONFIG_PADRAO: ConfigTI = {
@@ -27,7 +29,21 @@ export const CONFIG_PADRAO: ConfigTI = {
   marcar_escolhida: true,
   horario: { ativo: false, dias: [1, 2, 3, 4, 5], inicio: "08:00", fim: "17:00" },
   destino_ausencia: "fica",
+  dias_confirmar: 3,
 };
+
+/** Dias úteis que faltam para um chamado resolvido ser considerado resolvido sozinho (null = desligado). */
+export function diasParaConfirmar(resolvidoEm: string | undefined, dias: number): number | null {
+  if (!dias || !resolvidoEm) return null;
+  const d = new Date(resolvidoEm.replace(" ", "T"));
+  let passados = 0;
+  const hoje = new Date();
+  while (d < hoje) {
+    d.setDate(d.getDate() + 1);
+    if (d <= hoje && d.getDay() !== 0 && d.getDay() !== 6) passados++;
+  }
+  return Math.max(0, dias - passados);
+}
 
 interface RegistroConfig { id: string; dados: Partial<ConfigTI> | null }
 

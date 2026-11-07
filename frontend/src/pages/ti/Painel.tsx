@@ -13,7 +13,7 @@ interface Resumo {
   dias: number;
   total: number;
   agora: { aberto: number; em_andamento: number; aguardando: number };
-  avaliacao: { bom: number; ruim: number; confirmados: number };
+  avaliacao: { bom: number; ruim: number; confirmados: number; automaticos?: number };
   por_tecnico: { chave: string; total: number }[];
   resolvidos: number;
   horas_media_resolucao: number;
@@ -134,6 +134,7 @@ function PainelEquipe() {
           {/* números que o piloto acompanha (AC2): pedidos que passam pelo sistema e satisfação de quem pediu */}
           <section aria-labelledby="t-piloto" className="space-y-3">
             <h2 id="t-piloto" className="text-xl font-bold">Piloto</h2>
+            <MetaPiloto total={r.total} dias={r.dias} />
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
                 <p className="flex items-center gap-2 text-sm text-tinta-2">
@@ -159,8 +160,9 @@ function PainelEquipe() {
                 </p>
                 <p className="mt-2 text-sm text-tinta-2">
                   {r.avaliacao.confirmados
-                    ? `${avaliados} de ${r.avaliacao.confirmados} chamados confirmados no período foram avaliados.`
-                    : "Nenhum chamado confirmado no período ainda."}
+                    ? `${avaliados} de ${r.avaliacao.confirmados} chamados confirmados por quem pediu foram avaliados.`
+                    : "Ninguém confirmou um chamado no período ainda."}
+                  {!!r.avaliacao.automaticos && ` ${r.avaliacao.automaticos} ${r.avaliacao.automaticos === 1 ? "foi considerado resolvido" : "foram considerados resolvidos"} sem resposta (não entram na conta).`}
                 </p>
               </div>
             </div>
@@ -253,5 +255,58 @@ function PorDia({ dados: brutos, dias }: { dados: { dia: string; total: number }
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * Meta do piloto (AC2): 50% dos pedidos que chegam ao TI registrados no sistema. O sistema só conhece o que foi
+ * registrado; o total real vem da contagem manual da equipe no mesmo período, digitada aqui.
+ * A contagem fica guardada só neste navegador (localStorage), por período.
+ */
+function MetaPiloto({ total, dias }: { total: number; dias: number }) {
+  const chave = `dinodesk:contagem-manual-${dias}`;
+  const ler = () => { try { return localStorage.getItem(chave) ?? ""; } catch { return ""; } };
+  const [manual, setManual] = useState(ler);
+  useEffect(() => { setManual(ler()); }, [chave]); // eslint-disable-line react-hooks/exhaustive-deps
+  function mudar(v: string) {
+    const limpo = v.replace(/\D/g, "").slice(0, 6);
+    setManual(limpo);
+    try { if (limpo) localStorage.setItem(chave, limpo); else localStorage.removeItem(chave); } catch { /* sem armazenamento */ }
+  }
+  const n = Number(manual);
+  const pct = n > 0 ? Math.round((total / n) * 100) : null;
+  const bateu = pct !== null && pct >= 50;
+  return (
+    <div className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="flex items-center gap-2 text-sm text-tinta-2">
+            Meta: 50% dos pedidos registrados no sistema
+            <Dica rotulo="Como a meta é calculada">
+              Chamados no sistema nos últimos {dias} dias ({total}) divididos pela contagem manual de pedidos que a equipe fez no mesmo período. A contagem fica salva só neste navegador.
+            </Dica>
+          </p>
+          <p className={`mt-1 font-display text-4xl font-extrabold ${bateu ? "text-ok" : ""}`}>{pct === null ? "—" : `${pct}%`}</p>
+        </div>
+        <label className="text-sm font-semibold">
+          Contagem manual da equipe ({dias} dias)
+          <input
+            inputMode="numeric"
+            value={manual}
+            onChange={(e) => mudar(e.target.value)}
+            placeholder="Ex.: 400"
+            className="campo mt-1 block w-40"
+          />
+        </label>
+      </div>
+      <div className="relative mt-3 h-3 rounded-full bg-linha" aria-hidden="true">
+        <div className={`h-full rounded-full ${bateu ? "bg-campo" : "bg-acento"}`} style={{ width: `${Math.min(100, pct ?? 0)}%` }} />
+        {/* tema-fixo: a marca dos 50% acompanha a cor do texto (clara no escuro) de propósito */}
+        <span className="absolute -top-1 left-1/2 h-5 w-0.5 bg-tinta-2" title="Meta: 50%" />
+      </div>
+      <p className="mt-2 text-sm text-tinta-2">
+        {pct === null ? "Digite a contagem manual para ver o resultado." : bateu ? "Meta alcançada." : `Faltam ${Math.max(0, Math.ceil(n / 2) - total)} chamados registrados para chegar a 50%.`}
+      </p>
+    </div>
   );
 }

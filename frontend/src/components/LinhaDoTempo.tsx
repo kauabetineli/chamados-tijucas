@@ -1,5 +1,6 @@
 import { EsqueletoConversa } from "./Esqueleto";
-import { Hourglass, ImagePlus, Lock, Send, X } from "lucide-react";
+import { mudancaDaAcao, ROTULO_ACAO, type AcaoPronta } from "../lib/respostasProntas";
+import { CheckCircle2, Hourglass, ImagePlus, Lock, Send, X } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import { Fragment, useCallback, useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
@@ -70,6 +71,9 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
   const [soMensagens, setSoMensagens] = useState(false);
+  // resposta pronta com ação: ao enviar, o chamado também muda (pôr em espera, resolver)
+  const [acaoPronta, setAcaoPronta] = useState<{ texto: string; acao: AcaoPronta } | null>(null);
+  const acaoValendo = acaoPronta && texto.trim() && !interno ? acaoPronta.acao : null;
   // no computador o campo lembra que dá para colar um print (no celular não há Ctrl+V)
   const noPc = useMediaQuery("(min-width: 768px)");
 
@@ -119,6 +123,12 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
       d.append("interno", String(tecnico && interno));
       imagens.forEach((f) => d.append("anexos", f));
       await pb.collection("interacoes").create(d);
+      if (!aguardar && acaoValendo) {
+        await pb.collection("chamados").update(chamadoId, mudancaDaAcao(acaoValendo));
+        avisar(`Mensagem enviada e chamado ${acaoValendo === "resolver" ? "marcado como resolvido" : "posto em espera"}.`);
+        aoMudarChamado?.();
+      }
+      setAcaoPronta(null);
       if (aguardar) {
         await pb.collection("chamados").update(chamadoId, { status: "aguardando", aguardando_motivo: "solicitante" });
         avisar("Mensagem enviada. O chamado fica em espera até a pessoa responder.");
@@ -274,7 +284,21 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
             </button>
           </div>
         )}
-        {tecnico && !interno && <RespostasProntas selecionada={texto} aoEscolher={setTexto} />}
+        {tecnico && !interno && (
+          <RespostasProntas
+            selecionada={texto}
+            aoEscolher={(t, a) => { setTexto(t); setAcaoPronta(a ? { texto: t, acao: a } : null); }}
+          />
+        )}
+        {acaoValendo && (
+          <p className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-mar-50 px-3 py-1 font-semibold text-acento">
+              {acaoValendo === "resolver" ? <CheckCircle2 className="size-4" aria-hidden="true" /> : <Hourglass className="size-4" aria-hidden="true" />}
+              Ao enviar: {ROTULO_ACAO[acaoValendo]}
+            </span>
+            <button type="button" className="min-h-9 rounded-lg px-2 font-semibold text-tinta-2 hover:text-tinta" onClick={() => setAcaoPronta(null)}>Só mandar</button>
+          </p>
+        )}
         <label htmlFor="mensagem" className="sr-only">Mensagem</label>
         <div className="relative">
           <textarea

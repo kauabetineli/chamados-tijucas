@@ -1,4 +1,5 @@
 import { CabecalhoPagina } from "../../components/CabecalhoPagina";
+import { useMediaQuery } from "../../lib/useMediaQuery";
 import { definirPadraoDoPainel } from "../../lib/moldes";
 import { ChevronRight, History, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -26,7 +27,9 @@ export function Historico() {
   const [q, setQ] = useState("");
   // vindo de "Ver todos no histórico" (soluções parecidas): já abre filtrado pela categoria
   const [categoria, setCategoria] = useState(() => new URLSearchParams(window.location.search).get("categoria") ?? "");
-  const [verTodos, setVerTodos] = useState(false);
+  // PC: começa já com as mais recentes de todas (a categoria vira filtro). Celular: escolhe o tipo primeiro.
+  const noPc = useMediaQuery("(min-width: 768px)");
+  const [verTodos, setVerTodos] = useState(() => window.matchMedia("(min-width: 768px)").matches);
   // causa e solução são opcionais ao resolver: por padrão o Histórico mostra só o que tem registro
   const [soComSolucao, setSoComSolucao] = useState(true);
   const [itens, setItens] = useState<Chamado[] | null>(null);
@@ -87,7 +90,7 @@ export function Historico() {
   }, [mostrarLista, busca, categoria, filtroBase, pag.pagina, pag.porPagina]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const escolher = (id: string) => { setCategoria((atual) => (atual === id ? "" : id)); setItens(null); pag.voltarAoInicio(); };
-  const voltarAoInicio = () => { setQ(""); setCategoria(""); setVerTodos(false); setItens(null); pag.voltarAoInicio(); };
+  const voltarAoInicio = () => { setQ(""); setCategoria(""); setVerTodos(noPc); setItens(null); pag.voltarAoInicio(); };
   const nomeCategoria = categorias.find((c) => c.id === categoria)?.nome;
 
   return (

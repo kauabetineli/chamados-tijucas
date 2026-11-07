@@ -143,13 +143,13 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
   prazo_em, ordem_fila (a Fila ordena por `ordem_fila,created`), prioridade_escolhida, motivo_urgencia,
   status (`aberto`|`em_andamento`|`aguardando`|`resolvido`), aguardando_motivo (`peca`|`solicitante`|`terceiro`), aguardando_desde, origem (`sistema`|`whatsapp`|`ligacao`|`presencial`),
   responsavel, registrado_por, anexos (até 5, 250 MB), diagnostico, solucao, confirmado, avaliacao (`bom`|`ruim`), avaliacao_comentario,
-  midia_pendente, ficticio. "aguardando" = em espera: continua com o responsável, fora da fila e da carga.
-- `avisos`: mural "Avisos do TI" (texto, tipo `info`|`problema`, ate = some sozinho depois, autor). Técnico publica e
+  midia_pendente, ficticio, confirmado_auto (confirmado sozinho após `dias_confirmar` dias úteis), aviso (→ avisos: chamado ligado a um problema geral). "aguardando" = em espera: continua com o responsável, fora da fila e da carga.
+- `avisos`: mural "Avisos do TI" (texto, tipo `info`|`problema`|`resolvido`, ate = some sozinho depois, autor). Técnico publica e
   encerra (encerrar = `ate` vira agora; não se apaga). Aparece na barra lateral (PC) e no topo de Meus chamados/Fila (celular).
   `tambem` = quem tocou em "Também estou com esse problema" (só o TI vê a lista; todos recebem `tambem_total`/`tambem_eu`).
 - `feedbacks`: "Sua opinião" sobre o sistema (tipo, texto, tela, nota, papel, setor, situacao). Grava só por `POST /api/feedback`;
   só usuários com `equipe_projeto = true` (marcado pelo superusuário em `/_/`) leem e mudam a situação.
-- `respostas_prontas`: texto, ordem. Frases do TI, editáveis por qualquer técnico (só o TI lê).
+- `respostas_prontas`: texto, ordem, acao (opcional: ao enviar, põe em espera ou resolve). Frases do TI, editáveis por qualquer técnico (só o TI lê).
 - `interacoes`: chamado, autor (vazio = mensagem automática de uma regra), tipo (`comentario`|`status`|`prioridade`|`atribuicao`|`sistema`), texto, interno,
   anexos (até 4 imagens por mensagem; mensagem pode ser só imagem).
 

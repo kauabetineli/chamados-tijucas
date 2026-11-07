@@ -1,4 +1,5 @@
 import { AbasPagina, CabecalhoPagina } from "../components/CabecalhoPagina";
+import { diasParaConfirmar, useConfigTI } from "../lib/configTI";
 import { CheckCircle2, MessageCircleQuestion, Plus, Search, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -30,6 +31,7 @@ export function MeusChamados() {
   const [ultimaMensagem, setUltimaMensagem] = useState<Record<string, string>>({});
   const [verTodaFila, setVerTodaFila] = useState(false);
   const [confirmando, setConfirmando] = useState("");
+  const { config } = useConfigTI();
 
   const carregar = useCallback(async () => {
     if (!usuario) return;
@@ -218,6 +220,14 @@ export function MeusChamados() {
                         <span className="font-display font-bold text-tinta">{c.protocolo}</span>
                         {c.solucao && <> · Solução: {resumo(c.solucao, 90)}</>}
                       </span>
+                      {(() => {
+                        const faltam = diasParaConfirmar(c.resolvido_em, config.dias_confirmar);
+                        return faltam === null ? null : (
+                          <span className="mt-0.5 block text-sm text-tinta-2">
+                            {faltam === 0 ? "Sem resposta, é considerado resolvido ainda hoje." : `Sem resposta, é considerado resolvido em ${faltam} ${faltam === 1 ? "dia útil" : "dias úteis"}.`}
+                          </span>
+                        );
+                      })()}
                       {novidade(c) && <SeloNovidade />}
                     </span>
                   </LinkChamado>

@@ -294,7 +294,8 @@ function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, real
         </div>
         <div className="-mt-1.5 -mr-2"><BotaoMais c={c} aoAbrir={aoAcoes} /></div>
       </div>
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:pl-14">
+      {/* tela larga: o "seu próximo" já está aberto no painel ao lado, com as ações; aqui fica só o destaque */}
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:pl-14 larga:hidden">
         <button type="button" className="btn-primario flex-1 sm:flex-none" onClick={aoComecar} disabled={ocupado}>
           <Wrench className="size-5" aria-hidden="true" />
           {ocupado ? "Pegando..." : "Começar atendimento"}

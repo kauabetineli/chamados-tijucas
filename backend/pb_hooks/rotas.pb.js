@@ -34,6 +34,7 @@ routerAdd("POST", "/api/chamados/{id}/confirmar", (e) => {
   const avaliacao = b.avaliacao === "bom" || b.avaliacao === "ruim" ? b.avaliacao : "";
   const comentario = String(b.comentario || "").trim().slice(0, 500);
   c.set("confirmado", true);
+  c.set("confirmado_auto", false);
   if (avaliacao) c.set("avaliacao", avaliacao);
   if (comentario) c.set("avaliacao_comentario", comentario);
   e.app.save(c);
@@ -102,9 +103,11 @@ routerAdd("GET", "/api/painel/resumo", (e) => {
   const total = e.app.countRecords("chamados", $dbx.exp("created >= {:desde}", { desde }));
 
   // avaliação dos solicitantes (chamados confirmados no período)
-  const aval = new DynamicModel({ bom: 0, ruim: 0, confirmados: 0 });
+  // confirmados = a pessoa respondeu "Deu certo?"; automaticos = considerados resolvidos sem resposta (não são satisfação)
+  const aval = new DynamicModel({ bom: 0, ruim: 0, confirmados: 0, automaticos: 0 });
   db.newQuery(
-    `SELECT COALESCE(SUM(avaliacao = 'bom'), 0) AS bom, COALESCE(SUM(avaliacao = 'ruim'), 0) AS ruim, COUNT(*) AS confirmados
+    `SELECT COALESCE(SUM(avaliacao = 'bom'), 0) AS bom, COALESCE(SUM(avaliacao = 'ruim'), 0) AS ruim, COALESCE(SUM(confirmado_auto = 0), 0) AS confirmados,
+            COALESCE(SUM(confirmado_auto = 1), 0) AS automaticos
      FROM chamados WHERE status = 'resolvido' AND confirmado = 1 AND resolvido_em >= {:desde}`,
   ).bind({ desde }).one(aval);
 
@@ -124,7 +127,7 @@ routerAdd("GET", "/api/painel/resumo", (e) => {
       em_andamento: e.app.countRecords("chamados", $dbx.hashExp({ status: "em_andamento" })),
       aguardando: e.app.countRecords("chamados", $dbx.hashExp({ status: "aguardando" })),
     },
-    avaliacao: { bom: aval.bom, ruim: aval.ruim, confirmados: aval.confirmados },
+    avaliacao: { bom: aval.bom, ruim: aval.ruim, confirmados: aval.confirmados, automaticos: aval.automaticos },
     por_tecnico: porTecnico.map((r) => ({ chave: r.chave, total: r.total })),
     resolvidos: tempos.resolvidos,
     horas_media_resolucao: Math.round(tempos.horas_resolucao * 1000) / 1000,

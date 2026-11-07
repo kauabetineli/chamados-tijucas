@@ -131,7 +131,7 @@ onRecordUpdateRequest((e) => {
     rec.set(campo, antes.get(campo));
   }
 
-  for (const campo of ["prioridade_escolhida", "motivo_urgencia", "prazo_regra_min", "regras_tempo"]) {
+  for (const campo of ["prioridade_escolhida", "motivo_urgencia", "prazo_regra_min", "regras_tempo", "confirmado_auto"]) {
     rec.set(campo, antes.get(campo));
   }
   rec.set("peso", R.pesoDe(rec.getString("prioridade")));
@@ -164,10 +164,12 @@ onRecordUpdateRequest((e) => {
       if (rec.getDateTime("iniciado_em").isZero()) rec.set("iniciado_em", R.agora());
       rec.set("resolvido_em", R.agora());
       rec.set("confirmado", false);
+      rec.set("confirmado_auto", false);
     }
     if (para === "aberto") {
       rec.set("resolvido_em", "");
       rec.set("confirmado", false);
+      rec.set("confirmado_auto", false);
     }
     if (para !== "aberto" && !rec.getString("responsavel") && !superuser) {
       rec.set("responsavel", auth.id);
@@ -199,6 +201,11 @@ onRecordUpdateRequest((e) => {
       R.notificarSolicitante(e.app, rec, "Seu chamado foi resolvido",
         "O TI marcou o seu chamado como resolvido. Abra o chamado para confirmar ou avisar se o problema continua.");
     }
+  }
+  if (antes.getString("aviso") !== rec.getString("aviso")) {
+    let texto = "";
+    try { texto = e.app.findRecordById("avisos", rec.getString("aviso")).getString("texto"); } catch (_) {}
+    R.registrar(e.app, rec.id, autor, "sistema", rec.getString("aviso") ? `Ligado ao aviso do TI: “${texto}”` : "Desligado do aviso do TI", true);
   }
   if (antes.getString("prioridade") !== rec.getString("prioridade")) {
     R.registrar(e.app, rec.id, autor, "prioridade",

@@ -28,7 +28,7 @@ Padrão: `GET /api/collections/{c}/records?filter=...&sort=...&expand=...&page=1
 | `chamados` | o próprio solicitante; técnicos veem todos | qualquer logado | técnicos | superusuário |
 | `interacoes` | solicitante vê as não internas do seu chamado; técnicos veem todas | logado (hook confere se pode) | ninguém | ninguém |
 | `users` | a própria conta e as contas de técnicos (para o servidor, só nome, papel e setor; filtrar por matrícula, ramal etc. dá 403); técnicos veem todas (sem e-mail: use `/api/ti/usuarios`) | **ninguém** (só admin do TI pela rota `/api/ti/usuarios`) | só a própria senha | superusuário |
-| `respostas_prontas` | técnicos (`sort=ordem,created`) | técnicos | técnicos | técnicos |
+| `respostas_prontas` (texto, ordem, `acao`: `espera_solicitante`\|`espera_peca`\|`espera_terceiro`\|`resolver`, aplicada pelo front ao enviar) | técnicos (`sort=ordem,created`) | técnicos | técnicos | técnicos |
 | `avisos` | qualquer logado (o front filtra `ate = "" \|\| ate > agora`) | técnico, com `autor` = ele mesmo | técnico (encerrar = `ate` vira agora) | ninguém |
 | `setores` | todos | superusuário (admin do TI por `/api/ti/setores`) | idem | superusuário |
 | `categorias` | todos | **admin do TI** (Configurações do TI > Categorias) | **admin do TI** (hook limpa `sugestoes` ≤ 6 e `dicas` ≤ 8; `protegida` = "Outro", sempre ativa) | ninguém (ocultar = `ativa: false`) |
@@ -79,6 +79,7 @@ Qualquer outro status limpa o motivo. De `aguardando` dá para retomar (`em_anda
 | GET | `/api/chamados/{id}/solucoes-parecidas` | técnico | até 5 resolvidos da mesma categoria com solução, os de descrição mais parecida primeiro → `{ total, itens: [{ id, protocolo, descricao, diagnostico, solucao, resolvido_em }] }` |
 | POST | `/api/feedback` | usuário | "Sua opinião" sobre o SISTEMA (não é chamado): `{ tipo: "problema"\|"ideia"\|"elogio"\|"nota", texto, tela?, nota? (0–5) }`. O servidor grava quem, papel, setor e `ficticio`; até 30 por pessoa por dia. Só contas com `equipe_projeto` leem (coleção `feedbacks`) |
 | POST | `/api/avisos/{id}/tambem` | usuário | "Também estou com esse problema" num aviso do TI em vigor → `{ total, eu: true }` (tocar de novo não conta duas vezes) |
+| POST | `/api/avisos/{id}/encerrar` | técnico | encerra o aviso. Corpo `{ resolver?: bool, mensagem?: string }`: `resolver` resolve os chamados ligados ao aviso (`chamados.aviso`), com a mensagem como solução e retorno a quem pediu; `mensagem` publica um aviso `resolvido` por 4 h → `{ resolvidos, aviso_resolvido, pessoas }` |
 | DELETE | `/api/avisos/{id}/tambem` | usuário | desfaz → `{ total, eu: false }`. Nos avisos, todos recebem `tambem_total` e `tambem_eu`; a lista `tambem` (quem tocou) só o TI recebe |
 | GET | `/api/sistema/info` | qualquer logado | `ambiente` (teste/producao), ntfy/SMTP ligados e totais, inclusive fictícios |
 | GET | `/api/ti/usuarios?q=&papel=&setor=&ocultar_teste=1&pagina=1&por_pagina=25` | técnico | lista pessoas (matrícula, e-mail, setor e ramal do setor), paginada no banco (`por_pagina=0` = todos) → `{ itens, total, pagina, por_pagina }` |
@@ -91,7 +92,7 @@ Qualquer outro status limpa o motivo. De `aguardando` dá para retomar (`em_anda
 | GET | `/api/ti/automacao` | técnico | fluxos em vigor → `{ versao, dados: { fluxos, senao }, historico: [{ id, quando, autor, resumo }] }` (15 últimas). Formato de um fluxo: topo de `backend/pb_hooks/lib/automacao.js` |
 | POST | `/api/ti/automacao` | **admin do TI** | `{ dados, resumo, base }` cria uma versão nova (o servidor limpa os fluxos e recusa ciclos ou ação que não vale para o gatilho, 400). `base` = versão aberta na tela; se outra pessoa salvou depois, 400 |
 | POST | `/api/ti/automacao/testar` | técnico | `{ dados, gatilho, chamado: { categoria, setor, impacto, prioridade, origem, texto, anexo, horario, responsavel }, giro }` → `{ gatilho, prioridade, prioridade_antes, prazo_min, pessoa, pessoa_nome, regra, giro_regra, devolver, efeitos, fluxos: { [id]: { status: { [bloco]: sim/nao/ignorada }, ativas: [ligação] } }, traco, conflitos, erros }` (roda todos os fluxos ligados do gatilho; nada é salvo) |
-| POST | `/api/ti/automacao/rodar-tempo` | superusuário | roda os fluxos de tempo agora (o cron `automacao-tempo` roda a cada 5 min) → `{ aplicadas }` |
+| POST | `/api/ti/automacao/rodar-tempo` | superusuário | roda os fluxos de tempo agora (o cron `automacao-tempo` roda a cada 5 min) e confirma sozinho os resolvidos sem resposta há `dias_confirmar` dias úteis → `{ aplicadas, confirmados }` |
 | GET | `/api/ti/equipe` | técnico | técnicos com `carga`, ausência (`ausente_de`, `ausente_ate`, `ausencia_motivo`, `ausente_hoje`), `sem_automatico`, `disponivel` → `{ equipe, destino_ausencia }` |
 | PATCH | `/api/ti/equipe/{id}` | **admin do TI**, ou o próprio técnico (menos `sem_automatico`) | `{ ausente_de?, ausente_ate? ("AAAA-MM-DD" ou ""), ausencia_motivo?, sem_automatico? }` → `{ ok, devolvidos, ausente_hoje }`. Com `destino_ausencia = "fila"`, ficar ausente hoje devolve os chamados abertos da pessoa para a fila |
 

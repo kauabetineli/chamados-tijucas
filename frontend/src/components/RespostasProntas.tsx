@@ -1,8 +1,8 @@
-import { ArrowDown, ArrowUp, Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CheckCircle2, Hourglass, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { avisar } from "../lib/avisos";
 import { mensagemErro, pb } from "../lib/pb";
-import { useRespostasProntas, type RespostaPronta } from "../lib/respostasProntas";
+import { ROTULO_ACAO, useRespostasProntas, type AcaoPronta, type RespostaPronta } from "../lib/respostasProntas";
 import { Bloco } from "./Esqueleto";
 
 const MAX = 300;
@@ -12,7 +12,7 @@ const MAX = 300;
  * "Editar" troca os botões por uma lista editável: qualquer técnico cria, corrige, reordena e apaga.
  * A lista é a mesma para a equipe toda.
  */
-export function RespostasProntas({ selecionada, aoEscolher }: { selecionada?: string; aoEscolher: (texto: string) => void }) {
+export function RespostasProntas({ selecionada, aoEscolher }: { selecionada?: string; aoEscolher: (texto: string, acao?: AcaoPronta | "") => void }) {
   const { lista, recarregar } = useRespostasProntas();
   const [editando, setEditando] = useState(false);
 
@@ -23,16 +23,20 @@ export function RespostasProntas({ selecionada, aoEscolher }: { selecionada?: st
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {lista.map(({ id, texto }) => (
+      {lista.map(({ id, texto, acao }) => (
         <button
           key={id}
           type="button"
-          onClick={() => aoEscolher(texto)}
+          title={acao ? `Ao enviar: ${ROTULO_ACAO[acao]}` : undefined}
+          onClick={() => aoEscolher(texto, acao ?? "")}
           className={`rounded-full px-3 py-1.5 text-left text-sm font-semibold ring-1 ${
             selecionada === texto ? "bg-mar-700 text-white ring-acento" : "bg-mar-50 text-acento ring-transparent hover:ring-acento"
           }`}
         >
           {texto}
+          {acao && (acao === "resolver"
+            ? <CheckCircle2 className="ml-1.5 inline size-3.5 align-[-2px]" aria-label={`e ${ROTULO_ACAO[acao]}`} />
+            : <Hourglass className="ml-1.5 inline size-3.5 align-[-2px]" aria-label={`e ${ROTULO_ACAO[acao]}`} />)}
         </button>
       ))}
       <button
@@ -123,6 +127,19 @@ function EditorRespostas({ lista, aoMudar, aoFechar }: { lista: RespostaPronta[]
             ) : (
               <>
                 <span className="texto-livre min-w-0 flex-1 text-sm">{r.texto}</span>
+                <label className="shrink-0">
+                  <span className="sr-only">O que acontece ao enviar “{r.texto}”</span>
+                  <select
+                    className="campo min-h-9 w-auto max-w-44 py-1 text-xs"
+                    value={r.acao ?? ""}
+                    disabled={ocupado}
+                    title="O que acontece com o chamado ao enviar"
+                    onChange={(e) => rodar(() => col.update(r.id, { acao: e.target.value }), "Ação da resposta atualizada.")}
+                  >
+                    <option value="">Só mandar o texto</option>
+                    {(Object.keys(ROTULO_ACAO) as AcaoPronta[]).map((a) => <option key={a} value={a}>E {ROTULO_ACAO[a]}</option>)}
+                  </select>
+                </label>
                 <button type="button" className={botaoIcone} disabled={ocupado || i === 0} onClick={() => mover(i, -1)} aria-label={`Subir "${r.texto}"`}><ArrowUp className="size-4" /></button>
                 <button type="button" className={botaoIcone} disabled={ocupado || i === lista.length - 1} onClick={() => mover(i, 1)} aria-label={`Descer "${r.texto}"`}><ArrowDown className="size-4" /></button>
                 <button type="button" className={botaoIcone} disabled={ocupado} onClick={() => { setEditandoId(r.id); setTexto(r.texto); }} aria-label={`Editar "${r.texto}"`}><Pencil className="size-4" /></button>
