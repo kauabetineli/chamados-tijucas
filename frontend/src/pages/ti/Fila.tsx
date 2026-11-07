@@ -1,6 +1,6 @@
 import { CabecalhoPagina } from "../../components/CabecalhoPagina";
 import { definirPadraoDoPainel } from "../../lib/moldes";
-import { ChevronDown, ChevronRight, GripVertical, MessageCircle, MoreVertical, Table2, Users, Wrench } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, Hourglass, MessageCircle, MoreVertical, Table2, Users, Wrench } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Avatar } from "../../components/Avatar";
@@ -217,8 +217,10 @@ function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastand
  * tipo (ícone) · problema (título, com a etiqueta só se for Urgente/Alta) e onde/quem embaixo · espera · com quem.
  * No PC as três últimas viram colunas alinhadas e dá para arrastar a linha (alça à esquerda) até alguém da Equipe.
  */
-function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir, aoAcoes, arrastavel, aoArrastar }: {
+function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir, aoAcoes, arrastavel, aoArrastar, semDono }: {
   c: Chamado;
+  /** bloco onde o dono é óbvio (Comigo = você, Livres = ninguém): só o ícone, sem o nome, para sobrar espaço */
+  semDono?: boolean;
   /** quem pediu respondeu e você ainda não viu */
   novaMensagem?: boolean;
   realcado?: boolean;
@@ -259,7 +261,7 @@ function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir
       <span className="hidden w-32 shrink-0 truncate text-sm @5xl:block" title={nomeSolicitante(c)}>{nomeSolicitante(c)}</span>
       <span className="hidden w-32 shrink-0 truncate text-sm text-tinta-2 @3xl:block">{c.expand?.setor?.nome ?? "—"}</span>
       <span className="hidden w-24 shrink-0 text-sm text-tinta-2 @2xl:block"><Espera c={c} /></span>
-      <span className="hidden @2xl:block"><BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} comNome /></span>
+      <span className="hidden @2xl:block"><BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} comNome={!semDono} /></span>
       <span className="hidden @2xl:block"><BotaoMais c={c} aoAbrir={aoAcoes} /></span>
       {/* lista estreita (celular ou com o chamado aberto ao lado): espera em cima, com quem embaixo */}
       <span className="flex shrink-0 flex-col items-end text-xs text-tinta-2 @2xl:hidden">
@@ -313,18 +315,30 @@ function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, real
  * Seção da fila: título + uma superfície com as linhas separadas por divisórias.
  * Com a lista larga, um cabeçalho de colunas (Protocolo, Problema, Quem pediu, Setor, Esperando, Com) alinhado com as linhas.
  */
-function Secao({ titulo, total, nota, vazio, arrastavel, children }: { titulo: string; total: number; nota?: string; vazio?: string; arrastavel: boolean; children: ReactNode }) {
+function Secao({ titulo, total, nota, vazio, arrastavel, children, tom, semDono, depois, contagem, id, semTitulo }: {
+  titulo: string; total: number; nota?: string; vazio?: string; arrastavel: boolean; children: ReactNode;
+  /** "meu": faixa na cor de destaque à esquerda e cabeçalho tingido (o que é seu salta aos olhos) */
+  tom?: "meu";
+  semDono?: boolean;
+  /** dentro da mesma caixa, depois das linhas (ex.: "Em espera" dentro de Comigo) */
+  depois?: ReactNode;
+  /** texto no lugar do número (ex.: "5 de 13") */
+  contagem?: string;
+  id?: string;
+  /** o título já está fora (ex.: no "Com a equipe" que abre e fecha) */
+  semTitulo?: boolean;
+}) {
   return (
-    <section className="space-y-2">
-      <h2 className="flex items-baseline gap-2 text-lg font-bold">
-        {titulo} <span className="font-display text-base text-tinta-2">{total}</span>
+    <section className="space-y-2" id={id}>
+      <h2 className={semTitulo ? "sr-only" : `flex items-baseline gap-2 text-lg font-bold ${tom === "meu" ? "text-acento" : ""}`}>
+        {titulo} <span className="font-display text-base text-tinta-2">{contagem ?? total}</span>
       </h2>
       {nota && <p className="-mt-1 text-sm text-tinta-2">{nota}</p>}
       {total === 0 && vazio ? (
         <p className="rounded-2xl bg-superficie p-6 text-center text-tinta-2 ring-1 ring-linha">{vazio}</p>
       ) : (
-        <div className="@container overflow-hidden rounded-2xl bg-superficie ring-1 ring-linha">
-          <div className="hidden items-center gap-3 border-b border-linha py-2 pr-1.5 pl-2 text-xs font-bold tracking-wider text-tinta-2 uppercase @2xl:flex" aria-hidden="true">
+        <div className={`@container overflow-hidden rounded-2xl bg-superficie ring-1 ${tom === "meu" ? "border-l-4 border-l-acento ring-acento/40" : "ring-linha"}`}>
+          <div className={`hidden items-center gap-3 border-b border-linha py-2 pr-1.5 pl-2 text-xs font-bold tracking-wider text-tinta-2 uppercase @2xl:flex ${tom === "meu" ? "bg-mar-50" : ""}`} aria-hidden="true">
             {arrastavel && <span className="hidden w-4 md:block" />}
             <span className="w-10" />
             <span className="hidden w-24 @4xl:block">Protocolo</span>
@@ -332,10 +346,11 @@ function Secao({ titulo, total, nota, vazio, arrastavel, children }: { titulo: s
             <span className="hidden w-32 @5xl:block">Quem pediu</span>
             <span className="hidden w-32 @3xl:block">Setor</span>
             <span className="w-24" title="Na fila: há quanto tempo espera. Em atendimento: desde que começou. Em espera: desde que parou.">Esperando</span>
-            <span className="w-[7.75rem]">Com</span>
+            <span className={semDono ? "w-11" : "w-[7.75rem]"}>{semDono ? "" : "Com"}</span>
             <span className="w-11" />
           </div>
-          <ul className="divide-y divide-linha">{children}</ul>
+          {total > 0 && <ul className="divide-y divide-linha">{children}</ul>}
+          {depois}
         </div>
       )}
     </section>
@@ -345,8 +360,9 @@ function Secao({ titulo, total, nota, vazio, arrastavel, children }: { titulo: s
 /**
  * Fila do técnico, organizada pela pergunta "o que eu faço agora?":
  * faixa da equipe (carga de cada um, filtro e alvo para arrastar), o que estou atendendo,
- * o MEU PRÓXIMO (primeiro da fila que é meu ou livre), o resto da fila numerado
- * (os meus destacados). O que já está com um colega NÃO aparece sem filtro: fica na fila dele (toque no nome na Equipe).
+ * três raias: COMIGO (atendendo, reservados para mim e, recolhível, em espera; faixa de destaque à esquerda),
+ * SEU PRÓXIMO (primeiro da fila que é meu ou livre) e LIVRES (sem responsável, na ordem da fila).
+ * O que está com colegas fica recolhido no fim, em "Com a equipe".
  * Cada cartão mostra o dono; tocar nele atribui (eu, colega ou de volta para a fila).
  */
 export function Fila() {
@@ -436,8 +452,6 @@ export function Fila() {
   // sem filtro, a fila mostra só o que é meu ou está livre: o que já está com um colega fica na fila DELE
   // (para ver, toque no nome dele na faixa da Equipe). A posição (1º, 2º...) continua a da fila geral.
   const depois = depoisTodos.filter((c) => !c.responsavel || c.responsavel === eu);
-  const comColegas = depoisTodos.length - depois.length + comOutros.length
-    + lista.filter((c) => c.status === "aguardando" && c.responsavel && c.responsavel !== eu).length;
   const { carga, livres } = cargaDaEquipe(lista);
   const atrasados = fila.filter((c) => atrasado(c)).length;
   const posicao = (c: Chamado) => (c.status === "aberto" ? fila.indexOf(c) + 1 : undefined);
@@ -494,8 +508,9 @@ export function Fila() {
     }
   }
 
-  const cartao = (c: Chamado) => (
+  const cartao = (c: Chamado, semDono?: boolean) => (
     <Linha
+      semDono={semDono}
       key={c.id}
       c={c}
       eu={eu}
@@ -537,6 +552,16 @@ export function Fila() {
   const listaVisao = visao === "atendendo" ? atendendo : visao === "livres" ? livresFila : visao === "espera" ? esperaOrdenada : [];
   const totalVisao: Record<Visao, number> = { atendendo: atendendo.length, livres: livresFila.length, espera: esperando.length };
   const listaPaginada = visao ? listaVisao : filtro ? filtrados : depois;
+  const rodapeDe = (l: unknown[]) => (
+    <Paginacao
+      pagina={Math.min(pag.pagina, Math.max(1, Math.ceil(l.length / (pag.porPagina || 1))))}
+      porPagina={pag.porPagina}
+      total={l.length}
+      aoMudarPagina={pag.setPagina}
+      aoMudarPorPagina={pag.setPorPagina}
+      rotulo="chamados"
+    />
+  );
   const rodape = listaPaginada.length > 10 && (
     <Paginacao
       pagina={Math.min(pag.pagina, Math.max(1, Math.ceil(listaPaginada.length / (pag.porPagina || 1))))}
@@ -551,10 +576,34 @@ export function Fila() {
 
   const metas = (["urgente", "alta", "normal", "baixa"] as const).map((p) => `${ROTULO_PRIORIDADE[p]} ${textoMinutos(config.prazos[p])}`).join(", ");
   const filtroTecnico = !!filtro && filtro !== "livres" && filtro !== "prazo";
-  const secao = (titulo: string, itens: Chamado[], extra?: { nota?: string; vazio?: string; paginar?: boolean }) => (
-    <Secao titulo={titulo} total={itens.length} nota={extra?.nota} vazio={extra?.vazio} arrastavel={podeArrastar}>
-      {(extra?.paginar ? fatia(itens) : itens).map((c) => cartao(c))}
+  const secao = (titulo: string, itens: Chamado[], extra?: { nota?: string; vazio?: string; paginar?: boolean; tom?: "meu"; semDono?: boolean; depois?: ReactNode; contagem?: string; id?: string; semTitulo?: boolean }) => (
+    <Secao titulo={titulo} total={itens.length} nota={extra?.nota} vazio={extra?.vazio} arrastavel={podeArrastar}
+      tom={extra?.tom} semDono={extra?.semDono} depois={extra?.depois} contagem={extra?.contagem} id={extra?.id} semTitulo={extra?.semTitulo}>
+      {(extra?.paginar ? fatia(itens) : itens).map((c) => cartao(c, extra?.semDono))}
     </Secao>
+  );
+  // visão padrão em três raias: COMIGO (atendendo + reservados para mim + em espera), SEU PRÓXIMO, LIVRES;
+  // o que está com colegas fica recolhido no fim ("Com a equipe")
+  const meusNaFila = depois.filter((c) => c.responsavel === eu);
+  const livresDepois = depois.filter((c) => !c.responsavel);
+  const comigo = [...atendendo, ...meusNaFila];
+  const daEquipe = [
+    ...comOutros,
+    ...depoisTodos.filter((c) => c.responsavel && c.responsavel !== eu),
+    ...lista.filter((c) => c.status === "aguardando" && c.responsavel && c.responsavel !== eu),
+  ];
+  const [verEspera, setVerEspera] = useState(true);
+  const blocoEspera = esperando.length > 0 && (
+    <div className="border-t border-linha">
+      <button type="button" aria-expanded={verEspera} onClick={() => setVerEspera(!verEspera)}
+        className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm font-semibold text-tinta-2 hover:text-tinta">
+        <ChevronRight className={`size-4 transition-transform ${verEspera ? "rotate-90" : ""}`} aria-hidden="true" />
+        <Hourglass className="size-4" aria-hidden="true" />
+        Em espera <span className="font-display">{esperando.length}</span>
+        <span className="font-normal">· fora da fila e da sua carga</span>
+      </button>
+      {verEspera && <ul className="divide-y divide-linha border-t border-linha">{esperaOrdenada.map((c) => cartao(c, true))}</ul>}
+    </div>
   );
 
   return (
@@ -673,7 +722,10 @@ export function Fila() {
         </>
       ) : (
         <>
-          {atendendo.length > 0 && secao("Você está atendendo", atendendo)}
+          {(comigo.length > 0 || esperando.length > 0) && secao("Comigo", comigo, {
+            // o número é o mesmo de "Comigo" na barra lateral (sem os em espera, que têm o deles)
+            tom: "meu", semDono: true, depois: blocoEspera, id: "raia-comigo",
+          })}
 
           {proximo ? (
             <Proximo c={proximo} eu={eu} posicao={fila.indexOf(proximo) + 1} aoComecar={() => comecar(proximo)} aoAtribuir={() => setMenu(proximo)} aoAcoes={() => setAcoes(proximo)} ocupado={pegando === proximo.id} realcado={realce === proximo.id} novaMensagem={novaMensagem(proximo)} />
@@ -687,14 +739,24 @@ export function Fila() {
             </div>
           )}
 
-          {depois.length > 0 && secao("Depois na fila", depois, { paginar: true })}
-          {!filtro && rodape}
-          {esperando.length > 0 && secao("Seus em espera", esperando, { nota: "Fora da fila e da sua carga. Retome quando chegar o que falta." })}
-          {comColegas > 0 && (
-            <p className="rounded-xl border-2 border-dashed border-linha px-4 py-3 text-sm text-tinta-2">
-              <b className="font-display text-base text-tinta">{comColegas}</b> {comColegas === 1 ? "chamado está" : "chamados estão"} com colegas
-              (na fila, em atendimento ou em espera) e não aparecem aqui. Para ver, toque no nome da pessoa em <b>Equipe</b>.
-            </p>
+          {livresDepois.length > 0 && secao("Livres", livresDepois, {
+            paginar: true, semDono: true, id: "raia-livres",
+            contagem: livresDepois.length > (pag.porPagina || Infinity) ? `${Math.min(pag.porPagina, livresDepois.length)} de ${livresDepois.length}` : undefined,
+            nota: "Sem responsável, na ordem da fila. Qualquer um pode pegar.",
+          })}
+          {livresDepois.length > 10 && rodapeDe(livresDepois)}
+
+          {daEquipe.length > 0 && (
+            <details className="group/equipe">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-1 text-lg font-bold text-tinta-2 hover:text-tinta [&::-webkit-details-marker]:hidden">
+                <ChevronRight className="size-5 transition-transform group-open/equipe:rotate-90" aria-hidden="true" />
+                Com a equipe <span className="font-display text-base">{daEquipe.length}</span>
+                <span className="text-sm font-normal">· na fila, em atendimento ou em espera com colegas</span>
+              </summary>
+              <div className="mt-2 opacity-90">
+                {secao("Com a equipe", daEquipe, { semTitulo: true })}
+              </div>
+            </details>
           )}
         </>
       )}

@@ -224,6 +224,14 @@ título muda a largura (cada coluna tem um mínimo), duplo clique ajusta ao text
 - Segurar botão/link/foto não abre o menu do navegador (só no toque). No PC, arrastar link/foto para outra aba continua
   (o TI usa para ver anexos maiores).
 
+## Raias da Fila
+
+Sem visão nem filtro, a Fila responde "o que é meu, o que pego agora, o que está livre" em três raias, nesta ordem:
+**Comigo** (em atendimento e reservados para você; "Em espera" recolhível dentro da mesma caixa; faixa na cor de
+destaque à esquerda), **Seu próximo** (o cartão com Começar) e **Livres** (sem responsável, na ordem da fila, em
+páginas: "10 de 21"). O que está com colegas fica recolhido no fim, em "Com a equipe". Em Comigo e Livres a coluna
+"Com" mostra só o ícone (o dono é óbvio); tocar nele continua atribuindo.
+
 ## Visões rápidas da Fila
 
 `/ti?visao=atendendo|livres|espera` mostra só uma parte da Fila (os seus em atendimento, os livres na ordem da fila,
