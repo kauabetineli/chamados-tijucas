@@ -40,6 +40,7 @@ export function useAnexos(onChange: Dispatch<SetStateAction<File[]>>, aoPreparar
     try {
       const novos: File[] = [];
       for (const original of midias) {
+        console.info(`[anexos] chegou: ${original.name || "(sem nome)"} · ${original.type || "sem tipo"} · ${Math.round(original.size / 1048576)} MB`);
         const f = await prepararArquivo(original);
         if (f.size > TAMANHO_MAX) {
           setAviso(`"${original.name}" passa de 250 MB. Grave um vídeo mais curto (até 1 minuto).`);
@@ -173,7 +174,7 @@ export function SeletorAnexos({
       )}
       {usouVideo && (
         <p className="ajuda">
-          Vídeo: até 1 minuto. Se o celular voltar para esta página em branco depois de gravar,
+          Vídeo: até 1 minuto, em HD (4K fica grande demais). Se a câmera não abrir para gravar,
           grave pela câmera do celular e anexe em "Da galeria".
         </p>
       )}

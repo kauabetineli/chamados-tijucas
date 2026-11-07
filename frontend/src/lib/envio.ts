@@ -14,7 +14,9 @@ export function criarComProgresso<T>(colecao: string, dados: FormData, aoProgred
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) aoProgredir(Math.min(99, Math.round((e.loaded / e.total) * 100)));
     };
+    console.info(`[envio] começou às ${new Date().toLocaleTimeString()}`);
     xhr.onload = () => {
+      console.info(`[envio] resposta ${xhr.status} às ${new Date().toLocaleTimeString()}`, xhr.status >= 300 ? xhr.responseText.slice(0, 300) : "");
       let corpo: unknown = {};
       try {
         corpo = JSON.parse(xhr.responseText || "{}");
@@ -28,8 +30,9 @@ export function criarComProgresso<T>(colecao: string, dados: FormData, aoProgred
         falha({ status: xhr.status, response: corpo });
       }
     };
-    xhr.onerror = () =>
-      falha({ message: "A conexão caiu durante o envio. Confira se o celular está no Wi-Fi da Prefeitura e tente de novo." });
+    xhr.onerror = () => console.warn(`[envio] conexão caiu às ${new Date().toLocaleTimeString()}`);
+    xhr.addEventListener("error", () =>
+      falha({ message: "A conexão caiu durante o envio. Confira se o celular está no Wi-Fi da Prefeitura e tente de novo." }));
     xhr.send(dados);
   });
 }

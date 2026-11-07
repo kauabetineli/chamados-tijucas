@@ -7,7 +7,7 @@ export function ProgressoEnvio({ pct }: { pct: number | null }) {
         <div className="h-full rounded-full bg-mar-700 transition-[width]" style={{ width: `${pct}%` }} />
       </div>
       <p className="text-sm text-tinta-2">
-        {pct < 100 ? `Enviando: ${pct}%. Não feche esta página.` : "Envio concluído. Registrando o chamado..."}
+        {pct < 100 ? `Enviando: ${pct}%. Não feche a página nem deixe a tela apagar.` : "Envio concluído. Registrando o chamado..."}
       </p>
     </div>
   );

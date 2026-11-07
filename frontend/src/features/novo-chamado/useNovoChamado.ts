@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useCategorias } from "../../components/CamposChamado";
 import { useAuth } from "../../lib/auth";
 import { PRIORIDADE_DO_IMPACTO, pedeMotivo, prioridadesDoServidor, useConfigTI } from "../../lib/configTI";
+import { avisar } from "../../lib/avisos";
 import { criarComProgresso } from "../../lib/envio";
+import { apagarAnexos, guardarAnexos, lerAnexos } from "../../lib/rascunhoAnexos";
 import type { Categoria, Chamado, Impacto, Prioridade } from "../../lib/pb";
 
 // Rascunho: no Android, abrir a câmera às vezes faz o navegador recarregar a página.
@@ -49,6 +51,24 @@ export function useNovoChamado() {
     }
   }, [categoria, descricao, impacto]);
 
+  // anexos também sobrevivem à página recarregar (lib/rascunhoAnexos.ts): primeiro lê o que ficou guardado,
+  // só depois passa a guardar (senão a lista vazia do início apagaria o rascunho)
+  const [anexosLidos, setAnexosLidos] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    lerAnexos(CHAVE_RASCUNHO).then((guardados) => {
+      if (!vivo) return;
+      if (guardados.length) {
+        console.info(`[anexos] recuperados após recarregar: ${guardados.map((f) => `${f.name} (${Math.round(f.size / 1048576)} MB)`).join(", ")}`);
+        setArquivos((atual) => (atual.length ? atual : guardados));
+        avisar(guardados.length === 1 ? "Seu anexo foi recuperado." : `Seus ${guardados.length} anexos foram recuperados.`);
+      }
+      setAnexosLidos(true);
+    });
+    return () => { vivo = false; };
+  }, []);
+  useEffect(() => { if (anexosLidos) guardarAnexos(CHAVE_RASCUNHO, arquivos); }, [arquivos, anexosLidos]);
+
   const categoriaEscolhida: Categoria | undefined = categorias.find((c) => c.id === categoria);
 
   async function enviar(): Promise<Chamado> {
@@ -66,6 +86,7 @@ export function useNovoChamado() {
       arquivos.forEach((f) => dados.append("anexos", f));
       const c = await criarComProgresso<Chamado>("chamados", dados, setProgresso);
       try { sessionStorage.removeItem(CHAVE_RASCUNHO); } catch { /* ok */ }
+      await apagarAnexos(CHAVE_RASCUNHO);
       return c;
     } finally {
       setEnviando(false);

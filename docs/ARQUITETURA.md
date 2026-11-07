@@ -224,6 +224,17 @@ título muda a largura (cada coluna tem um mínimo), duplo clique ajusta ao text
 - Segurar botão/link/foto não abre o menu do navegador (só no toque). No PC, arrastar link/foto para outra aba continua
   (o TI usa para ver anexos maiores).
 
+## Vídeo pelo celular e modo de diagnóstico
+
+No Android, gravar vídeo abre o app da câmera e o navegador pode descartar a aba para liberar memória; ao voltar,
+a página recarrega do zero. Por isso o rascunho do chamado guarda o texto no `sessionStorage` e as fotos/vídeos no
+IndexedDB (`lib/rascunhoAnexos.ts`, expira em 24 h, apagado ao enviar). Ao recarregar, aparece "Seu anexo foi recuperado."
+
+Para investigar problema no celular sem cabo USB: abra qualquer página com `?diagnostico=1`. Aparece um console
+flutuante (Eruda, carregado do jsDelivr: precisa de internet) com as linhas `[página]` (recarregou? foi para segundo
+plano?), `[anexos]` (nome, tipo e tamanho do que chegou) e `[envio]` (início, resposta, queda). Fica ligado naquele
+navegador até abrir com `?diagnostico=0` (`lib/diagnostico.ts`).
+
 ## Raias da Fila
 
 Sem visão nem filtro, a Fila responde "o que é meu, o que pego agora, o que está livre" em três raias, nesta ordem:
