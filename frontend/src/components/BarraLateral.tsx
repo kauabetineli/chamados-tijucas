@@ -246,8 +246,8 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
         </nav>
       )}
 
-      {/* avisos do TI: uma linha (fica colorida com aviso no ar) */}
-      <div className={`shrink-0 border-t border-linha py-2 ${recolhida ? "px-2" : "px-3"}`}>
+      {/* avisos do TI: no máximo 40% da altura; com muitos avisos, a rolagem fica NELES e o menu continua inteiro */}
+      <div className={`flex max-h-[40%] min-h-0 shrink-0 flex-col border-t border-linha py-2 ${recolhida ? "px-2" : "px-3"}`}>
         <LinhaAvisos compacto={recolhida} />
       </div>
 

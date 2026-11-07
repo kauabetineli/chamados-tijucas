@@ -350,13 +350,18 @@ export function LinhaAvisos({ compacto }: { compacto?: boolean }) {
   }
 
   return (
-    <section aria-label="Avisos do TI" className="space-y-1.5">
-      {avisos.map((a) => <LinhaAviso key={a.id} a={a} podeEncerrar={tecnico} />)}
+    <section aria-label="Avisos do TI" className="flex min-h-0 flex-col gap-1.5">
+      {avisos.length > 0 && (
+        // só a lista rola; o "Avisar todos" fica sempre à vista embaixo
+        <ul className="-mx-1 min-h-0 space-y-1.5 overflow-y-auto overscroll-contain px-1 py-0.5" aria-label={`${avisos.length} ${avisos.length === 1 ? "aviso" : "avisos"} no ar`}>
+          {avisos.map((a) => <li key={a.id}><LinhaAviso a={a} podeEncerrar={tecnico} /></li>)}
+        </ul>
+      )}
       {tecnico && (
         <button
           type="button"
           onClick={() => setNovo(true)}
-          className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left font-semibold text-tinta-2 hover:bg-fundo hover:text-tinta"
+          className="flex min-h-11 w-full shrink-0 items-center gap-3 rounded-xl px-3 text-left font-semibold text-tinta-2 hover:bg-fundo hover:text-tinta"
         >
           <Megaphone className="size-5 shrink-0" aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate">Avisar todos</span>
