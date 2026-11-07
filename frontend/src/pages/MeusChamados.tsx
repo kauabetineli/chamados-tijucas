@@ -103,7 +103,7 @@ export function MeusChamados() {
 
   if (chamados === null) {
     return (
-      <div className="max-w-2xl space-y-7">
+      <div className="mx-auto max-w-2xl space-y-7">
         <CabecalhoPagina titulo="Meus chamados" />
         <EsqueletoLinhas quantos={3} rotulo="Carregando seus chamados..." />
       </div>

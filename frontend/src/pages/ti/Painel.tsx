@@ -115,6 +115,9 @@ function PainelEquipe() {
         )
       ) : (
         <>
+          {/* tela larga: os 4 números e o piloto lado a lado (molde "painel", lib/moldes.ts) */}
+          <div className="space-y-8 larga:grid larga:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] larga:items-start larga:gap-6 larga:space-y-0">
+          <div className="space-y-3">
           <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-linha ring-1 ring-linha lg:grid-cols-4">
             <Numero termo={`Chamados nos últimos ${r.dias} dias`} valor={String(r.total)} />
             <Numero termo="Resolvidos no período" valor={String(r.resolvidos)} />
@@ -126,6 +129,7 @@ function PainelEquipe() {
             <strong className="text-tinta">{r.agora.em_andamento}</strong> em atendimento e{" "}
             <strong className="text-tinta">{r.agora.aguardando}</strong> em espera (peça, resposta ou terceiro).
           </p>
+          </div>
 
           {/* números que o piloto acompanha (AC2): pedidos que passam pelo sistema e satisfação de quem pediu */}
           <section aria-labelledby="t-piloto" className="space-y-3">
@@ -162,7 +166,9 @@ function PainelEquipe() {
             </div>
           </section>
 
-          <div className="grid gap-8 lg:grid-cols-2">
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-2 larga:grid-cols-4">
             <Barras
               titulo="Como os pedidos chegaram"
               nota={r.total ? `${pctSistema}% foram abertos pelo próprio servidor no sistema.` : undefined}
@@ -223,7 +229,7 @@ function PorDia({ dados: brutos, dias }: { dados: { dia: string; total: number }
   const max = Math.max(1, ...dados.map((d) => d.total));
   const rotulo = (dia: string) => new Date(dia + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   return (
-    <section className="lg:col-span-2">
+    <section className="lg:col-span-2 larga:col-span-4">
       <h2 className="text-xl font-bold">Chamados por dia</h2>
       {brutos.length === 0 ? (
         <p className="mt-3 text-tinta-2">Sem chamados no período.</p>

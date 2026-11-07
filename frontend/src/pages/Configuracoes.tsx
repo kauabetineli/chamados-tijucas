@@ -110,7 +110,7 @@ export function Configuracoes() {
   const ramal = ramalDe(u);
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex min-h-[4.5rem] items-start gap-2">
         <Link to="/perfil" className="-ml-2 grid size-11 place-items-center rounded-full text-acento hover:bg-mar-50" aria-label="Voltar para Você">
           <ArrowLeft className="size-6" aria-hidden="true" />

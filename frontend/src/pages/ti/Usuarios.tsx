@@ -1,4 +1,5 @@
 import { AbasPagina, CabecalhoPagina } from "../../components/CabecalhoPagina";
+import { useTelaLarga } from "../../lib/moldes";
 import { Dica, idDaDica, RotuloComDica } from "../../components/Dica";
 import {
   Ban, Building2, Check, Copy, KeyRound, Lock, Pencil, Phone, Plus, Printer, Search, ShieldCheck, UserPlus, Users,
@@ -111,7 +112,9 @@ function Campo({ id, rotulo, opcional, ajuda, children }: { id: string; rotulo: 
   );
 }
 
-function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, aoSenha }: {
+function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, aoSenha, fixo }: {
+  /** tela larga: coluna ao lado da lista, em vez de janela */
+  fixo?: boolean;
   /** sem pessoa = criar */
   pessoa?: PessoaTI;
   setorInicial?: string;
@@ -229,6 +232,7 @@ function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, ao
   return (
     <PainelRapido
       idTitulo="titulo-pessoa"
+      fixo={fixo}
       largura="max-w-lg md:max-w-2xl"
       titulo={editando ? pessoa.nome : (
         <span className="inline-flex items-center gap-2.5">
@@ -342,7 +346,7 @@ function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, ao
 /* Formulário de setor                                                  */
 /* ------------------------------------------------------------------ */
 
-function JanelaSetor({ setor, aoFechar, aoSalvo }: { setor?: SetorTI; aoFechar: () => void; aoSalvo: (msg: string) => void }) {
+function JanelaSetor({ setor, aoFechar, aoSalvo, fixo }: { setor?: SetorTI; aoFechar: () => void; aoSalvo: (msg: string) => void; fixo?: boolean }) {
   const inicial = { nome: setor?.nome ?? "", predio: setor?.predio ?? "", ramal: setor?.ramal ?? "", ativo: setor?.ativo ?? true };
   const [d, setD] = useState(inicial);
   const [salvando, setSalvando] = useState(false);
@@ -372,6 +376,7 @@ function JanelaSetor({ setor, aoFechar, aoSalvo }: { setor?: SetorTI; aoFechar: 
 
   return (
     <PainelRapido
+      fixo={fixo}
       idTitulo="titulo-setor"
       largura="max-w-md"
       titulo={setor ? `Setor ${setor.nome}` : "Novo setor"}
@@ -628,6 +633,9 @@ export function Usuarios() {
   const { usuario } = useAuth();
   const admin = ehAdmin(usuario);
   const eu = usuario?.id ?? "";
+  // tela larga (admin): pessoa e setor abrem numa coluna ao lado da lista, não numa janela por cima
+  const larga = useTelaLarga();
+  const lado = larga && admin;
   const [params, setParams] = useSearchParams();
   const aba = params.get("aba") === "setores" ? "setores" : "pessoas";
   const setorFiltro = params.get("setor") ?? "";
@@ -659,31 +667,64 @@ export function Usuarios() {
       />
 
 
-      {setores === null ? (
-        <EsqueletoLinhas quantos={6} rotulo="Carregando..." />
-      ) : aba === "pessoas" ? (
-        <AbaPessoas
-          setores={setores}
-          admin={admin}
-          setorFiltro={setorFiltro}
-          aoFiltrarSetor={(id) => irPara("pessoas", id)}
-          recarregarTudo={totalPessoas}
-          versao={versao}
-          aoEditar={(p) => setPessoa({ p })}
-          aoNova={() => setPessoa({ setor: setorFiltro })}
-        />
-      ) : (
-        <AbaSetores
-          setores={setores}
-          admin={admin}
-          aoEditar={(s) => setSetor({ s })}
-          aoNovo={() => setSetor({})}
-          aoVerPessoas={(s) => irPara("pessoas", s.id)}
-          aoAdicionarPessoa={(s) => setPessoa({ setor: s.id })}
-        />
-      )}
+      <div className={lado ? "grid grid-cols-[minmax(0,1fr)_34rem] items-start gap-6" : ""}>
+        <div className="min-w-0">
+        {setores === null ? (
+          <EsqueletoLinhas quantos={6} rotulo="Carregando..." />
+        ) : aba === "pessoas" ? (
+          <AbaPessoas
+            setores={setores}
+            admin={admin}
+            setorFiltro={setorFiltro}
+            aoFiltrarSetor={(id) => irPara("pessoas", id)}
+            recarregarTudo={totalPessoas}
+            versao={versao}
+            aoEditar={(p) => { setSetor(null); setPessoa({ p }); }}
+            aoNova={() => { setSetor(null); setPessoa({ setor: setorFiltro }); }}
+          />
+        ) : (
+          <AbaSetores
+            setores={setores}
+            admin={admin}
+            aoEditar={(s) => { setPessoa(null); setSetor({ s }); }}
+            aoNovo={() => { setPessoa(null); setSetor({}); }}
+            aoVerPessoas={(s) => irPara("pessoas", s.id)}
+            aoAdicionarPessoa={(s) => setPessoa({ setor: s.id })}
+          />
+        )}
+        </div>
+        {lado && (
+          <div className="sticky top-6">
+            {pessoa && setores ? (
+              <JanelaPessoa
+                key={pessoa.p?.id ?? `nova-${pessoa.setor ?? ""}`}
+                fixo
+                pessoa={pessoa.p}
+                setorInicial={pessoa.setor}
+                setores={setores}
+                eu={eu}
+                aoFechar={() => setPessoa(null)}
+                aoSalvo={depoisDeSalvar}
+                aoSenha={(r, nova) => { setSenha({ r, nova }); if (nova) irPara("pessoas", r.usuario.setor); }}
+              />
+            ) : setor ? (
+              <JanelaSetor key={setor.s?.id ?? "novo"} fixo setor={setor.s} aoFechar={() => setSetor(null)} aoSalvo={depoisDeSalvar} />
+            ) : (
+              <div className="grid min-h-64 place-items-center rounded-2xl border-2 border-dashed border-linha p-8 text-center">
+                <div>
+                  <p className="font-bold">{aba === "pessoas" ? "Escolha uma pessoa na lista" : "Escolha um setor na lista"}</p>
+                  <p className="mt-1 text-sm text-tinta-2">Os dados aparecem aqui para ver e editar.</p>
+                  <button type="button" className="btn-secundario mt-4" onClick={() => (aba === "pessoas" ? setPessoa({ setor: setorFiltro }) : setSetor({}))}>
+                    {aba === "pessoas" ? "Nova pessoa" : "Novo setor"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
-      {pessoa && setores && (
+      {!lado && pessoa && setores && (
         <JanelaPessoa
           pessoa={pessoa.p}
           setorInicial={pessoa.setor}
@@ -694,7 +735,7 @@ export function Usuarios() {
           aoSenha={(r, nova) => { setSenha({ r, nova }); if (nova) irPara("pessoas", r.usuario.setor); }}
         />
       )}
-      {setor && <JanelaSetor setor={setor.s} aoFechar={() => setSetor(null)} aoSalvo={depoisDeSalvar} />}
+      {!lado && setor && <JanelaSetor setor={setor.s} aoFechar={() => setSetor(null)} aoSalvo={depoisDeSalvar} />}
       {senha && <JanelaSenha r={senha.r} nova={senha.nova} aoFechar={() => setSenha(null)} />}
     </div>
   );

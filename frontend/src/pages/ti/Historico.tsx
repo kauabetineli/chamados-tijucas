@@ -1,4 +1,5 @@
 import { CabecalhoPagina } from "../../components/CabecalhoPagina";
+import { definirPadraoDoPainel } from "../../lib/moldes";
 import { ChevronRight, History, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LinkChamado, useVerChamado } from "../../lib/verChamado";
@@ -31,6 +32,12 @@ export function Historico() {
   const [itens, setItens] = useState<Chamado[] | null>(null);
   const [total, setTotal] = useState(0);
   const [contagem, setContagem] = useState<Record<string, number> | null>(null);
+  // tela larga: sem nada clicado, o painel ao lado mostra a primeira solução da lista (lib/moldes.ts)
+  const idPrimeira = itens?.[0]?.id ?? null;
+  useEffect(() => {
+    definirPadraoDoPainel(idPrimeira ? { id: idPrimeira, etiqueta: "Solução mais recente" } : null);
+  }, [idPrimeira]);
+  useEffect(() => () => definirPadraoDoPainel(null), []);
   const pag = usePaginacao("historico", 10);
 
   const busca = q.trim();
@@ -84,7 +91,7 @@ export function Historico() {
   const nomeCategoria = categorias.find((c) => c.id === categoria)?.nome;
 
   return (
-    <div className="max-w-3xl space-y-5">
+    <div className="max-w-3xl space-y-5 larga:max-w-none">
       <CabecalhoPagina titulo="Soluções" />
 
       <label className="relative block">

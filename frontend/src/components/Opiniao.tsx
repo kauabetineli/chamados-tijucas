@@ -37,7 +37,7 @@ export function Opiniao() {
         <button
           type="button"
           onClick={() => setAberta({})}
-          className="fixed right-6 z-30 hidden h-14 items-center gap-2.5 rounded-full bg-noite py-2 pr-5 pl-2 font-bold text-white shadow-lg ring-1 ring-white/10 hover:bg-mar-700 md:flex print:hidden"
+          className="fora-da-gaveta fixed right-6 z-30 hidden h-14 items-center gap-2.5 rounded-full bg-noite py-2 pr-5 pl-2 font-bold text-white shadow-lg ring-1 ring-white/10 hover:bg-mar-700 md:flex print:hidden"
           style={{ bottom: "1.5rem" }}
         >
           <span className="grid size-10 place-items-center rounded-full bg-campo"><MessageSquare className="size-5" aria-hidden="true" /></span>

@@ -1,10 +1,11 @@
 import { ChevronDown, ChevronUp, Maximize2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as KE, type PointerEvent as PE } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { useAuth } from "../lib/auth";
 import { ehTecnico } from "../lib/pb";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import { chamadosNaTela, useVerChamado } from "../lib/verChamado";
+import { moldeDaRota, usePadraoDoPainel, useTelaLarga } from "../lib/moldes";
 import { DetalheChamado } from "../pages/Chamado";
 
 const CHAVE_LARGURA = "dinodesk:largura-painel";
@@ -23,31 +24,45 @@ function larguraSalva() {
  * Chamado aberto ao lado da lista, sem sair dela. Abre com ?ver=<id> (ver lib/verChamado.tsx).
  * - PC: gaveta à direita (600 px; a borda esquerda muda a largura, lembrada no aparelho). A lista encolhe ao lado
  *   (Layout reserva --largura-painel) e ↑ ↓ (ou K e J) passam para o chamado de cima/de baixo da lista.
+ * - Tela larga (1600 px+), nas páginas de lista: a gaveta fica FIXA, como uma coluna. Sem nada clicado ela mostra
+ *   o padrão da página (lib/moldes.ts: Fila = seu próximo, Soluções = a mais recente).
  * - Celular: folha quase da altura da tela; arrastar a alça para baixo (ou o "voltar") fecha.
  */
 export function PainelChamado() {
   const { aberto, abrir, fechar } = useVerChamado();
   const { usuario } = useAuth();
   const pc = useMediaQuery("(min-width: 768px)");
+  // tela larga + página de lista (molde "lista"): a gaveta fica FIXA e, sem nada clicado, mostra o padrão da página
+  // (Fila: o seu próximo; Soluções: a mais recente). Fora disso, só abre quando alguém clica.
+  const larga = useTelaLarga();
+  const local = useLocation();
+  const listaFixa = pc && larga && moldeDaRota(local.pathname, new URLSearchParams(local.search), ehTecnico(usuario)).molde === "lista";
+  const padrao = usePadraoDoPainel();
+  const atual = aberto || (listaFixa ? padrao?.id ?? null : null) || null;
+  const mostrandoPadrao = !aberto && !!atual;
+  const fixo = listaFixa && !!atual;
   const [largura, setLargura] = useState(larguraSalva);
   const [puxando, setPuxando] = useState(0); // celular: quanto a folha já desceu no arrasto
   const arrasto = useRef<{ pos: number; largura: number } | null>(null);
   const fecharRef = useRef(fechar);
   fecharRef.current = fechar;
 
+  // fixa: no máximo ~1/3 da tela, para a lista continuar com espaço
+  const larguraVista = fixo ? Math.min(largura, Math.max(MIN, Math.round(window.innerWidth * 0.34))) : largura;
+
   // a lista ganha espaço à direita (no PC) para não ficar por baixo da gaveta
   useEffect(() => {
     const raiz = document.documentElement;
-    if (aberto && pc) raiz.style.setProperty("--largura-painel", `${largura}px`);
+    if (atual && pc) raiz.style.setProperty("--largura-painel", `${larguraVista}px`);
     else raiz.style.removeProperty("--largura-painel");
     return () => { raiz.style.removeProperty("--largura-painel"); };
-  }, [aberto, pc, largura]);
+  }, [atual, pc, larguraVista]);
 
   const vizinho = useCallback((passo: 1 | -1) => {
     const lista = chamadosNaTela();
-    const i = lista.findIndex((x) => x.id === aberto);
+    const i = lista.findIndex((x) => x.id === atual);
     return i < 0 ? null : lista[i + passo] ?? null;
-  }, [aberto]);
+  }, [atual]);
   const irPara = useCallback((passo: 1 | -1) => {
     const v = vizinho(passo);
     if (v) abrir(v.id, v.el);
@@ -55,25 +70,27 @@ export function PainelChamado() {
   // os botões ↑ ↓ ficam apagados no começo/fim da lista (a lista muda em tempo real: confere a cada troca)
   const [limites, setLimites] = useState({ antes: false, depois: false });
   useEffect(() => {
-    if (!aberto) return;
+    if (!atual) return;
     const t = window.setTimeout(() => setLimites({ antes: !!vizinho(-1), depois: !!vizinho(1) }), 50);
     return () => window.clearTimeout(t);
-  }, [aberto, vizinho]);
+  }, [atual, vizinho]);
 
-  // Esc fecha; ↑ ↓ / K J trocam de chamado (se não houver outra janela por cima nem alguém digitando)
+  // Esc fecha; ↑ ↓ / K J trocam de chamado (se não houver outra janela por cima nem alguém digitando).
+  // Mostrando só o padrão (ninguém clicou), as setas continuam rolando a página: só K e J trocam.
   useEffect(() => {
-    if (!aberto) return;
+    if (!atual) return;
     const tecla = (e: KeyboardEvent) => {
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       const alvo = e.target as HTMLElement;
       if (alvo.closest("input, textarea, select, [contenteditable]")) return;
-      if (e.key === "Escape") fecharRef.current();
-      else if (pc && !e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "ArrowDown" || e.key === "j")) { e.preventDefault(); irPara(1); }
-      else if (pc && !e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "ArrowUp" || e.key === "k")) { e.preventDefault(); irPara(-1); }
+      const setas = !mostrandoPadrao;
+      if (e.key === "Escape") { if (aberto) fecharRef.current(); }
+      else if (pc && !e.altKey && !e.ctrlKey && !e.metaKey && ((setas && e.key === "ArrowDown") || e.key === "j")) { e.preventDefault(); irPara(1); }
+      else if (pc && !e.altKey && !e.ctrlKey && !e.metaKey && ((setas && e.key === "ArrowUp") || e.key === "k")) { e.preventDefault(); irPara(-1); }
     };
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
-  }, [aberto, pc, irPara]);
+  }, [atual, aberto, mostrandoPadrao, pc, irPara]);
 
   // celular: a página de trás não rola com a folha aberta
   useEffect(() => {
@@ -83,8 +100,8 @@ export function PainelChamado() {
     return () => { document.body.style.overflow = antes; };
   }, [aberto, pc]);
 
-  if (!aberto) return null;
-  const pagina = ehTecnico(usuario) ? `/ti/chamado/${aberto}` : `/chamado/${aberto}`;
+  if (!atual) return null;
+  const pagina = ehTecnico(usuario) ? `/ti/chamado/${atual}` : `/chamado/${atual}`;
 
   const botao = "grid size-10 place-items-center rounded-lg text-tinta-2 hover:bg-fundo hover:text-tinta disabled:opacity-30 disabled:hover:bg-transparent";
   const controles = (
@@ -102,14 +119,16 @@ export function PainelChamado() {
       <Link to={pagina} className={botao} aria-label="Abrir em página inteira" title="Abrir em página inteira">
         <Maximize2 className="size-4" aria-hidden="true" />
       </Link>
-      <button type="button" onClick={fechar} className={botao} aria-label="Fechar o chamado" title="Fechar (Esc)">
-        <X className="size-5" aria-hidden="true" />
-      </button>
+      {aberto && (
+        <button type="button" onClick={fechar} className={botao} aria-label="Fechar o chamado" title={fixo && padrao ? "Voltar (Esc)" : "Fechar (Esc)"}>
+          <X className="size-5" aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 
   // key: trocar de chamado volta o painel para o topo e recarrega tudo
-  const detalhe = <DetalheChamado key={aberto} id={aberto} embutido gaveta={pc} controles={controles} />;
+  const detalhe = <DetalheChamado key={atual} id={atual} embutido gaveta={pc} controles={controles} etiqueta={mostrandoPadrao ? padrao?.etiqueta : undefined} />;
 
   if (pc) {
     const borda = {
@@ -139,8 +158,8 @@ export function PainelChamado() {
       <section
         aria-label="Chamado aberto"
         data-gaveta
-        className="gaveta-entra fixed top-0 right-0 bottom-0 flex flex-col border-l border-linha bg-superficie shadow-[-12px_0_32px_-12px_rgb(0_0_0/0.25)] print:hidden"
-        style={{ width: largura, zIndex: 30 }}
+        className={`fixed top-0 right-0 bottom-0 flex flex-col border-l border-linha bg-superficie print:hidden ${fixo ? "" : "gaveta-entra shadow-[-12px_0_32px_-12px_rgb(0_0_0/0.25)]"}`}
+        style={{ width: larguraVista, zIndex: 30 }}
       >
         <div
           {...borda}

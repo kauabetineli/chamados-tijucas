@@ -20,6 +20,8 @@
   Exceção consciente: escreva "tema-fixo" num comentário na linha ou na linha de cima.
 */
 @theme {
+  /* tela larga: o detalhe fica fixo ao lado da lista (lib/moldes.ts) */
+  --breakpoint-larga: 100rem; /* = 1600 px (em media query, rem vale 16 px) */
   --font-sans: "Source Sans 3 Variable", system-ui, sans-serif;
   --font-display: "Bricolage Grotesque Variable", "Source Sans 3 Variable", sans-serif;
 

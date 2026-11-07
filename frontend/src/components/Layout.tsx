@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { moldeDaRota } from "../lib/moldes";
 import { ChevronUp, ClipboardList, History, ListOrdered, Plus, SquarePen, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router";
@@ -50,7 +51,8 @@ export function Layout() {
   // celular, técnico: tocar de novo em "Fila" (já estando nela) abre o menu das visões
   const [menuFila, setMenuFila] = useState(false);
   useEffect(() => setMenuFila(false), [caminho, params]);
-  const largura = !tecnico ? "72rem" : caminho === "/ti/configuracoes" ? "96rem" : caminho === "/ti" || caminho === "/ti/chamados" || caminho === "/ti/registrar" || focado ? "80rem" : "64rem";
+  // molde da página (lib/moldes.ts): lista e painel usam a largura toda; formulário fica centralizado
+  const { molde, max } = moldeDaRota(caminho, params, tecnico);
 
   return (
     // PC: barra lateral à esquerda + conteúdo. Celular: topo + barra de baixo (a lateral não aparece).
@@ -63,7 +65,7 @@ export function Layout() {
       {/* com o chamado aberto na gaveta da direita (PC), a lista encolhe ao lado dela (--largura-painel) */}
       {/* celular: SEM barra no topo (a tela toda é do conteúdo, como no app). A pessoa fica na barra de baixo
           ("Você"); o nome "Dino Desk" fica na tela de entrar, na aba do navegador e na barra lateral do PC. */}
-      <main className="conteudo w-full flex-1 px-4 pt-5 pb-8 md:px-8 md:pt-8" style={{ "--max": largura } as CSSProperties}>
+      <main data-molde={molde} className={`conteudo w-full flex-1 px-4 pt-5 pb-8 md:px-8 md:pt-8 ${molde === "formulario" ? "mx-auto" : ""}`} style={{ "--max": max } as CSSProperties}>
         <Outlet />
         <Avisos />
         <PainelChamado />

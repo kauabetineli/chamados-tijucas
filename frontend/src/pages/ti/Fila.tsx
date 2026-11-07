@@ -1,4 +1,5 @@
 import { CabecalhoPagina } from "../../components/CabecalhoPagina";
+import { definirPadraoDoPainel } from "../../lib/moldes";
 import { ChevronDown, ChevronRight, GripVertical, MessageCircle, MoreVertical, Table2, Users, Wrench } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
@@ -425,6 +426,12 @@ export function Fila() {
 
   const lista = chamados ?? [];
   const { atendendo, comOutros, esperando, fila, proximo, depois: depoisTodos } = organizarFila(lista, eu);
+  // tela larga: sem nada clicado, o painel ao lado mostra o "seu próximo" (lib/moldes.ts)
+  const idProximo = proximo?.id ?? null;
+  useEffect(() => {
+    definirPadraoDoPainel(idProximo ? { id: idProximo, etiqueta: "Seu próximo na fila" } : null);
+  }, [idProximo]);
+  useEffect(() => () => definirPadraoDoPainel(null), []);
   // sem filtro, a fila mostra só o que é meu ou está livre: o que já está com um colega fica na fila DELE
   // (para ver, toque no nome dele na faixa da Equipe). A posição (1º, 2º...) continua a da fila geral.
   const depois = depoisTodos.filter((c) => !c.responsavel || c.responsavel === eu);

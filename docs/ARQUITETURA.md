@@ -140,11 +140,29 @@ A Fila tem colunas (Protocolo, Problema, Quem pediu, Setor, Esperando, Com) que 
 (container queries `@2xl`…`@5xl`, não a largura da tela): com a gaveta aberta a lista fica estreita e volta ao formato
 de cartão, sem rolar para o lado.
 
+## Moldes de página (o espaço das telas largas)
+
+Toda página é de um de 3 moldes (`lib/moldes.ts`, escolhido pela rota no Layout). É o que decide o que fazer com o
+espaço que sobra num monitor largo, em vez de cada tela ter a sua largura (e um vazio à direita). Base: os "layouts
+canônicos" do Material Design (lista e detalhe, painel de apoio, feed) e o limite de 50 a 75 caracteres por linha
+para texto (Baymard).
+
+- **Lista + detalhe** (Fila, Todos os chamados, Soluções, Pessoas e setores, Feedback): a lista ocupa o que sobra e,
+  em **tela larga (1600 px+)**, o item escolhido fica **fixo à direita**. Nos chamados é a própria gaveta
+  (`PainelChamado`), que deixa de abrir por cima; sem nada clicado ela mostra o padrão da página
+  (`definirPadraoDoPainel`: Fila = seu próximo, Soluções = a mais recente). Em Pessoas e Feedback a janela
+  (`PainelRapido fixo`) vira a coluna ao lado. Abaixo de 1600 px tudo funciona como antes.
+- **Painel** (Painel, Automação): largura toda; a grade ganha colunas (números e piloto lado a lado, gráficos em 4).
+- **Formulário com apoio** (o resto: Registrar, Novo chamado, Configurações, Perfil, telas do servidor): largura de
+  leitura e **centralizado** na área; a coluna de apoio (Registrados hoje, O que ajuda o TI, prévia) fica ao lado.
+
+Tela larga no CSS é a classe `larga:` (`--breakpoint-larga: 100rem` = 1600 px; em media query o rem vale 16 px) e
+no código `useTelaLarga()`. Os dois usam o mesmo valor.
+
 ## Cabeçalho das páginas
 
-Toda página começa com `CabecalhoPagina` (`components/CabecalhoPagina.tsx`): o título fica sempre no mesmo lugar e na
-mesma altura, ações à direita e abas sublinhadas embaixo (`AbasPagina`). O conteúdo é **alinhado à esquerda** (32 px da
-barra), com largura máxima por tela (`--max` no Layout). Texto e ícones usam tamanhos inteiros (a base é 17 px: ver
+Toda página começa com `CabecalhoPagina` (`components/CabecalhoPagina.tsx`): o título fica sempre na mesma altura,
+ações à direita e abas sublinhadas embaixo (`AbasPagina`). A largura vem do molde da página (acima). Texto e ícones usam tamanhos inteiros (a base é 17 px: ver
 o topo de `index.css`); vermelho só onde há algo a fazer (fora do prazo, Urgente).
 
 ## Barra lateral (TI), barra do topo (servidor) e Avisos do TI

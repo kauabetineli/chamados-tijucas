@@ -10,7 +10,7 @@ import { Avatar } from "./Avatar";
  * Cabeçalho e rodapé ficam fixos; só o meio rola.
  * Esc, o X e o clique fora chamam `aoTentarFechar` (quem usa decide se pergunta antes de descartar).
  */
-export function PainelRapido({ titulo, idTitulo, subtitulo, largura = "max-w-lg", aoTentarFechar, rodape, children }: {
+export function PainelRapido({ titulo, idTitulo, subtitulo, largura = "max-w-lg", aoTentarFechar, rodape, children, fixo }: {
   titulo: ReactNode;
   idTitulo: string;
   subtitulo?: ReactNode;
@@ -18,24 +18,63 @@ export function PainelRapido({ titulo, idTitulo, subtitulo, largura = "max-w-lg"
   aoTentarFechar: () => void;
   rodape?: ReactNode;
   children: ReactNode;
+  /**
+   * Tela larga, molde "lista" (lib/moldes.ts): em vez de janela por cima, vira a COLUNA de detalhe ao lado da lista
+   * (sem fundo escuro, sem travar a página). Quem usa põe dentro de uma coluna com position sticky.
+   */
+  fixo?: boolean;
 }) {
   const caixa = useRef<HTMLDivElement>(null);
   const fechar = useRef(aoTentarFechar);
   fechar.current = aoTentarFechar;
 
   useEffect(() => {
-    const tecla = (e: KeyboardEvent) => e.key === "Escape" && fechar.current();
+    // coluna fixa: Esc não fecha se houver uma janela de verdade por cima (ela fecha primeiro)
+    const tecla = (e: KeyboardEvent) => e.key === "Escape" && (!fixo || !document.querySelector('[role="dialog"][aria-modal="true"]')) && fechar.current();
     window.addEventListener("keydown", tecla);
     // foco dentro da janela (teclado e leitor de tela começam por ela)
     caixa.current?.focus();
-    // a página de trás não rola enquanto a janela está aberta
+    // a página de trás não rola enquanto a janela está aberta (a coluna fixa não trava nada)
     const antes = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (!fixo) document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", tecla);
       document.body.style.overflow = antes;
     };
-  }, []);
+  }, [fixo]);
+
+  const corpo = (
+    <>
+      <header className="flex shrink-0 items-start gap-3 border-b border-linha px-5 pt-4 pb-3">
+        <div className="min-w-0 flex-1">
+          <h2 id={idTitulo} className="font-display text-lg font-bold">{titulo}</h2>
+          {subtitulo}
+        </div>
+        <button type="button" onClick={() => fechar.current()} className="-mr-2 grid size-10 shrink-0 place-items-center rounded-full text-tinta-2 hover:bg-fundo hover:text-tinta" aria-label="Fechar">
+          <X className="size-5" />
+        </button>
+      </header>
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+      {rodape && (
+        <footer className="shrink-0 border-t border-linha bg-superficie px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+          {rodape}
+        </footer>
+      )}
+    </>
+  );
+
+  if (fixo) {
+    return (
+      <section
+        ref={caixa}
+        tabIndex={-1}
+        aria-labelledby={idTitulo}
+        className="flex max-h-[calc(100dvh-3rem)] w-full flex-col overflow-hidden rounded-2xl bg-superficie ring-1 ring-linha focus:outline-none"
+      >
+        {corpo}
+      </section>
+    );
+  }
 
   // portal no <body> + z-index alto em estilo: fica SEMPRE acima da barra de navegação do celular
   return createPortal(
@@ -52,21 +91,7 @@ export function PainelRapido({ titulo, idTitulo, subtitulo, largura = "max-w-lg"
         aria-labelledby={idTitulo}
         className={`flex max-h-[92dvh] w-full ${largura} flex-col overflow-hidden rounded-t-2xl bg-superficie shadow-2xl ring-1 ring-linha focus:outline-none md:max-h-[85dvh] md:rounded-2xl`}
       >
-        <header className="flex shrink-0 items-start gap-3 border-b border-linha px-5 pt-4 pb-3">
-          <div className="min-w-0 flex-1">
-            <h2 id={idTitulo} className="font-display text-lg font-bold">{titulo}</h2>
-            {subtitulo}
-          </div>
-          <button type="button" onClick={() => fechar.current()} className="-mr-2 grid size-10 shrink-0 place-items-center rounded-full text-tinta-2 hover:bg-fundo hover:text-tinta" aria-label="Fechar">
-            <X className="size-5" />
-          </button>
-        </header>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {rodape && (
-          <footer className="shrink-0 border-t border-linha bg-superficie px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">
-            {rodape}
-          </footer>
-        )}
+        {corpo}
       </div>
     </div>,
     document.body,

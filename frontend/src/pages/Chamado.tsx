@@ -31,13 +31,15 @@ export function Chamado() {
  * Conteúdo do chamado. Usado na página inteira e, com `embutido`, no painel que sobe de baixo
  * (components/PainelChamado.tsx): sem o "voltar" e sem a faixa de "chamado aberto".
  */
-export function DetalheChamado({ id, embutido, gaveta, controles }: {
+export function DetalheChamado({ id, embutido, gaveta, controles, etiqueta }: {
   id: string;
   embutido?: boolean;
   /** PC: gaveta da direita (components/PainelChamado.tsx), em formato compacto com abas */
   gaveta?: boolean;
   /** botões do painel (↑ ↓, página inteira, fechar), no canto do cabeçalho */
   controles?: ReactNode;
+  /** por que este chamado está aberto sem ninguém ter clicado (ex.: "Seu próximo na fila") */
+  etiqueta?: string;
 }) {
   const { usuario } = useAuth();
   const tecnico = ehTecnico(usuario);
@@ -71,7 +73,7 @@ export function DetalheChamado({ id, embutido, gaveta, controles }: {
 
   if (erro && !c) {
     return (
-      <div className="max-w-2xl">
+      <div className="mx-auto max-w-2xl">
         {controles && <div className="mb-2 flex justify-end">{controles}</div>}
         <p className="font-semibold text-alerta">Não foi possível abrir este chamado. {erro}</p>
         {!embutido && <Link to={voltar} className="btn-secundario mt-4">Voltar</Link>}
@@ -114,7 +116,7 @@ export function DetalheChamado({ id, embutido, gaveta, controles }: {
   }
 
   if (gaveta) {
-    return <Gaveta c={c} tecnico={tecnico} controles={controles} aoMudar={carregar} paraOServidor={paraOServidor} oQueOTIFez={oQueOTIFez} conversa={conversa} />;
+    return <Gaveta c={c} etiqueta={etiqueta} tecnico={tecnico} controles={controles} aoMudar={carregar} paraOServidor={paraOServidor} oQueOTIFez={oQueOTIFez} conversa={conversa} />;
   }
 
   return (
@@ -297,8 +299,8 @@ type Aba = "conversa" | "fotos" | "parecidas";
  * Chamado na gaveta da direita (PC): cabeçalho fixo com protocolo, situação e os botões do painel; o problema e os dados
  * em duas colunas; as ações do técnico numa linha; e abas Conversa / Fotos / Soluções parecidas.
  */
-function Gaveta({ c, tecnico, controles, aoMudar, paraOServidor, oQueOTIFez, conversa }: {
-  c: TChamado; tecnico: boolean; controles?: ReactNode; aoMudar: () => void;
+function Gaveta({ c, etiqueta, tecnico, controles, aoMudar, paraOServidor, oQueOTIFez, conversa }: {
+  c: TChamado; etiqueta?: string; tecnico: boolean; controles?: ReactNode; aoMudar: () => void;
   paraOServidor: ReactNode; oQueOTIFez: ReactNode; conversa: ReactNode;
 }) {
   const [aba, setAba] = useState<Aba>("conversa");
@@ -318,6 +320,7 @@ function Gaveta({ c, tecnico, controles, aoMudar, paraOServidor, oQueOTIFez, con
     <div className="space-y-5">
       <header className="sticky -top-4 z-10 -mx-6 -mt-4 flex items-start gap-3 border-b border-linha bg-superficie px-6 pt-4 pb-3">
         <div className="min-w-0 flex-1">
+          {etiqueta && <p className="text-xs font-bold tracking-wider text-acento uppercase">{etiqueta}</p>}
           <h2 className="font-display text-2xl leading-tight font-extrabold tracking-tight">{c.protocolo}</h2>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
             <SeloStatus status={c.status} />

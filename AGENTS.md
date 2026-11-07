@@ -112,8 +112,10 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 12. **Confirmação de ação = aviso rápido**: `avisar("2026-00012 agora está com Hugo.")` (`frontend/src/lib/avisos.ts`).
     Some sozinho no canto da tela, sem botão para fechar obrigatório. Não crie faixas de aviso fixas na página.
     Erro de formulário continua perto do campo (`role="alert"`); erro de ação rápida: `avisar(msg, { tipo: "erro" })`.
-13. **Página nova começa com `CabecalhoPagina`** (título no mesmo lugar em todas as telas, abas sublinhadas com `AbasPagina`).
-    Conteúdo alinhado à esquerda; nada de `mx-auto` no contêiner da página.
+13. **Página nova começa com `CabecalhoPagina`** (abas sublinhadas com `AbasPagina`) e **escolhe um dos 3 moldes**
+    em `lib/moldes.ts`: *lista* (lista + detalhe fixo ao lado em tela larga), *painel* (largura toda, grade que ganha
+    colunas) ou *formulário* (largura de leitura, centralizado). A largura vem do Layout: não ponha `max-w`/`mx-auto`
+    no contêiner da página. Tela larga = classe `larga:` (1600 px) e `useTelaLarga()`.
 14. **Ajuda que a maioria não precisa ler vai num "i"**, não em texto fixo embaixo do campo: `RotuloComDica` /
     `Dica` (`components/Dica.tsx`), com `aria-describedby={idDaDica(id)}` no campo. Erro e aviso continuam visíveis na tela.
 15. **Carregando = esqueleto**, nunca só o texto "Carregando...": use `components/Esqueleto.tsx` (`EsqueletoCartoes`,

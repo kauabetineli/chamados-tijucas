@@ -1,3 +1,4 @@
+import { useTelaLarga } from "../../lib/moldes";
 import { Download, MessageSquare } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AbasPagina, CabecalhoPagina } from "../../components/CabecalhoPagina";
@@ -28,6 +29,9 @@ export function Feedback() {
   const [lista, setLista] = useState<TFeedback[] | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("tudo");
   const [quem, setQuem] = useState<"" | "tecnico" | "solicitante">("");
+  // tela larga: o feedback escolhido aparece inteiro ao lado da lista (lib/moldes.ts, molde "lista")
+  const larga = useTelaLarga();
+  const [selId, setSelId] = useState("");
 
   useEffect(() => {
     document.title = "Feedback do sistema | Dino Desk";
@@ -41,6 +45,15 @@ export function Feedback() {
 
   const visiveis = useMemo(() => (lista ?? []).filter((f) =>
     (filtro === "tudo" || (filtro === "novos" ? f.situacao === "novo" : f.tipo === filtro)) && (!quem || f.papel === quem)), [lista, filtro, quem]);
+
+  const sel = visiveis.find((f) => f.id === selId) ?? visiveis.find((f) => f.situacao === "novo") ?? visiveis[0];
+
+  async function salvarAnotacao(f: TFeedback, anotacao: string) {
+    if (anotacao === (f.anotacao ?? "")) return;
+    setLista((l) => l?.map((x) => (x.id === f.id ? { ...x, anotacao } : x)) ?? null);
+    try { await pb.collection("feedbacks").update(f.id, { anotacao }); avisar("Anotação salva."); }
+    catch (e) { avisar(mensagemErro(e), { tipo: "erro" }); }
+  }
 
   const conta = (t: TFeedback["tipo"]) => (lista ?? []).filter((f) => f.tipo === t).length;
   const notas = (lista ?? []).filter((f) => f.nota > 0).map((f) => f.nota);
@@ -101,6 +114,8 @@ export function Feedback() {
         ))}
       </div>
 
+      <div className={larga && sel ? "grid grid-cols-[minmax(0,1fr)_32rem] items-start gap-6" : ""}>
+      <div className="min-w-0">
       {!lista ? <EsqueletoLinhas /> : visiveis.length === 0 ? (
         <div className="rounded-2xl bg-superficie p-8 text-center ring-1 ring-linha">
           <MessageSquare className="mx-auto size-8 text-tinta-2" aria-hidden="true" />
@@ -110,10 +125,16 @@ export function Feedback() {
       ) : (
         <ul className="divide-y divide-linha overflow-hidden rounded-2xl bg-superficie ring-1 ring-linha">
           {visiveis.map((f) => (
-            <li key={f.id} className="grid gap-3 p-4 md:grid-cols-[7rem_minmax(0,1fr)_12rem_10rem] md:items-start">
+            <li key={f.id} className={`grid gap-3 p-4 md:items-start ${larga ? "md:grid-cols-[7rem_minmax(0,1fr)_12rem]" : "md:grid-cols-[7rem_minmax(0,1fr)_12rem_10rem]"} ${larga && sel?.id === f.id ? "bg-mar-50" : ""}`}>
               <span><span className={`inline-block rounded-full px-2.5 py-0.5 text-sm font-bold ${TIPO[f.tipo].classe}`}>{TIPO[f.tipo].rot}</span></span>
               <div className="min-w-0">
-                <p className="texto-livre whitespace-pre-line">{f.texto || <span className="text-tinta-2">(sem texto)</span>}</p>
+                {larga ? (
+                  <button type="button" aria-pressed={sel?.id === f.id} onClick={() => setSelId(f.id)} className="texto-livre line-clamp-2 text-left font-semibold hover:text-acento">
+                    {f.texto || <span className="text-tinta-2">(sem texto)</span>}
+                  </button>
+                ) : (
+                  <p className="texto-livre whitespace-pre-line">{f.texto || <span className="text-tinta-2">(sem texto)</span>}</p>
+                )}
                 <p className="mt-1 text-sm text-tinta-2">
                   {dataHora(f.created)}{f.tela && <> · tela: {f.tela}</>}{f.nota > 0 && <> · nota <b className="text-tinta">{f.nota}</b></>} <MarcaTeste ficticio={f.ficticio} />
                 </p>
@@ -122,7 +143,7 @@ export function Feedback() {
                 <b>{f.autor_nome ?? "—"}</b><br />
                 <span className="text-tinta-2">{PAPEL[f.papel] ?? f.papel}{f.expand?.setor?.nome ? ` · ${f.expand.setor.nome}` : ""}</span>
               </p>
-              <label className="block">
+              <label className={larga ? "hidden" : "block"}>
                 <span className="sr-only">Situação</span>
                 <select className="campo w-full font-semibold" value={f.situacao} onChange={(e) => mudarSituacao(f, e.target.value as TFeedback["situacao"])}>
                   {Object.entries(SITUACAO).map(([v, rot]) => <option key={v} value={v}>{rot}</option>)}
@@ -132,6 +153,35 @@ export function Feedback() {
           ))}
         </ul>
       )}
+      </div>
+      {larga && sel && (
+        <aside aria-label="Feedback escolhido" className="sticky top-6 space-y-4 rounded-2xl bg-superficie p-5 ring-1 ring-linha">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`inline-block rounded-full px-2.5 py-0.5 text-sm font-bold ${TIPO[sel.tipo].classe}`}>{TIPO[sel.tipo].rot}</span>
+            <span className="text-sm text-tinta-2">{dataHora(sel.created)}</span>
+            <MarcaTeste ficticio={sel.ficticio} />
+          </div>
+          <p className="texto-livre text-lg whitespace-pre-line">{sel.texto || <span className="text-tinta-2">(sem texto)</span>}</p>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <div><dt className="text-tinta-2">Quem enviou</dt><dd className="font-semibold">{sel.autor_nome ?? "—"}</dd></div>
+            <div><dt className="text-tinta-2">Papel e setor</dt><dd className="font-semibold">{PAPEL[sel.papel] ?? sel.papel}{sel.expand?.setor?.nome ? ` · ${sel.expand.setor.nome}` : ""}</dd></div>
+            <div><dt className="text-tinta-2">Tela</dt><dd className="font-semibold">{sel.tela || "—"}</dd></div>
+            <div><dt className="text-tinta-2">Nota</dt><dd className="font-semibold">{sel.nota > 0 ? `${sel.nota} de 5` : "—"}</dd></div>
+          </dl>
+          <label className="block">
+            <span className="rotulo">Situação</span>
+            <select className="campo w-full font-semibold" value={sel.situacao} onChange={(e) => mudarSituacao(sel, e.target.value as TFeedback["situacao"])}>
+              {Object.entries(SITUACAO).map(([v, rot]) => <option key={v} value={v}>{rot}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="rotulo">Anotação da equipe</span>
+            <textarea key={sel.id} className="campo min-h-24 w-full" maxLength={2000} defaultValue={sel.anotacao ?? ""} placeholder="O que foi feito, em qual versão, quem vai ver…"
+              onBlur={(e) => salvarAnotacao(sel, e.target.value.trim())} />
+          </label>
+        </aside>
+      )}
+      </div>
     </div>
   );
 }
