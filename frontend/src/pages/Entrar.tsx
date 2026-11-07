@@ -5,6 +5,7 @@ import { TelaAcesso } from "../components/TelaAcesso";
 import { lembrarSenhaDoLogin } from "../lib/auth";
 import { destinoSeguro, mensagemErro, pb } from "../lib/pb";
 import { CampoSenha } from "../components/CampoSenha";
+import { Dica, idDaDica, RotuloComDica } from "../components/Dica";
 
 /**
  * Login pela MATRÍCULA (ou e-mail, para quem tiver). Não existe "criar conta":
@@ -40,7 +41,7 @@ export function Entrar() {
     <TelaAcesso titulo="Entrar">
       <form onSubmit={entrar} className="space-y-5">
         <div>
-          <label htmlFor="identidade" className="rotulo">Matrícula</label>
+          <RotuloComDica htmlFor="identidade" dica="Quem tem e-mail cadastrado também pode entrar com ele.">Matrícula</RotuloComDica>
           <input
             id="identidade"
             autoComplete="username"
@@ -50,11 +51,12 @@ export function Entrar() {
             spellCheck={false}
             required
             className="campo"
+            inputMode="text"
+            aria-describedby={idDaDica("identidade")}
             placeholder="Ex.: 12345"
             value={identidade}
             onChange={(e) => setIdentidade(e.target.value)}
           />
-          <p className="ajuda">Quem tem e-mail cadastrado também pode entrar com ele.</p>
         </div>
         <div>
           <label htmlFor="senha" className="rotulo">Senha</label>
@@ -62,8 +64,10 @@ export function Entrar() {
         </div>
         {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
         <button className="btn-primario w-full" disabled={entrando}>{entrando ? "Entrando..." : "Entrar"}</button>
-        <p className="text-center text-sm text-tinta-2">
-          Ainda não tem acesso ou esqueceu a senha? Fale com o Departamento de TI.
+        <p className="text-center">
+          <Dica texto="Não consegue entrar?">
+            Esqueceu a senha ou ainda não tem acesso? Fale com o Departamento de TI: eles criam a conta e passam uma senha provisória.
+          </Dica>
         </p>
       </form>
     </TelaAcesso>

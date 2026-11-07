@@ -114,10 +114,12 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
     Erro de formulário continua perto do campo (`role="alert"`); erro de ação rápida: `avisar(msg, { tipo: "erro" })`.
 13. **Página nova começa com `CabecalhoPagina`** (título no mesmo lugar em todas as telas, abas sublinhadas com `AbasPagina`).
     Conteúdo alinhado à esquerda; nada de `mx-auto` no contêiner da página.
-14. **Carregando = esqueleto**, nunca só o texto "Carregando...": use `components/Esqueleto.tsx` (`EsqueletoCartoes`,
+14. **Ajuda que a maioria não precisa ler vai num "i"**, não em texto fixo embaixo do campo: `RotuloComDica` /
+    `Dica` (`components/Dica.tsx`), com `aria-describedby={idDaDica(id)}` no campo. Erro e aviso continuam visíveis na tela.
+15. **Carregando = esqueleto**, nunca só o texto "Carregando...": use `components/Esqueleto.tsx` (`EsqueletoCartoes`,
     `EsqueletoLinhas`, `EsqueletoTabela`, `EsqueletoChamado`, `EsqueletoConversa` ou `Bloco` para montar um novo)
     no formato do que vai aparecer. Números que ainda não chegaram não aparecem como "0".
-15. **Sinais das listas**: um sinal = um significado (docs/ARQUITETURA.md, "Sinais das listas"). Prioridade só com
+16. **Sinais das listas**: um sinal = um significado (docs/ARQUITETURA.md, "Sinais das listas"). Prioridade só com
     `EtiquetaPrioridade` (aparece para Urgente e Alta), espera com `Espera`, situação com `SeloStatus`, "teste" com
     `MarcaTeste`. Não crie pílula nova nem use cor de prioridade para outra coisa.
 
