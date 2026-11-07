@@ -27,7 +27,7 @@ export function QrCodes() {
   useEffect(() => {
     try { localStorage.setItem(CHAVE, base); } catch { /* sem armazenamento: tudo bem */ }
     // tema-fixo: QR sempre escuro sobre branco (é impresso e lido pela câmera)
-    QRCode.toString(base, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#113227", light: "#ffffff" } })
+    QRCode.toString(base, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#16212b", light: "#ffffff" } })
       .then(setSvg)
       .catch(() => setSvg(""));
   }, [base]);

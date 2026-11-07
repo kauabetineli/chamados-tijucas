@@ -27,8 +27,9 @@ export function iniciais(nome?: string) {
   return ((partes[0]?.[0] ?? "?") + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase();
 }
 
-// cores de avatar com texto branco legível; nenhuma vermelha (vermelho = urgente)
-const CORES = ["#00658c", "#006b34", "#6b3fa0", "#8a5300", "#2f4f8f", "#0f6b6b", "#7a2e5a", "#113227"];
+// cores de avatar com texto branco legível, todas da família da marca (azul, verde, âmbar do brasão e o escuro do texto);
+// nenhuma vermelha (vermelho = urgente) e nenhuma fora da paleta
+const CORES = ["#00658c", "#006b34", "#8a5300", "#16212b", "#0f6b6b", "#2f4f8f"];
 
 /** Cor fixa por pessoa (a mesma em todas as telas). */
 export function corDe(id: string) {

@@ -42,16 +42,26 @@
   --color-ambar: #c79a00;      /* contorno da etiqueta Alta */
   --color-ambar-tinta: #5c4400; /* texto da etiqueta Alta (sobre sol-50) */
 
-  --color-tinta: #113227;     /* verde-escuro: texto */
-  --color-tinta-2: #47605a;   /* texto secundário */
-  --color-linha: #d5e0dc;     /* divisórias */
-  --color-fundo: #f4f7f6;     /* fundo da página */
+  /* neutros levemente frios, da família do azul da marca (antes puxavam para o verde e "turvavam" a tela) */
+  --color-tinta: #16212b;     /* texto principal: quase preto, frio */
+  --color-tinta-2: #55636f;   /* texto secundário */
+  --color-linha: #dde3e8;     /* divisórias */
+  --color-fundo: #f4f6f8;     /* fundo da página */
 
   --color-superficie: #ffffff; /* cartões, painéis, campos */
   --color-acento: #00658c;     /* links, ícones e contornos de destaque */
   --color-ok: #006b34;         /* texto de sucesso */
   --color-alerta: #b4201f;     /* texto de erro e atraso */
-  --color-noite: #113227;      /* escuro FIXO (não muda com o tema) */
+  --color-noite: #16212b;      /* escuro FIXO (não muda com o tema) */
+
+  /* tamanhos de texto: inteiros no tamanho padrão (raiz 17 px): 13 / 15 / 17 / 19 / 21 / 24 / 32 px.
+     Continuam em rem, então "Tamanho do texto" (Meu perfil) ainda escala tudo junto. */
+  --text-xs: calc(13rem / 17);
+  --text-sm: calc(15rem / 17);
+  --text-lg: calc(19rem / 17);
+  --text-xl: calc(21rem / 17);
+  --text-2xl: calc(24rem / 17);
+  --text-3xl: calc(32rem / 17);
 }
 
 /* dark: utilitários "dark:" seguem a classe .dark no <html> (definida em index.html / lib/tema.ts) */
@@ -64,11 +74,15 @@
      Fundo preto puro (economiza bateria em tela AMOLED); cartões um pouco mais claros para separar bem no monitor. */
   color-scheme: dark;
   --color-fundo: #000000;
-  --color-superficie: #161616;
-  --color-tinta: #f2f2f2;
-  --color-tinta-2: #a3a3a3;
-  --color-linha: #2c2c2c;
+  --color-superficie: #15181b;
+  --color-tinta: #eef1f4;
+  --color-tinta-2: #9aa4ad;
+  --color-linha: #2a2f35;
   --color-acento: #5ec4ee;
+  /* botões: o mesmo azul-petróleo, um pouco mais vivo. O de antes (#00658c) sumia no cartão escuro (2,8:1);
+     este fica em 3,6:1 com o cartão e 5,1:1 com a letra branca */
+  --color-mar-700: #0a76a3;
+  --color-campo-700: #0b7a43;
   --color-ok: #62d394;
   --color-alerta: #ff8f85;
   --color-mar-50: #0b2531;
@@ -226,8 +240,9 @@
   /* impressão sempre no tema claro */
   :root.dark {
     color-scheme: light;
-    --color-fundo: #ffffff; --color-superficie: #ffffff; --color-tinta: #113227; --color-tinta-2: #47605a;
-    --color-linha: #d5e0dc; --color-acento: #00658c; --color-ok: #006b34; --color-alerta: #b4201f;
+    --color-fundo: #ffffff; --color-superficie: #ffffff; --color-tinta: #16212b; --color-tinta-2: #55636f;
+    --color-linha: #dde3e8; --color-acento: #00658c; --color-ok: #006b34; --color-alerta: #b4201f;
+    --color-mar-700: #00658c; --color-campo-700: #006b34;
     --color-mar-50: #e5f4fa; --color-campo-50: #e3f5ea; --color-brasa-50: #fdeceb; --color-sol-50: #fffbd6;
   }
   body {
