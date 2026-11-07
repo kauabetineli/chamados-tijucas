@@ -75,3 +75,16 @@ e rode `scripts\atualizar.ps1` como Administrador.
 | E-mails não chegam | Settings > Mail settings > "Send test email" |
 | Ver erros | Painel admin > Logs |
 | "Muitas tentativas seguidas" no login | É o limite de 10 tentativas por minuto por endereço (proteção contra adivinhar senha). Espere 1 minuto. Se muita gente entra pelo mesmo IP (proxy), ajuste em Settings > Rate limits |
+
+## Demonstração online (Docker, ex.: Render)
+
+Para mostrar o sistema fora da rede da Prefeitura (professora, seminário, grupo testando de casa) há um `Dockerfile` na
+raiz: compila o front, baixa o PocketBase 0.40.4 e o ffmpeg e sobe tudo numa imagem só.
+
+No Render: **New Web Service** → repositório → Language **Docker** → branch → plano **Free**. Variáveis:
+`PB_ADMIN_EMAIL` e `PB_ADMIN_SENHA` (superusuário criado ao subir) e `DINO_AMBIENTE=teste`. A porta vem do Render (`PORT`).
+
+**Limites do grátis do Render:** o serviço dorme depois de 15 min sem acesso (a primeira visita espera ele acordar) e o
+disco não é permanente: a cada reinício, deploy ou soneca o banco e os anexos voltam ao zero. Por isso: **só dados
+fictícios**, e depois de acordar rode de novo `node ferramentas/dino.mjs popular` com `DINO_URL` apontando para o
+endereço do Render. Nunca use essa hospedagem para o piloto com dados reais.

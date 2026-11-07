@@ -1,0 +1,10 @@
+**/node_modules
+backend/pb_data
+backend/pb_public
+backend/pocketbase
+backend/pocketbase.exe
+backend/bin
+backend/config.json
+ferramentas/.env
+.git
+*.zip
