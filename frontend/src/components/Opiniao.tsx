@@ -111,7 +111,7 @@ function JanelaOpiniao({ soNota, tecnico, tela, aoFechar }: { soNota: boolean; t
       titulo="Sua opinião"
       subtitulo={
         <p className="mt-0.5 text-sm text-tinta-2">
-          Vai para quem faz o Dino Desk (UNIVALI), não para o TI.
+          Vai para quem faz o Dino Desk.
           {!tecnico && <> Problema no computador? <Link to="/novo" onClick={aoFechar} className="font-bold text-acento underline">Abra um chamado</Link>.</>}
         </p>
       }
