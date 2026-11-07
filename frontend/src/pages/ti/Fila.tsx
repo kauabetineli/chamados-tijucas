@@ -360,12 +360,23 @@ export function Fila() {
   function irParaVisao(v: Visao | null) {
     const p = new URLSearchParams(params);
     if (v) p.set("visao", v); else p.delete("visao");
+    p.delete("filtro");
     setParams(p);
     setFiltro("");
     pag.voltarAoInicio();
   }
   // filtro por colega (faixa Equipe) e visão não se misturam: escolher um desliga o outro
   useEffect(() => { if (visao) setFiltro(""); }, [visao]);
+  // "Fora do prazo" da barra lateral chega como ?filtro=prazo; sair do filtro tira o parâmetro do endereço
+  const filtroUrl = params.get("filtro");
+  useEffect(() => { if (filtroUrl === "prazo") setFiltro("prazo"); }, [filtroUrl]);
+  const filtroAntes = useRef(filtro);
+  useEffect(() => {
+    if (filtroAntes.current === "prazo" && filtro !== "prazo" && params.get("filtro")) {
+      const p = new URLSearchParams(params); p.delete("filtro"); setParams(p, { replace: true });
+    }
+    filtroAntes.current = filtro;
+  }, [filtro, params, setParams]);
   const [menu, setMenu] = useState<Chamado | null>(null);
   const [acoes, setAcoes] = useState<Chamado | null>(null);
   const [arrastando, setArrastando] = useState("");

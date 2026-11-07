@@ -1,5 +1,5 @@
 import {
-  BarChart3, ChevronsLeft, ChevronsRight, ClipboardList, History, ListOrdered, MessageSquare, Plus, SlidersHorizontal, SquarePen, Table2, Users,
+  BarChart3, ChevronsLeft, ChevronsRight, ClipboardList, Clock, History, ListOrdered, MessageSquare, Plus, SlidersHorizontal, Table2, Users,
 } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent as KE, type PointerEvent as PE } from "react";
 import { Link, NavLink, useLocation, useSearchParams } from "react-router";
@@ -8,7 +8,7 @@ import { VISOES, type Numeros } from "../lib/numeros";
 import { ehAdmin, ehTecnico } from "../lib/pb";
 import { Avatar } from "./Avatar";
 import { BotaoTema } from "./BotaoTema";
-import { MuralAvisos } from "./MuralAvisos";
+import { LinhaAvisos } from "./MuralAvisos";
 
 const MIN = 200, MAX = 380, PADRAO = 256, RECOLHIDA = 76;
 const CHAVE_LARGURA = "dinodesk:lateral-largura";
@@ -21,7 +21,7 @@ function gravar(chave: string, valor: string) {
   try { localStorage.setItem(chave, valor); } catch { /* ok */ }
 }
 
-type Item = { para: string; rotulo: string; Icone: typeof Plus; ativo: boolean; numero?: number; alerta?: number; destaque?: number; so?: "admin" };
+type Item = { para: string; rotulo: string; Icone: typeof Plus; ativo: boolean; numero?: number; destaque?: number; so?: "admin" };
 
 /**
  * Barra lateral do PC (md+). Recolhe para só ícones e muda de largura arrastando a borda direita
@@ -98,20 +98,43 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
 
   const aba = params.get("aba");
   const visao = params.get("visao");
-  const itens: Item[] = tecnico
+  const filtroUrl = params.get("filtro");
+  const admin = ehAdmin(usuario);
+  // técnico: três grupos (Atendimento = o dia a dia, Consulta = olhar para trás, Administração = só o admin)
+  const grupos: { titulo?: string; itens: Item[] }[] = tecnico
     ? [
-        { para: "/ti", rotulo: "Fila", Icone: ListOrdered, ativo: caminho === "/ti" && !visao, numero: numeros?.fila, alerta: numeros?.atrasados },
-        { para: "/ti/chamados", rotulo: "Todos os chamados", Icone: Table2, ativo: caminho === "/ti/chamados" },
-        { para: "/ti/registrar", rotulo: "Registrar pedido", Icone: SquarePen, ativo: caminho === "/ti/registrar" },
-        { para: "/ti/historico", rotulo: "Histórico", Icone: History, ativo: caminho === "/ti/historico" },
-        { para: "/ti/painel", rotulo: "Painel", Icone: BarChart3, ativo: caminho === "/ti/painel" },
-        { para: "/ti/usuarios", rotulo: ehAdmin(usuario) ? "Pessoas e setores" : "Pessoas", Icone: Users, ativo: caminho === "/ti/usuarios" },
-        ...(ehAdmin(usuario) ? [{ para: "/ti/configuracoes", rotulo: "Configurações do TI", Icone: SlidersHorizontal, ativo: caminho === "/ti/configuracoes", so: "admin" as const }] : []),
+        { titulo: "Atendimento", itens: [
+          { para: "/ti", rotulo: "Fila", Icone: ListOrdered, ativo: caminho === "/ti" && !visao && !filtroUrl, numero: numeros?.fila },
+          { para: "/ti/chamados", rotulo: "Todos os chamados", Icone: Table2, ativo: caminho === "/ti/chamados" },
+        ] },
+        { titulo: "Consulta", itens: [
+          { para: "/ti/historico", rotulo: "Soluções", Icone: History, ativo: caminho === "/ti/historico" },
+          { para: "/ti/painel", rotulo: "Painel", Icone: BarChart3, ativo: caminho === "/ti/painel" },
+          ...(!admin ? [{ para: "/ti/usuarios", rotulo: "Pessoas", Icone: Users, ativo: caminho === "/ti/usuarios" }] : []),
+        ] },
+        ...(admin ? [{ titulo: "Administração", itens: [
+          { para: "/ti/usuarios", rotulo: "Pessoas e setores", Icone: Users, ativo: caminho === "/ti/usuarios" },
+          { para: "/ti/configuracoes", rotulo: "Configurações", Icone: SlidersHorizontal, ativo: caminho === "/ti/configuracoes", so: "admin" as const },
+        ] }] : []),
       ]
-    : [
+    : [{ itens: [
         { para: "/", rotulo: "Meus chamados", Icone: ClipboardList, ativo: caminho === "/" && aba !== "historico", numero: numeros?.meus, destaque: numeros?.precisaDeVoce },
         { para: "/?aba=historico", rotulo: "Histórico", Icone: History, ativo: caminho === "/" && aba === "historico" },
-      ];
+      ] }];
+
+  // subitens da Fila: as visões e o filtro "Fora do prazo" (o vermelho só aparece aqui, e só quando há atraso)
+  const subFila = [
+    ...VISOES.map((v) => ({
+      id: v.id, para: `/ti?visao=${v.id}`, rotulo: v.rotulo, Icone: v.Icone, ativa: caminho === "/ti" && visao === v.id,
+      total: numeros?.[v.id === "atendendo" ? "atendendo" : v.id === "livres" ? "livres" : "espera"],
+      ponto: v.id === "espera" ? numeros?.esperaResposta : 0,
+    })),
+    { id: "prazo", para: "/ti?filtro=prazo", rotulo: "Fora do prazo", Icone: Clock, ativa: caminho === "/ti" && filtroUrl === "prazo", total: numeros?.atrasados, ponto: 0 },
+  ];
+
+  const botaoTopo = tecnico
+    ? { para: "/ti/registrar", rotulo: "Registrar pedido", ativo: caminho === "/ti/registrar" }
+    : { para: "/novo", rotulo: "Novo chamado", ativo: caminho === "/novo" };
 
   return (
     <aside
@@ -127,79 +150,90 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
         {!recolhida && <span className="truncate font-display text-2xl leading-none font-extrabold tracking-tight">Dino Desk</span>}
       </Link>
 
-      {!tecnico && (
-        <div className={`shrink-0 pb-3 ${recolhida ? "flex justify-center" : "px-3"}`}>
-          <Link to="/novo" className={recolhida ? "grid size-11 place-items-center rounded-xl bg-mar-700 text-white hover:bg-noite" : "btn-primario w-full"} title="Novo chamado" aria-label={recolhida ? "Novo chamado" : undefined}>
-            <Plus className="size-5" aria-hidden="true" /> {!recolhida && "Novo chamado"}
-          </Link>
-        </div>
-      )}
+      {/* a ação principal é um botão, não um lugar: Registrar pedido (TI) ou Novo chamado (servidor) */}
+      <div className={`shrink-0 pb-3 ${recolhida ? "flex justify-center" : "px-3"}`}>
+        <Link
+          to={botaoTopo.para}
+          aria-current={botaoTopo.ativo ? "page" : undefined}
+          className={recolhida ? "grid size-11 place-items-center rounded-xl bg-mar-700 text-white hover:bg-noite" : "btn-primario w-full"}
+          title={botaoTopo.rotulo}
+          aria-label={recolhida ? botaoTopo.rotulo : undefined}
+        >
+          <Plus className="size-5" aria-hidden="true" /> {!recolhida && botaoTopo.rotulo}
+        </Link>
+      </div>
 
       {/* navegação */}
-      <nav aria-label="Principal" className={`shrink-0 space-y-0.5 ${recolhida ? "px-2" : "px-3"}`}>
-        {itens.map((i) => (
-          <div key={i.para}>
-          <NavLink
-            to={i.para}
-            title={recolhida ? i.rotulo : undefined}
-            aria-current={i.ativo ? "page" : undefined}
-            className={`relative flex min-h-11 items-center gap-3 rounded-xl font-semibold ${recolhida ? "justify-center" : "px-3"} ${
-              i.ativo ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"
-            }`}
-          >
-            <i.Icone className="size-5 shrink-0" aria-hidden="true" />
-            {!recolhida && <span className="min-w-0 flex-1 truncate">{i.rotulo}</span>}
-            {!recolhida && i.numero !== undefined && (
-              <span className="flex items-center gap-1.5">
-                {!!i.alerta && <span className="rounded-full bg-brasa-50 px-1.5 text-xs font-bold text-alerta" title={`${i.alerta} atrasado(s)`}>{i.alerta}</span>}
-                {!!i.destaque && (
-                  <span className="rounded-full bg-mar-700 px-1.5 text-xs font-bold text-white" title={`${i.destaque} precisa(m) de você`}>
-                    {i.destaque}<span className="sr-only"> precisam de você</span>
-                  </span>
-                )}
-                <span className="font-display text-base">{i.numero}</span>
-              </span>
-            )}
-            {recolhida && !!(i.destaque || i.numero) && (
-              <span className={`absolute top-1 right-1 grid min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold text-white ${i.alerta ? "bg-brasa" : "bg-mar-700"}`}>
-                {i.destaque || i.numero}
-              </span>
-            )}
-          </NavLink>
-          {/* visões da Fila: subitens (só com o menu aberto) */}
-          {tecnico && i.para === "/ti" && !recolhida && (
-            <ul className="mt-0.5 mb-1 ml-5 space-y-0.5 border-l border-linha pl-2">
-              {VISOES.map((v) => {
-                const ativa = caminho === "/ti" && visao === v.id;
-                const total = numeros?.[v.id === "atendendo" ? "atendendo" : v.id === "livres" ? "livres" : "espera"];
-                return (
-                  <li key={v.id}>
-                    <Link
-                      to={`/ti?visao=${v.id}`}
-                      aria-current={ativa ? "page" : undefined}
-                      className={`flex min-h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm font-semibold ${ativa ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
-                    >
-                      <v.Icone className="size-4 shrink-0" aria-hidden="true" />
-                      <span className="min-w-0 flex-1 truncate">{v.rotulo}</span>
-                      {v.id === "espera" && !!numeros?.esperaResposta && (
-                        <span className="rounded-full bg-mar-50 px-1.5 text-xs font-bold text-acento" title={`${numeros.esperaResposta} aguardando resposta de quem pediu`}>
-                          {numeros.esperaResposta} resp.
-                        </span>
-                      )}
-                      {total !== undefined && <span className="font-display">{total}</span>}
-                    </Link>
-                  </li>
-                );
-              })}
+      <nav aria-label="Principal" className={`min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3 ${recolhida ? "px-2" : "px-3"}`}>
+        {grupos.map((g, gi) => (
+          <div key={g.titulo ?? gi} className={gi > 0 ? "mt-4" : ""}>
+            {g.titulo && (recolhida
+              ? (gi > 0 && <div className="mx-2 mb-3 border-t border-linha" aria-hidden="true" />)
+              : <p className="px-3 pb-1 text-xs font-bold tracking-wider text-tinta-2 uppercase">{g.titulo}</p>)}
+            <ul className="space-y-0.5">
+              {g.itens.map((i) => (
+                <li key={i.para}>
+                  <NavLink
+                    to={i.para}
+                    title={recolhida ? i.rotulo : undefined}
+                    aria-current={i.ativo ? "page" : undefined}
+                    className={`relative flex min-h-11 items-center gap-3 rounded-xl font-semibold ${recolhida ? "justify-center" : "px-3"} ${
+                      i.ativo ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"
+                    }`}
+                  >
+                    <i.Icone className="size-5 shrink-0" aria-hidden="true" />
+                    {!recolhida && <span className="min-w-0 flex-1 truncate">{i.rotulo}</span>}
+                    {!recolhida && i.numero !== undefined && (
+                      <span className="flex items-center gap-1.5">
+                        {!!i.destaque && (
+                          <span className="rounded-full bg-mar-700 px-1.5 text-xs font-bold text-white" title={`${i.destaque} precisa(m) de você`}>
+                            {i.destaque}<span className="sr-only"> precisam de você</span>
+                          </span>
+                        )}
+                        <span className="font-display">{i.numero}</span>
+                      </span>
+                    )}
+                    {recolhida && !!(i.destaque || i.numero) && (
+                      <span className="absolute top-1 right-1 grid min-w-5 place-items-center rounded-full bg-mar-700 px-1 text-xs font-bold text-white">
+                        {i.destaque || i.numero}
+                      </span>
+                    )}
+                  </NavLink>
+                  {/* subitens da Fila (só com o menu aberto) */}
+                  {tecnico && i.para === "/ti" && !recolhida && (
+                    <ul className="mt-0.5 mb-1 ml-5 space-y-0.5 border-l border-linha pl-2">
+                      {subFila.map((v) => (
+                        <li key={v.id}>
+                          <Link
+                            to={v.para}
+                            aria-current={v.ativa ? "page" : undefined}
+                            className={`flex min-h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm font-semibold ${v.ativa ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
+                          >
+                            <v.Icone className="size-4 shrink-0" aria-hidden="true" />
+                            <span className="min-w-0 flex-1 truncate">{v.rotulo}</span>
+                            {!!v.ponto && (
+                              <span className="size-2 rounded-full bg-acento" title={`${v.ponto} ${v.ponto === 1 ? "respondeu" : "responderam"}`}>
+                                <span className="sr-only">{v.ponto} {v.ponto === 1 ? "respondeu" : "responderam"}</span>
+                              </span>
+                            )}
+                            {v.total !== undefined && (
+                              <span className={`font-display ${v.id === "prazo" && v.total > 0 ? "font-bold text-alerta" : ""}`}>{v.total}</span>
+                            )}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
             </ul>
-          )}
           </div>
         ))}
       </nav>
 
       {/* equipe do projeto (extensão): o feedback do sistema */}
       {usuario?.equipe_projeto && (
-        <nav aria-label="Equipe do projeto" className={`mt-4 shrink-0 space-y-0.5 ${recolhida ? "px-2" : "px-3"}`}>
+        <nav aria-label="Equipe do projeto" className={`shrink-0 pb-3 space-y-0.5 ${recolhida ? "px-2" : "px-3"}`}>
           {!recolhida && <p className="px-3 pb-1 text-xs font-bold tracking-wider text-tinta-2 uppercase">Equipe do projeto</p>}
           <NavLink
             to="/projeto/feedback"
@@ -212,9 +246,9 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
         </nav>
       )}
 
-      {/* avisos do TI */}
-      <div className={`mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-linha pt-4 ${recolhida ? "px-2" : "px-3"}`}>
-        <MuralAvisos compacto={recolhida} aoExpandir={() => recolher(false)} />
+      {/* avisos do TI: uma linha (fica colorida com aviso no ar) */}
+      <div className={`shrink-0 border-t border-linha py-2 ${recolhida ? "px-2" : "px-3"}`}>
+        <LinhaAvisos compacto={recolhida} />
       </div>
 
       {/* pessoa, tema e recolher */}

@@ -1,3 +1,4 @@
+import { AvisoNoNovoChamado } from "../../components/MuralAvisos";
 import { CabecalhoPagina } from "../../components/CabecalhoPagina";
 import { Clock, Info, Lightbulb, Send, Ticket } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
@@ -66,6 +67,7 @@ export function Painel({ f }: { f: FormularioChamado }) {
           subtitulo={f.setor ? <>Para o TI, a partir de <span className="font-semibold text-tinta">{f.setor}</span></> : "Conte o que aconteceu. O TI vê na fila e responde por aqui."}
         />
 
+        <AvisoNoNovoChamado />
         <div className="space-y-8 rounded-2xl bg-superficie p-5 ring-1 ring-linha md:p-8">
           {/* 1 */}
           <Passo n={1} id="p-categoria" titulo="O que está com problema?" feito={!!f.categoria}>

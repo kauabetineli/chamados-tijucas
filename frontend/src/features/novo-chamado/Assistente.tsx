@@ -1,3 +1,4 @@
+import { AvisoNoNovoChamado } from "../../components/MuralAvisos";
 import { ArrowLeft, Send, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -82,6 +83,7 @@ export function Assistente({ f }: { f: FormularioChamado }) {
         )}
       </div>
 
+      {atual === 0 && <AvisoNoNovoChamado className="mb-6" />}
       <div ref={titulo} tabIndex={-1} className="outline-none">
         <etapa.Componente f={f} modo="passo" avancar={avancar} irPara={(id) => irPara(ETAPAS.findIndex((e) => e.id === id))} />
       </div>

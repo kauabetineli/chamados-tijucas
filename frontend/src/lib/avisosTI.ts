@@ -11,6 +11,9 @@ export interface AvisoTI {
   ate: string;
   autor: string;
   created: string;
+  /** "Também estou sem": total e se eu já toquei (a lista de quem tocou só o TI recebe) */
+  tambem_total?: number;
+  tambem_eu?: boolean;
   expand?: { autor?: Usuario };
 }
 
@@ -41,11 +44,11 @@ export function useAvisosTI() {
 }
 
 export const PRAZOS = [
-  { id: "1h", rotulo: "1 hora" },
-  { id: "4h", rotulo: "4 horas" },
-  { id: "dia", rotulo: "Até o fim do dia" },
+  { id: "1h", rotulo: "1 h" },
+  { id: "2h", rotulo: "2 h" },
+  { id: "dia", rotulo: "Fim do dia" },
   { id: "3d", rotulo: "3 dias" },
-  { id: "sem", rotulo: "Até eu encerrar" },
+  { id: "sem", rotulo: "Quando eu encerrar" },
 ] as const;
 export type Prazo = (typeof PRAZOS)[number]["id"];
 
@@ -53,11 +56,42 @@ export type Prazo = (typeof PRAZOS)[number]["id"];
 export function dataDoPrazo(p: Prazo): string {
   const d = new Date();
   if (p === "1h") d.setHours(d.getHours() + 1);
-  else if (p === "4h") d.setHours(d.getHours() + 4);
+  else if (p === "2h") d.setHours(d.getHours() + 2);
   else if (p === "dia") d.setHours(23, 59, 0, 0);
   else if (p === "3d") d.setDate(d.getDate() + 3);
   else return "";
   return iso(d);
+}
+
+/**
+ * Modelos prontos do "Avisar todos": o texto e o tipo já vêm prontos; [entre colchetes] é o que falta completar
+ * (o campo já abre com esse trecho selecionado).
+ */
+export const MODELOS: { id: string; rotulo: string; tipo: AvisoTI["tipo"]; prazo: Prazo; texto: string }[] = [
+  { id: "internet", rotulo: "Internet fora do ar", tipo: "problema", prazo: "2h",
+    texto: "A internet está fora do ar em [onde?]. Já estamos resolvendo; não precisa abrir chamado." },
+  { id: "sistema", rotulo: "Sistema parado", tipo: "problema", prazo: "2h",
+    texto: "O sistema [qual?] está parado. Já estamos verificando; não precisa abrir chamado." },
+  { id: "impressoras", rotulo: "Impressoras", tipo: "problema", prazo: "2h",
+    texto: "As impressoras de [onde?] estão com problema. Já estamos resolvendo; não precisa abrir chamado." },
+  { id: "manutencao", rotulo: "Manutenção programada", tipo: "info", prazo: "3d",
+    texto: "Manutenção programada em [dia e hora]. Alguns sistemas podem ficar fora do ar." },
+];
+
+/** "some em 1h52" / "some às 18:00" / "" (sem prazo). */
+export function someEm(ate: string): string {
+  if (!ate) return "";
+  const d = new Date(ate.replace(" ", "T"));
+  const min = Math.round((d.getTime() - Date.now()) / 60000);
+  if (min <= 0) return "";
+  if (min < 60) return `some em ${min} min`;
+  if (min < 12 * 60) return `some em ${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`;
+  return `some em ${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`;
+}
+
+/** Servidor: "Também estou com esse problema" (de novo = desfaz). */
+export async function tambemEstou(id: string, sim: boolean) {
+  return pb.send<{ total: number; eu: boolean }>(`/api/avisos/${id}/tambem`, { method: sim ? "POST" : "DELETE" });
 }
 
 export async function publicarAviso(texto: string, tipo: AvisoTI["tipo"], prazo: Prazo, autor: string) {

@@ -10,7 +10,7 @@ import { useRealtime } from "./useRealtime";
  * e menu do ícone Fila (tocar de novo) no celular. `?ver=` já é o painel do chamado, por isso "visao".
  */
 export const VISOES = [
-  { id: "atendendo", rotulo: "Atendendo", Icone: Wrench, vazio: "Você não está atendendo nenhum chamado agora." },
+  { id: "atendendo", rotulo: "Comigo", Icone: Wrench, vazio: "Você não está atendendo nenhum chamado agora." },
   { id: "livres", rotulo: "Livres", Icone: Inbox, vazio: "Nenhum chamado livre na fila." },
   { id: "espera", rotulo: "Em espera", Icone: Hourglass, vazio: "Nenhum chamado seu em espera." },
 ] as const;

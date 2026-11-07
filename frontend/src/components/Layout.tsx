@@ -22,7 +22,7 @@ const SOLICITANTE: Item[] = [
 const TECNICO: Item[] = [
   { para: "/ti", rotulo: "Fila", Icone: ListOrdered, fim: true },
   { para: "/ti/registrar", rotulo: "Registrar", Icone: SquarePen },
-  { para: "/ti/historico", rotulo: "Histórico", Icone: History },
+  { para: "/ti/historico", rotulo: "Soluções", Icone: History },
   // Painel e Pessoas são eventuais no celular: ficam dentro de "Você" (no PC continuam na barra lateral)
   { para: "/perfil", rotulo: "Você", Icone: UserRound, avatar: true },
 ];
