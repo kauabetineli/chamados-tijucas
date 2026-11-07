@@ -12,6 +12,7 @@ import { IconeCategoria } from "../../components/Icone";
 import { EtiquetaPrioridade, MarcaTeste, SeloStatus } from "../../components/Selos";
 import { Paginacao, usePaginacao } from "../../components/Paginacao";
 import { VisaoTI } from "../../components/VisaoTI";
+import { AlcaColuna, MenuColunas, useColunas, type DefColuna } from "../../components/Colunas";
 import { useSetores, useTecnicos } from "../../lib/equipe";
 import { esperaCurta } from "../../lib/fila";
 import { dataCurta, duracaoHoras, paraData, resumo, ROTULO_AGUARDANDO, ROTULO_PRIORIDADE } from "../../lib/formato";
@@ -40,6 +41,19 @@ const PERIODOS = [
 // colunas que dá para ordenar → campo no banco
 const ORDENACOES = { protocolo: "protocolo", prioridade: "peso", situacao: "status", aberto: "created" } as const;
 type Coluna = keyof typeof ORDENACOES;
+
+// colunas da tabela do PC (cada técnico ajusta largura, quais aparecem e densidade: components/Colunas.tsx)
+const COLUNAS: DefColuna[] = [
+  { id: "protocolo", rotulo: "Protocolo", padrao: 136, minimo: 110 },
+  { id: "prioridade", rotulo: "Prioridade", padrao: 112, minimo: 96 },
+  { id: "situacao", rotulo: "Situação", padrao: 156, minimo: 120 },
+  { id: "problema", rotulo: "Problema", padrao: 420, minimo: 200, fixa: true },
+  { id: "quem", rotulo: "Quem pediu", padrao: 170, minimo: 120 },
+  { id: "setor", rotulo: "Setor (separado)", padrao: 150, minimo: 100, oculta: true },
+  { id: "responsavel", rotulo: "Responsável", padrao: 132, minimo: 100 },
+  { id: "aberto", rotulo: "Aberto", padrao: 136, minimo: 110 },
+];
+const ORDENAVEL: Record<string, Coluna | undefined> = { protocolo: "protocolo", prioridade: "prioridade", situacao: "situacao", aberto: "aberto" };
 
 const ha = (horas: number) => (horas < 1 / 60 ? "agora mesmo" : `há ${esperaCurta(horas)}`);
 
@@ -89,6 +103,8 @@ export function TodosChamados() {
   const [baixando, setBaixando] = useState(false);
   const [verFiltros, setVerFiltros] = useState(false); // celular: filtros recolhidos
   const [, setTique] = useState(0);
+  const col = useColunas("todos-chamados", COLUNAS);
+  const tabela = useRef<HTMLTableElement>(null);
 
   const f = {
     situacao: params.get("situacao") ?? "",
@@ -178,22 +194,73 @@ export function TodosChamados() {
     }
   }
 
-  function Cabecalho({ col, children, className = "" }: { col?: Coluna; children: ReactNode; className?: string }) {
-    if (!col) return <th scope="col" className={`px-3 py-3 text-left text-sm font-semibold whitespace-nowrap text-tinta-2 ${className}`}>{children}</th>;
-    const ativa = coluna === col;
+  // função (não componente): um componente criado aqui dentro seria remontado a cada render e perderia o arrasto
+  function cabecalho(id: string) {
+    const d = COLUNAS.find((x) => x.id === id)!;
+    const ordem = ORDENAVEL[id];
+    const ativa = ordem && coluna === ordem;
     const Icone = !ativa ? ChevronsUpDown : desc ? ArrowDown : ArrowUp;
+    const rotulo = id === "setor" ? "Setor" : d.rotulo;
     return (
-      <th scope="col" aria-sort={ativa ? (desc ? "descending" : "ascending") : "none"} className={`px-3 py-3 text-left text-sm font-semibold ${className}`}>
-        <button
-          type="button"
-          onClick={() => mudar("ordem", ativa ? (desc ? col : `-${col}`) : `-${col}`)}
-          className={`inline-flex items-center gap-1 ${ativa ? "text-tinta" : "text-tinta-2 hover:text-tinta"}`}
-        >
-          {children} <Icone className="size-3.5" aria-hidden="true" />
-        </button>
+      <th key={id} scope="col" aria-sort={ordem ? (ativa ? (desc ? "descending" : "ascending") : "none") : undefined}
+        className="relative px-3 py-3 text-left text-sm font-semibold whitespace-nowrap text-tinta-2">
+        {ordem ? (
+          <button
+            type="button"
+            onClick={() => mudar("ordem", ativa ? (desc ? ordem : `-${ordem}`) : `-${ordem}`)}
+            className={`inline-flex max-w-full items-center gap-1 ${ativa ? "text-tinta" : "hover:text-tinta"}`}
+          >
+            <span className="truncate">{rotulo}</span> <Icone className="size-3.5 shrink-0" aria-hidden="true" />
+          </button>
+        ) : <span className="block truncate">{rotulo}</span>}
+        <AlcaColuna col={col} id={id} tabela={tabela} />
       </th>
     );
   }
+
+  const celula = (c: Chamado, id: string): ReactNode => {
+    switch (id) {
+      case "protocolo":
+        return (
+          <span className="whitespace-nowrap">
+            <span onClick={(e) => e.stopPropagation()}>
+              <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className="font-display text-base font-bold hover:underline">{c.protocolo}</LinkChamado>
+            </span>
+            <span className="ml-1.5"><MarcaTeste ficticio={c.ficticio} /></span>
+          </span>
+        );
+      case "prioridade": return <EtiquetaPrioridade prioridade={c.prioridade} sempre />;
+      case "situacao": return <span className="whitespace-nowrap"><SeloStatus status={c.status} /></span>;
+      case "problema":
+        return (
+          <>
+            {/* o problema primeiro (como na Fila); a categoria embaixo, menor */}
+            <span className="texto-livre line-clamp-2 font-semibold">{c.descricao}</span>
+            <span className={`mt-0.5 items-center gap-1.5 text-tinta-2 ${col.densa ? "hidden" : "flex"}`}>
+              <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 shrink-0 text-acento" />
+              {c.expand?.categoria?.nome}
+            </span>
+          </>
+        );
+      case "quem":
+        return (
+          <>
+            <span className="block truncate font-semibold">{nomeSolicitante(c)}</span>
+            {!col.visivel("setor") && !col.densa && <span className="block truncate text-tinta-2">{c.expand?.setor?.nome ?? "—"}</span>}
+          </>
+        );
+      case "setor": return <span className="block truncate">{c.expand?.setor?.nome ?? "—"}</span>;
+      case "responsavel": return <Responsavel c={c} />;
+      case "aberto":
+        return (
+          <span className="whitespace-nowrap">
+            <span className="block">{dataCurta(c.created)}</span>
+            {!col.densa && <span className="block text-xs"><Tempo c={c} /></span>}
+          </span>
+        );
+    }
+    return null;
+  };
 
   const select = "campo min-h-11 w-full py-2 pr-9 text-sm md:w-auto";
 
@@ -275,9 +342,12 @@ export function TodosChamados() {
               <X className="size-4" aria-hidden="true" /> Limpar filtros
             </button>
           ) : <span />}
-          <button type="button" className="btn-secundario min-h-10 px-3 text-sm" onClick={baixar} disabled={baixando || !total}>
-            <Download className="size-4" aria-hidden="true" /> {baixando ? "Gerando..." : "Baixar planilha (CSV)"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="hidden md:block"><MenuColunas col={col} /></span>
+            <button type="button" className="btn-secundario min-h-10 px-3 text-sm" onClick={baixar} disabled={baixando || !total}>
+              <Download className="size-4" aria-hidden="true" /> {baixando ? "Gerando..." : "Baixar planilha (CSV)"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -296,18 +366,13 @@ export function TodosChamados() {
         <>
           {/* PC: tabela */}
           <div aria-busy={carregando} className={`hidden overflow-x-auto rounded-2xl bg-superficie ring-1 ring-linha md:block ${carregando ? "opacity-60" : ""}`}>
-            {/* larguras fixas nas colunas curtas; o Problema fica com o resto (é o que se lê primeiro) */}
-            <table className="w-full min-w-[56rem] table-fixed border-collapse">
+            {/* larguras de cada técnico (arrastar a borda do título); a tabela rola para o lado se passar da tela */}
+            <table ref={tabela} className="table-fixed border-collapse" style={{ width: col.larguraTotal, minWidth: "100%" }}>
+              <colgroup>
+                {col.visiveis.map((d) => <col key={d.id} style={{ width: col.largura(d.id) }} />)}
+              </colgroup>
               <thead className="border-b border-linha">
-                <tr>
-                  <Cabecalho col="protocolo" className="w-32">Protocolo</Cabecalho>
-                  <Cabecalho col="prioridade" className="w-24">Prioridade</Cabecalho>
-                  <Cabecalho col="situacao" className="w-36">Situação</Cabecalho>
-                  <Cabecalho>Problema</Cabecalho>
-                  <Cabecalho className="w-36">Quem pediu</Cabecalho>
-                  <Cabecalho className="w-28">Responsável</Cabecalho>
-                  <Cabecalho col="aberto" className="w-28">Aberto</Cabecalho>
-                </tr>
+                <tr>{col.visiveis.map((d) => cabecalho(d.id))}</tr>
               </thead>
               <tbody className="divide-y divide-linha">
                 {itens.map((c) => (
@@ -317,33 +382,11 @@ export function TodosChamados() {
                     aria-selected={verId === c.id}
                     className={`cursor-pointer align-top text-sm hover:bg-mar-50 ${verId === c.id ? "bg-mar-50 outline-2 -outline-offset-2 outline-acento" : ""}`}
                   >
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <span onClick={(e) => e.stopPropagation()}>
-                        <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className="font-display text-base font-bold hover:underline">
-                          {c.protocolo}
-                        </LinkChamado>
-                      </span>
-                      <span className="ml-1.5"><MarcaTeste ficticio={c.ficticio} /></span>
-                    </td>
-                    <td className="px-3 py-3"><EtiquetaPrioridade prioridade={c.prioridade} sempre /></td>
-                    <td className="px-3 py-3 whitespace-nowrap"><SeloStatus status={c.status} /></td>
-                    <td className="px-3 py-3">
-                      {/* o problema primeiro (como na Fila); a categoria embaixo, menor */}
-                      <span className="texto-livre line-clamp-2 font-semibold">{c.descricao}</span>
-                      <span className="mt-0.5 flex items-center gap-1.5 text-tinta-2">
-                        <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 shrink-0 text-acento" />
-                        {c.expand?.categoria?.nome}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="block font-semibold">{nomeSolicitante(c)}</span>
-                      <span className="block text-tinta-2">{c.expand?.setor?.nome ?? "—"}</span>
-                    </td>
-                    <td className="px-3 py-3"><Responsavel c={c} /></td>
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <span className="block">{dataCurta(c.created)}</span>
-                      <span className="block text-xs"><Tempo c={c} /></span>
-                    </td>
+                    {col.visiveis.map((d) => (
+                      <td key={d.id} data-col={d.id} className={`overflow-hidden px-3 ${col.densa ? "py-1.5" : "py-3"}`}>
+                        <div className="celula min-w-0">{celula(c, d.id)}</div>
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
