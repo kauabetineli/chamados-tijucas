@@ -1,4 +1,5 @@
 import { CheckCircle2, Paperclip, Video, X } from "lucide-react";
+import { Dica } from "./Dica";
 import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { arrastandoArquivo, type ControleAnexos } from "./Anexos";
 import { useMediaQuery } from "../lib/useMediaQuery";
@@ -10,7 +11,7 @@ import { useMediaQuery } from "../lib/useMediaQuery";
  * - RodapeEnviar: faixa do botão no fim do cartão que GRUDA embaixo da tela enquanto o fim não aparece.
  */
 
-export function Passo({ n, titulo, feito, children, id, extra }: {
+export function Passo({ n, titulo, feito, children, id, extra, dica }: {
   n: number;
   titulo: string;
   feito: boolean;
@@ -18,6 +19,8 @@ export function Passo({ n, titulo, feito, children, id, extra }: {
   id: string;
   /** algo pequeno à direita do título (ex.: "opcional") */
   extra?: ReactNode;
+  /** explicação curta no "i" ao lado do título */
+  dica?: ReactNode;
 }) {
   return (
     <section aria-labelledby={id} className="space-y-4">
@@ -25,7 +28,7 @@ export function Passo({ n, titulo, feito, children, id, extra }: {
         <span className={`grid size-8 shrink-0 place-items-center rounded-full text-sm ${feito ? "bg-campo-700 text-white" : "bg-mar-50 text-acento"}`}>
           {feito ? <CheckCircle2 className="size-5" aria-hidden="true" /> : n}
         </span>
-        <span className="flex-1">{titulo}</span>
+        <span className="flex flex-1 items-center gap-2">{titulo}{dica && <span className="font-sans text-base font-normal"><Dica rotulo={`Ajuda: ${titulo}`}>{dica}</Dica></span>}</span>
         {extra}
       </h2>
       <div className="md:pl-11">{children}</div>

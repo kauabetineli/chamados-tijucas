@@ -1,4 +1,5 @@
 import { Columns3, RotateCcw } from "lucide-react";
+import { Dica } from "./Dica";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as KE, type PointerEvent as PE } from "react";
 
 /**
@@ -145,7 +146,10 @@ export function MenuColunas({ col }: { col: Colunas }) {
       {aberto && (
         <div className="absolute right-0 z-30 mt-2 w-64 space-y-4 rounded-2xl bg-superficie p-4 shadow-xl ring-1 ring-linha">
           <fieldset>
-            <legend className="mb-1.5 text-xs font-bold tracking-wider text-tinta-2 uppercase">Mostrar</legend>
+            <legend className="mb-1.5 flex items-center gap-2 text-xs font-bold tracking-wider text-tinta-2 uppercase">
+              Mostrar
+              <Dica rotulo="Como ajustar as colunas">Arraste a borda do título de uma coluna para alargar. Duplo clique ajusta ao texto. Fica salvo neste navegador.</Dica>
+            </legend>
             {col.defs.filter((d) => !d.fixa).map((d) => (
               <label key={d.id} className="flex min-h-10 cursor-pointer items-center gap-2.5 text-sm font-semibold">
                 <input type="checkbox" className="size-5 accent-acento" checked={col.visivel(d.id)} onChange={() => col.alternar(d.id)} />
@@ -167,7 +171,6 @@ export function MenuColunas({ col }: { col: Colunas }) {
           <button type="button" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-acento" onClick={col.padrao}>
             <RotateCcw className="size-4" aria-hidden="true" /> Voltar ao padrão
           </button>
-          <p className="text-xs text-tinta-2">Arraste a borda do título de uma coluna para alargar. Duplo clique ajusta ao texto. Fica salvo neste navegador.</p>
         </div>
       )}
     </div>

@@ -55,7 +55,6 @@ export function MenuAtribuir({ chamado: c, tecnicos, eu, carga, aoFechar, aoAtri
       idTitulo="titulo-atribuir"
       largura="max-w-lg"
       titulo={`Quem fica com o ${c.protocolo}?`}
-      subtitulo={<p className="mt-0.5 text-sm text-tinta-2">Escolha e confirme. Duplo clique confirma direto.</p>}
       aoTentarFechar={() => {
         if (salvando) return;
         if (!mudou) return aoFechar();

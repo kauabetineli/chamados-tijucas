@@ -42,7 +42,6 @@ export function ConfiguracoesTI() {
     <div className="space-y-5">
       <CabecalhoPagina
         titulo="Configurações"
-        subtitulo="Como os chamados chegam, para quem vão e em que ordem são atendidos."
         abas={<AbasPagina rotulo="Configurações" itens={ABAS.map((a) => ({
           rotulo: <><a.I className="size-4" aria-hidden="true" /><span className="md:hidden">{a.curto}</span><span className="hidden md:inline">{a.rotulo}</span></>,
           ativo: aba === a.id,

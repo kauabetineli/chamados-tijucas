@@ -1,4 +1,5 @@
 import { AbasPagina, CabecalhoPagina } from "../../components/CabecalhoPagina";
+import { Dica, idDaDica, RotuloComDica } from "../../components/Dica";
 import {
   Ban, Building2, Check, Copy, KeyRound, Lock, Pencil, Phone, Plus, Printer, Search, ShieldCheck, UserPlus, Users,
 } from "lucide-react";
@@ -97,14 +98,15 @@ type DadosPessoa = {
   papel: "solicitante" | "tecnico"; admin: boolean; bloqueado: boolean;
 };
 
+/** Campo do formulário: a ajuda vai no "i" ao lado do rótulo (o campo usa aria-describedby={idDaDica(id)}). */
 function Campo({ id, rotulo, opcional, ajuda, children }: { id: string; rotulo: string; opcional?: boolean; ajuda?: ReactNode; children: ReactNode }) {
+  const texto = <>{rotulo} {opcional && <span className="font-normal text-tinta-2">(opcional)</span>}</>;
   return (
     <div>
-      <label htmlFor={id} className="rotulo">
-        {rotulo} {opcional && <span className="font-normal text-tinta-2">(opcional)</span>}
-      </label>
+      {ajuda
+        ? <RotuloComDica htmlFor={id} dica={ajuda} nome={rotulo}>{texto}</RotuloComDica>
+        : <label htmlFor={id} className="rotulo">{texto}</label>}
       {children}
-      {ajuda && <p className="ajuda">{ajuda}</p>}
     </div>
   );
 }
@@ -228,14 +230,15 @@ function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, ao
     <PainelRapido
       idTitulo="titulo-pessoa"
       largura="max-w-lg md:max-w-2xl"
-      titulo={editando ? pessoa.nome : "Nova pessoa"}
-      subtitulo={
-        <p className="mt-0.5 text-sm text-tinta-2">
-          {editando
-            ? <>Matrícula {pessoa.matricula || "—"}{pessoa.ficticio ? " · conta de teste" : ""}</>
-            : "A pessoa entra com a matrícula e uma senha provisória, e cria a própria senha no primeiro acesso."}
-        </p>
-      }
+      titulo={editando ? pessoa.nome : (
+        <span className="inline-flex items-center gap-2.5">
+          Nova pessoa
+          <Dica rotulo="Como a pessoa entra">A pessoa entra com a matrícula e uma senha provisória, e cria a própria senha no primeiro acesso.</Dica>
+        </span>
+      )}
+      subtitulo={editando ? (
+        <p className="mt-0.5 text-sm text-tinta-2">Matrícula {pessoa.matricula || "—"}{pessoa.ficticio ? " · conta de teste" : ""}</p>
+      ) : undefined}
       aoTentarFechar={() => {
         if (salvando) return;
         if (editando ? !mudados.length : !d.nome && !d.matricula) return aoFechar();
@@ -251,25 +254,22 @@ function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, ao
         </div>
         <Campo id="p-matricula" rotulo="Matrícula" ajuda="É o login. Só números, até 8 dígitos.">
           <input
-            id="p-matricula" required inputMode="numeric" maxLength={8} pattern="[0-9]{1,8}"
+            id="p-matricula" aria-describedby={idDaDica("p-matricula")} required inputMode="numeric" maxLength={8} pattern="[0-9]{1,8}"
             className="campo font-display text-lg tracking-wider" value={d.matricula}
             onChange={(e) => muda("matricula", e.target.value.replace(/\D/g, "").slice(0, 8))} autoComplete="off"
           />
         </Campo>
-        <Campo id="p-setor" rotulo="Setor" ajuda={d.papel === "solicitante" ? "Obrigatório para servidor: é o lugar dos chamados que a pessoa abrir." : undefined}>
+        <Campo id="p-setor" rotulo="Setor">
           <select id="p-setor" className="campo" value={d.setor} onChange={(e) => muda("setor", e.target.value)}>
             <option value="">{d.papel === "solicitante" ? "Escolha o setor" : "Sem setor"}</option>
             {opcoesSetor.map((s) => <option key={s.id} value={s.id}>{s.nome}{s.ativo ? "" : " (inativo)"}</option>)}
           </select>
         </Campo>
         <Campo id="p-email" rotulo="E-mail" opcional ajuda="Se tiver, a pessoa recebe os avisos do chamado por e-mail.">
-          <input id="p-email" type="email" className="campo" value={d.email} onChange={(e) => muda("email", e.target.value)} autoComplete="off" />
+          <input id="p-email" aria-describedby={idDaDica("p-email")} type="email" className="campo" value={d.email} onChange={(e) => muda("email", e.target.value)} autoComplete="off" />
         </Campo>
-        <Campo
-          id="p-ramal" rotulo="Ramal próprio" opcional
-          ajuda={setorEscolhido?.ramal ? `Em branco, usa o do setor: ${setorEscolhido.ramal}.` : "Só se for diferente do ramal do setor."}
-        >
-          <input id="p-ramal" inputMode="numeric" maxLength={20} className="campo" value={d.ramal} onChange={(e) => muda("ramal", e.target.value)} autoComplete="off" />
+        <Campo id="p-ramal" rotulo="Ramal, se for diferente do setor">
+          <input id="p-ramal" inputMode="numeric" maxLength={20} className="campo" placeholder={setorEscolhido?.ramal ? `Do setor: ${setorEscolhido.ramal}` : ""} value={d.ramal} onChange={(e) => muda("ramal", e.target.value)} autoComplete="off" />
         </Campo>
 
         <fieldset className="md:col-span-2">
@@ -289,11 +289,13 @@ function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, ao
             ))}
           </div>
           {d.papel === "tecnico" && (
-            <label className="mt-2 flex cursor-pointer items-start gap-3 rounded-xl p-3 ring-1 ring-linha hover:ring-acento">
-              <input type="checkbox" className="mt-1 size-5 accent-acento" checked={d.admin} disabled={souEu} onChange={(e) => muda("admin", e.target.checked)} />
+            <label className="mt-2 flex min-h-12 cursor-pointer items-center gap-3 rounded-xl px-3 ring-1 ring-linha hover:ring-acento">
+              <input type="checkbox" className="size-5 accent-acento" checked={d.admin} disabled={souEu} onChange={(e) => muda("admin", e.target.checked)} />
               <span>
-                <span className="flex items-center gap-1.5 font-semibold"><ShieldCheck className="size-4 text-acento" aria-hidden="true" /> Administrador do TI</span>
-                <span className="block text-sm text-tinta-2">Cria setores e contas, gera senhas e bloqueia acessos.</span>
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <ShieldCheck className="size-4 text-acento" aria-hidden="true" /> Administrador do TI
+                  <Dica rotulo="O que o administrador pode fazer">Cria setores e contas, gera senhas e bloqueia acessos.</Dica>
+                </span>
               </span>
             </label>
           )}
@@ -390,7 +392,7 @@ function JanelaSetor({ setor, aoFechar, aoSalvo }: { setor?: SetorTI; aoFechar: 
         </Campo>
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo id="s-ramal" rotulo="Ramal" opcional ajuda="Vale para todas as pessoas do setor.">
-            <input id="s-ramal" inputMode="numeric" maxLength={20} className="campo font-display text-lg" value={d.ramal} onChange={(e) => muda("ramal", e.target.value)} />
+            <input id="s-ramal" aria-describedby={idDaDica("s-ramal")} inputMode="numeric" maxLength={20} className="campo font-display text-lg" value={d.ramal} onChange={(e) => muda("ramal", e.target.value)} />
           </Campo>
           <Campo id="s-predio" rotulo="Prédio" opcional>
             <input id="s-predio" className="campo" value={d.predio} onChange={(e) => muda("predio", e.target.value)} placeholder="Ex.: Paço Municipal" />
@@ -649,9 +651,7 @@ export function Usuarios() {
     <div className="space-y-5">
       <CabecalhoPagina
         titulo="Pessoas e setores"
-        subtitulo={admin
-          ? "Crie setores e contas. Cada pessoa entra com a matrícula e uma senha provisória."
-          : "Consulta. Só o administrador do TI cria e edita contas e setores."}
+        subtitulo={admin ? undefined : "Consulta. Só o administrador do TI cria e edita contas e setores."}
         abas={<AbasPagina rotulo="O que ver" itens={[
           { rotulo: "Pessoas", ativo: aba === "pessoas", aoClicar: () => irPara("pessoas"), numero: setores ? totalPessoas : undefined },
           { rotulo: "Setores", ativo: aba === "setores", aoClicar: () => irPara("setores"), numero: setores?.filter((s) => s.ativo).length },

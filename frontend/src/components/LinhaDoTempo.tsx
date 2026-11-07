@@ -1,6 +1,7 @@
 import { EsqueletoConversa } from "./Esqueleto";
 import { Hourglass, ImagePlus, Lock, Send, X } from "lucide-react";
 import { Avatar } from "./Avatar";
+import { useMediaQuery } from "../lib/useMediaQuery";
 import { Fragment, useCallback, useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
@@ -69,6 +70,8 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
   const [soMensagens, setSoMensagens] = useState(false);
+  // no computador o campo lembra que dá para colar um print (no celular não há Ctrl+V)
+  const noPc = useMediaQuery("(min-width: 768px)");
 
   const carregar = useCallback(async () => {
     const lista = await pb.collection("interacoes").getFullList<Interacao>({
@@ -277,7 +280,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
           <textarea
             id="mensagem"
             className={`campo min-h-24 ${interno ? "bg-sol-50" : ""}`}
-            placeholder={!tecnico ? "Escreva para o TI" : interno ? "Só o TI vai ler" : `Escreva para ${solicitanteNome ? primeiroNome(solicitanteNome) : "quem pediu"}`}
+            placeholder={`${!tecnico ? "Escreva para o TI" : interno ? "Só o TI vai ler" : `Escreva para ${solicitanteNome ? primeiroNome(solicitanteNome) : "quem pediu"}`}${noPc ? " · print: Ctrl+V" : ""}`}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             // print colado (Ctrl+V) vai como imagem da mensagem
@@ -322,7 +325,6 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
             </button>
           </div>
         </div>
-        <p className="hidden text-sm text-tinta-2 md:block">Dica: cole um print com Ctrl+V ou arraste uma imagem para cá.</p>
         {erro && <p className="text-sm font-semibold text-alerta">{erro}</p>}
       </form>
 

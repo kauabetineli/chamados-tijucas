@@ -1,4 +1,5 @@
 import { ArrowLeft, Building2, CheckCircle2, Circle, KeyRound, LogOut, Mail, Monitor, Moon, Phone, Sun } from "lucide-react";
+import { Dica } from "../components/Dica";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router";
 import { irParaProximo } from "../lib/jeitoDeApp";
@@ -190,7 +191,10 @@ function TamanhoDoTexto() {
   ];
   return (
     <section aria-labelledby="t-texto" className="space-y-2">
-      <h3 id="t-texto" className="font-bold">Tamanho do texto</h3>
+      <h3 id="t-texto" className="flex items-center gap-2 font-bold">
+        Tamanho do texto
+        <Dica rotulo="Ajuda sobre tamanho do texto">Deixa a tela inteira maior ou menor. Vale só neste aparelho.</Dica>
+      </h3>
       <div role="radiogroup" aria-labelledby="t-texto" className="grid grid-cols-3 gap-1 rounded-xl bg-fundo p-1">
         {opcoes.map((o) => (
           <label
@@ -205,7 +209,6 @@ function TamanhoDoTexto() {
           </label>
         ))}
       </div>
-      <p className="text-sm text-tinta-2">Deixa a tela inteira maior ou menor. Vale só neste aparelho.</p>
     </section>
   );
 }

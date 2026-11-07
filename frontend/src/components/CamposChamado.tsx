@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ROTULO_IMPACTO } from "../lib/formato";
 import { emCache } from "../lib/cache";
 import { pb, type Categoria, type Impacto } from "../lib/pb";
+import { Dica } from "./Dica";
 import { IconeCategoria } from "./Icone";
 
 export function useCategorias() {
@@ -60,9 +61,14 @@ const DETALHE_IMPACTO: Record<Impacto, string> = {
 export function EscolhaImpacto({
   valor, onChange, aoTocar, titulo = "Quem está sendo afetado?", grande, lado,
 }: PropsEscolha<Impacto> & { lado?: boolean }) {
+  const dica = (
+    <Dica rotulo="Quando é urgente">
+      Atendimento ao público parado entra como urgente e passa na frente da fila. Use só quando a população está esperando.
+    </Dica>
+  );
   return (
     <fieldset>
-      <legend className={grande ? CLASSE_TITULO_GRANDE : "rotulo text-lg"}>{titulo}</legend>
+      <legend className={`${grande ? CLASSE_TITULO_GRANDE : "rotulo text-lg"} flex items-center gap-2`}>{titulo} {dica}</legend>
       {/* lado: as 3 opções lado a lado (tela dividida do computador), para economizar altura */}
       <div className={lado ? "grid gap-2 xl:grid-cols-3" : "space-y-2"}>
         {(Object.keys(ROTULO_IMPACTO) as Impacto[]).map((k) => (

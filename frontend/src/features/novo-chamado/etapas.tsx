@@ -134,15 +134,9 @@ function EtapaDescricao({ f, modo, avancar }: PropsEtapa) {
             </div>
           )}
         </div>
-        {painel && (
-          <p className="ajuda">
-            Dica: tirou um print da tela? Cole aqui com <kbd className="rounded border border-linha bg-superficie px-1.5 font-sans text-xs font-semibold">Ctrl</kbd> + <kbd className="rounded border border-linha bg-superficie px-1.5 font-sans text-xs font-semibold">V</kbd> que ele vira anexo.
-          </p>
-        )}
       </div>
       <div>
-        <p className="rotulo">Foto ou vídeo <span className="font-normal text-tinta-2">(opcional)</span></p>
-        <p className={`ajuda mt-0 mb-3 ${painel ? "hidden" : ""}`}>Uma foto da tela ou da mensagem de erro ajuda o TI a chegar com a solução.</p>
+        <p className="rotulo">Foto ou vídeo <span className="font-normal text-tinta-2">(opcional, ajuda o TI a resolver mais rápido)</span></p>
         <SeletorAnexos
           arquivos={f.arquivos}
           onChange={f.setArquivos}

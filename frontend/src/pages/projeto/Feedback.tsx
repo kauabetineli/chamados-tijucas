@@ -73,7 +73,6 @@ export function Feedback() {
       <CabecalhoPagina
         className="mb-6"
         titulo="Feedback do sistema"
-        subtitulo="Problemas, ideias e elogios enviados pelo botão “Sua opinião”."
         acoes={<button type="button" className="btn-secundario" onClick={baixar} disabled={!lista?.length}><Download className="size-5" aria-hidden="true" /> Baixar planilha</button>}
         abas={
           <AbasPagina rotulo="Filtrar por tipo" itens={[

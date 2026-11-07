@@ -1,5 +1,6 @@
 import { Info } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * O "i" de ajuda: em vez de um texto explicativo fixo embaixo do campo, um ícone discreto que abre um balão curto.
@@ -19,40 +20,51 @@ export function Dica({ children, rotulo = "Ajuda", id, texto }: {
   texto?: string;
 }) {
   const [aberta, setAberta] = useState(false);
-  const [lado, setLado] = useState<"esquerda" | "direita" | "centro">("esquerda");
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const caixa = useRef<HTMLSpanElement>(null);
   const balao = useRef<HTMLSpanElement>(null);
-  const [desvio, setDesvio] = useState(0); // empurra o balão para dentro da tela
   const passou = useRef(false); // abriu pelo mouse: o clique seguinte não fecha
   const gerado = useId();
   const idBalao = id ?? `dica-${gerado}`;
 
-  useEffect(() => {
-    if (!aberta) return;
-    // o balão cresce para o lado em que há espaço
+  // O balão fica no fim da página (portal), por cima de tudo: assim nenhuma caixa com overflow-hidden o corta
+  // (tabelas, cartões, a lista da Fila). A posição vem do "i": embaixo dele (ou em cima, se não couber),
+  // sempre com 16 px de margem da borda da tela.
+  const posicionar = useCallback(() => {
     const r = caixa.current?.getBoundingClientRect();
-    if (r) {
-      const meio = (r.left + r.right) / 2 / window.innerWidth;
-      setLado(meio > 0.35 && meio < 0.65 ? "centro" : meio >= 0.65 ? "direita" : "esquerda");
-    }
-    // depois de desenhar: se ainda passar da borda, empurra para dentro (16 px de margem)
-    const quadro = requestAnimationFrame(() => {
-      const b = balao.current?.getBoundingClientRect();
-      if (!b) return;
-      const margem = 16;
-      setDesvio(b.right > window.innerWidth - margem ? window.innerWidth - margem - b.right : b.left < margem ? margem - b.left : 0);
-    });
-    const fora = (e: PointerEvent) => { if (!caixa.current?.contains(e.target as Node)) setAberta(false); };
+    const b = balao.current;
+    if (!r || !b) return;
+    const margem = 16;
+    const w = b.offsetWidth;
+    const h = b.offsetHeight;
+    const meio = (r.left + r.right) / 2;
+    const fracao = meio / window.innerWidth;
+    let left = fracao > 0.35 && fracao < 0.65 ? meio - w / 2 : fracao >= 0.65 ? r.right + 8 - w : r.left - 8;
+    left = Math.max(margem, Math.min(left, window.innerWidth - margem - w));
+    let top = r.bottom + 6;
+    if (top + h > window.innerHeight - 8 && r.top - 6 - h > 8) top = r.top - 6 - h;
+    setPos({ top, left });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!aberta) { setPos(null); return; }
+    posicionar();
+    const fora = (e: PointerEvent) => {
+      const alvo = e.target as Node;
+      if (!caixa.current?.contains(alvo) && !balao.current?.contains(alvo)) setAberta(false);
+    };
     const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") setAberta(false); };
     document.addEventListener("pointerdown", fora);
     document.addEventListener("keydown", tecla);
+    window.addEventListener("scroll", posicionar, true);
+    window.addEventListener("resize", posicionar);
     return () => {
-      cancelAnimationFrame(quadro);
-      setDesvio(0);
       document.removeEventListener("pointerdown", fora);
       document.removeEventListener("keydown", tecla);
+      window.removeEventListener("scroll", posicionar, true);
+      window.removeEventListener("resize", posicionar);
     };
-  }, [aberta, lado]);
+  }, [aberta, posicionar]);
 
   return (
     <span
@@ -66,7 +78,7 @@ export function Dica({ children, rotulo = "Ajuda", id, texto }: {
         aria-label={texto ? undefined : rotulo}
         aria-expanded={aberta}
         aria-controls={idBalao}
-        onClick={() => { if (passou.current) { passou.current = false; setAberta(true); } else setAberta(!aberta); }}
+        onClick={(e) => { e.stopPropagation(); if (passou.current) { passou.current = false; setAberta(true); } else setAberta(!aberta); }}
         className={texto
           ? "min-h-11 px-1 text-sm font-semibold text-acento underline-offset-4 hover:underline"
           : "-m-2.5 grid size-10 place-items-center rounded-full text-tinta-2 hover:text-acento focus-visible:text-acento"}
@@ -74,18 +86,19 @@ export function Dica({ children, rotulo = "Ajuda", id, texto }: {
         {texto ?? <Info className="size-4" aria-hidden="true" />}
       </button>
       {/* sempre no DOM (escondido) para o aria-describedby funcionar */}
-      <span
-        ref={balao}
-        id={idBalao}
-        role="tooltip"
-        style={desvio ? { translate: `${desvio}px 0` } : undefined}
-        hidden={!aberta}
-        className={`absolute top-full z-40 mt-1 w-max max-w-[min(18rem,calc(100vw-2rem))] rounded-xl bg-noite px-3.5 py-2.5 text-left text-sm leading-snug font-normal text-white shadow-lg ring-1 ring-white/10 ${
-          lado === "direita" ? "-right-2" : lado === "centro" ? "left-1/2 -translate-x-1/2" : "-left-2"
-        }`}
-      >
-        {children}
-      </span>
+      {createPortal(
+        <span
+          ref={balao}
+          id={idBalao}
+          role="tooltip"
+          hidden={!aberta}
+          style={{ top: pos?.top ?? 0, left: pos?.left ?? 0, visibility: pos ? "visible" : "hidden" }}
+          className="fixed z-[120] block w-max max-w-[min(18rem,calc(100vw-2rem))] rounded-xl bg-noite px-3.5 py-2.5 text-left text-sm leading-snug font-normal tracking-normal text-white normal-case shadow-lg ring-1 ring-white/10"
+        >
+          {children}
+        </span>,
+        document.body,
+      )}
     </span>
   );
 }
@@ -94,11 +107,15 @@ export function Dica({ children, rotulo = "Ajuda", id, texto }: {
 export const idDaDica = (campo: string) => `dica-${campo}`;
 
 /** Rótulo do campo com o "i" ao lado. */
-export function RotuloComDica({ htmlFor, dica, children, className = "rotulo" }: { htmlFor: string; dica: ReactNode; children: ReactNode; className?: string }) {
+export function RotuloComDica({ htmlFor, dica, children, className = "rotulo", nome }: {
+  htmlFor: string; dica: ReactNode; children: ReactNode; className?: string;
+  /** nome do campo para o leitor de tela ("Ajuda sobre <nome>"), quando o rótulo não é só texto */
+  nome?: string;
+}) {
   return (
     <span className={`flex items-center gap-1.5 ${className}`}>
       <label htmlFor={htmlFor}>{children}</label>
-      <Dica id={idDaDica(htmlFor)} rotulo={`Ajuda sobre ${typeof children === "string" ? children.toLowerCase() : "este campo"}`}>{dica}</Dica>
+      <Dica id={idDaDica(htmlFor)} rotulo={`Ajuda sobre ${(nome ?? (typeof children === "string" ? children : "este campo")).toLowerCase()}`}>{dica}</Dica>
     </span>
   );
 }

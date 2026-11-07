@@ -1,4 +1,5 @@
 import { AbasPagina, CabecalhoPagina } from "../../components/CabecalhoPagina";
+import { Dica } from "../../components/Dica";
 import { Download, QrCode, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
 import { useEffect, useState } from "react";
@@ -41,7 +42,6 @@ export function Painel() {
     <div className="space-y-6">
       <CabecalhoPagina
         titulo="Painel"
-        subtitulo="Quanto chegou, quanto foi resolvido e quanto tempo levou."
         abas={<AbasPagina rotulo="Quais números" itens={[
           { rotulo: "Equipe", ativo: aba === "equipe", aoClicar: () => irPara("equipe") },
           { rotulo: "Meus números", ativo: aba === "meus", aoClicar: () => irPara("meus") },
@@ -118,8 +118,8 @@ function PainelEquipe() {
           <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-linha ring-1 ring-linha lg:grid-cols-4">
             <Numero termo={`Chamados nos últimos ${r.dias} dias`} valor={String(r.total)} />
             <Numero termo="Resolvidos no período" valor={String(r.resolvidos)} />
-            <Numero termo="Tempo médio até começar" valor={r.resolvidos ? duracaoHoras(r.horas_media_inicio) : "—"} />
-            <Numero termo="Tempo médio até resolver" valor={r.resolvidos ? duracaoHoras(r.horas_media_resolucao) : "—"} />
+            <Numero termo="Tempo médio até começar" dica="Da abertura até alguém começar a atender. Conta os chamados resolvidos do período." valor={r.resolvidos ? duracaoHoras(r.horas_media_inicio) : "—"} />
+            <Numero termo="Tempo médio até resolver" dica="Da abertura até ficar resolvido, com o tempo em espera junto. Conta os chamados resolvidos do período." valor={r.resolvidos ? duracaoHoras(r.horas_media_resolucao) : "—"} />
           </dl>
           <p className="text-tinta-2">
             Agora: <strong className="text-tinta">{r.agora.aberto}</strong> na fila,{" "}
@@ -132,18 +132,22 @@ function PainelEquipe() {
             <h2 id="t-piloto" className="text-xl font-bold">Piloto</h2>
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
-                <p className="text-sm text-tinta-2">Abertos pelo próprio servidor no sistema</p>
+                <p className="flex items-center gap-2 text-sm text-tinta-2">
+                  Abertos pelo próprio servidor
+                  <Dica rotulo="O que conta aqui">
+                    O resto o TI registrou ao receber por WhatsApp, ligação ou no corredor. Para a meta do piloto, compare o total do período ({r.total}) com a contagem manual da equipe.
+                  </Dica>
+                </p>
                 <p className="mt-1 font-display text-4xl font-extrabold">{r.total ? `${pctSistema}%` : "—"}</p>
                 <div className="mt-3 h-3 overflow-hidden rounded-full bg-linha" aria-hidden="true">
                   <div className="h-full rounded-full bg-campo" style={{ width: `${pctSistema}%` }} />
                 </div>
-                <p className="mt-2 text-sm text-tinta-2">
-                  O resto o TI registrou ao receber por WhatsApp, ligação ou no corredor. Para a meta do piloto,
-                  compare o total do período ({r.total}) com a contagem manual da equipe.
-                </p>
               </div>
               <div className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
-                <p className="text-sm text-tinta-2">Satisfação de quem pediu</p>
+                <p className="flex items-center gap-2 text-sm text-tinta-2">
+                  Satisfação de quem pediu
+                  <Dica rotulo="Como é a satisfação">De quem confirmou que deu certo e avaliou o atendimento como bom ou “poderia ser melhor”.</Dica>
+                </p>
                 <p className="mt-1 font-display text-4xl font-extrabold">{avaliados ? `${pctBom}%` : "—"}</p>
                 <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                   <span className="inline-flex items-center gap-1.5"><ThumbsUp className="size-4 text-ok" aria-hidden="true" /><b>{r.avaliacao.bom}</b> bom</span>
@@ -175,10 +179,10 @@ function PainelEquipe() {
   );
 }
 
-function Numero({ termo, valor }: { termo: string; valor: string }) {
+function Numero({ termo, valor, dica }: { termo: string; valor: string; dica?: string }) {
   return (
     <div className="bg-superficie p-5">
-      <dt className="text-sm text-tinta-2">{termo}</dt>
+      <dt className="flex items-center gap-2 text-sm text-tinta-2">{termo}{dica && <Dica rotulo={`Como é calculado: ${termo.toLowerCase()}`}>{dica}</Dica>}</dt>
       <dd className="mt-1 font-display text-4xl font-extrabold">{valor}</dd>
     </div>
   );

@@ -341,24 +341,23 @@ export function MeusChamados() {
       )}
     </div>
 
-    {/* PC largo: coluna da direita com avisos e como funciona */}
+    {/* PC largo: coluna da direita com os avisos (e o "Como funciona" no começo) */}
     <aside className="hidden space-y-5 lg:sticky lg:top-24 lg:block" aria-label="Informações">
       <MuralAvisos />
-      <section aria-labelledby="t-como" className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
-        <h2 id="t-como" className="font-bold">Como funciona</h2>
-        <ol className="mt-3 space-y-3 text-sm">
-          {["Você abre o chamado e recebe a sua posição na fila.", "O TI atende na ordem da fila; o que é urgente passa na frente.", "A conversa acontece aqui, sem precisar mandar WhatsApp."].map((t, i) => (
-            <li key={t} className="flex gap-3">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-mar-50 text-xs font-bold text-acento">{i + 1}</span>
-              <span>{t}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-      <section aria-labelledby="t-parou" className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
-        <h2 id="t-parou" className="font-bold">Parou o atendimento ao público?</h2>
-        <p className="mt-1 text-sm text-tinta-2">Abra o chamado e, em “Quem é afetado”, escolha <b className="text-tinta">O atendimento ao público parou</b>. Ele entra como urgente.</p>
-      </section>
+      {/* "Como funciona" só no começo (até o primeiro chamado); sem nenhum, a tela vazia já explica */}
+      {chamados.length + totalHistorico <= 1 && (
+        <section aria-labelledby="t-como" className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
+          <h2 id="t-como" className="font-bold">Como funciona</h2>
+          <ol className="mt-3 space-y-3 text-sm">
+            {["Você abre o chamado e recebe a sua posição na fila.", "O TI atende na ordem da fila; o que é urgente passa na frente.", "A conversa acontece aqui, sem precisar mandar WhatsApp."].map((t, i) => (
+              <li key={t} className="flex gap-3">
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-mar-50 text-xs font-bold text-acento">{i + 1}</span>
+                <span>{t}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </aside>
     </div>
   );

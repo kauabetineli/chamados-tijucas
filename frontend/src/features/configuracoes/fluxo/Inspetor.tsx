@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowRight, Copy, Trash2, TriangleAlert, X } from "lucide-react";
+import { Dica } from "../../../components/Dica";
 import { useState, type ReactNode } from "react";
 import { textoMinutos } from "../../../lib/configTI";
 import {
@@ -118,7 +119,10 @@ export function Inspetor({ fluxo, no, listas, respostas, problemas, posicao, mud
         </Campo_>
       )}
       <div className="space-y-1">
-        <p className="text-sm font-bold">Ordem na lista: {posicao.i + 1} de {posicao.total}</p>
+        <p className="flex items-center gap-2 text-sm font-bold">
+          Ordem na lista: {posicao.i + 1} de {posicao.total}
+          <Dica rotulo="Para que serve a ordem">Fluxos com o mesmo gatilho rodam nessa ordem. Se dois escolherem pessoas diferentes, vale o que vem antes.</Dica>
+        </p>
         <div className="flex gap-2">
           <button type="button" className="btn-secundario min-h-11 px-3" disabled={posicao.i === 0} onClick={() => aoMoverFluxo(-1)}>
             <ArrowLeft className="size-4" aria-hidden="true" /> Antes
@@ -127,7 +131,6 @@ export function Inspetor({ fluxo, no, listas, respostas, problemas, posicao, mud
             Depois <ArrowRight className="size-4" aria-hidden="true" />
           </button>
         </div>
-        <p className="text-sm text-tinta-2">Fluxos com o mesmo gatilho rodam nessa ordem. Se dois escolherem pessoas diferentes, vale o que vem antes.</p>
       </div>
       <details className="rounded-xl bg-fundo p-3 text-sm">
         <summary className="cursor-pointer font-bold">Como montar</summary>

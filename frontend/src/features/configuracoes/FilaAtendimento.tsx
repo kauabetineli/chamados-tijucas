@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Dica } from "../../components/Dica";
 import { EsqueletoLinhas } from "../../components/Esqueleto";
 import { BarraSalvar } from "./BarraSalvar";
 import { EtiquetaPrioridade } from "../../components/Selos";
@@ -12,9 +13,9 @@ import { mensagemErro, pb, type Chamado, type Prioridade } from "../../lib/pb";
 const PESO: Record<Prioridade, number> = { baixa: 1, normal: 2, alta: 3, urgente: 4 };
 const ROT_PRIO: Record<Prioridade, string> = { baixa: "Baixa", normal: "Normal", alta: "Alta", urgente: "Urgente" };
 const MODOS: { k: ConfigTI["ordem_fila"]; ajuda: string; rec?: boolean }[] = [
-  { k: "prazo", rec: true, ajuda: "Quem vence antes vem antes. Um urgente passa na frente, mas um normal antigo não fica esquecido." },
-  { k: "prioridade", ajuda: "Urgentes primeiro, depois Alta, Normal e Baixa. Dentro de cada uma, por ordem de chegada." },
-  { k: "chegada", ajuda: "Exatamente na ordem em que os chamados chegaram. A prioridade só aparece como etiqueta." },
+  { k: "prazo", rec: true, ajuda: "Quem vence antes vem antes." },
+  { k: "prioridade", ajuda: "Urgentes primeiro, depois por chegada." },
+  { k: "chegada", ajuda: "Na ordem em que chegaram." },
 ];
 
 /** Prévia da ordem (aproximada: não conta o horário de atendimento). */
@@ -111,7 +112,11 @@ export function FilaAtendimento() {
           </Secao>
 
           <Secao titulo="Prazo para começar o atendimento"
-            ajuda="Passou do prazo, o chamado aparece como atrasado na Fila. No modo “Pelo prazo”, também define a ordem. Uma regra da automação pode dar outro prazo a um caso específico.">
+            ajuda={<>
+              Passou do prazo, o chamado aparece como atrasado na Fila. No modo “Pelo prazo”, também define a ordem.
+              Uma regra da automação pode dar outro prazo a um caso específico.
+              {cfg.horario.ativo && <> Os prazos só contam dentro do horário de atendimento ({textoHorario(cfg)}).</>}
+            </>}>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
               {(["urgente", "alta", "normal", "baixa"] as Prioridade[]).map((p) => (
                 <label key={p} className="flex flex-col gap-1 font-semibold">
@@ -122,15 +127,16 @@ export function FilaAtendimento() {
                 </label>
               ))}
             </div>
-            {cfg.horario.ativo && <p className="text-sm text-tinta-2">Os prazos só contam dentro do horário de atendimento ({textoHorario(cfg)}).</p>}
           </Secao>
 
           <section className="space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha md:p-5">
             <label className="flex cursor-pointer items-start gap-3">
               <input type="checkbox" role="switch" className="mt-1 size-5 accent-acento" checked={cfg.servidor_prioridade} onChange={() => set({ servidor_prioridade: !cfg.servidor_prioridade })} />
               <span>
-                <span className="block font-display text-lg font-extrabold">Quem abre o chamado pode aumentar a prioridade</span>
-                <span className="text-tinta-2">O “Isso está atrapalhando quem?” continua sugerindo. Logo abaixo, a pessoa pode subir a prioridade, por exemplo para Urgente mesmo quando só ela foi afetada.</span>
+                <span className="flex items-center gap-2 font-display text-lg font-extrabold">
+                  Quem abre o chamado pode aumentar a prioridade
+                  <span className="font-sans text-base font-normal"><Dica rotulo="Como funciona">O “Isso está atrapalhando quem?” continua sugerindo. Logo abaixo, a pessoa pode subir a prioridade, por exemplo para Urgente mesmo quando só ela foi afetada.</Dica></span>
+                </span>
               </span>
             </label>
             {cfg.servidor_prioridade && (
@@ -162,8 +168,10 @@ export function FilaAtendimento() {
             <label className="flex cursor-pointer items-start gap-3">
               <input type="checkbox" role="switch" className="mt-1 size-5 accent-acento" checked={cfg.horario.ativo} onChange={() => set({ horario: { ...cfg.horario, ativo: !cfg.horario.ativo } })} />
               <span>
-                <span className="block font-display text-lg font-extrabold">Horário de atendimento do TI</span>
-                <span className="text-tinta-2">Fora desse horário o chamado é aceito normalmente, e quem abriu fica sabendo quando o TI volta. O prazo só conta dentro do horário.</span>
+                <span className="flex items-center gap-2 font-display text-lg font-extrabold">
+                  Horário de atendimento do TI
+                  <span className="font-sans text-base font-normal"><Dica rotulo="O que muda fora do horário">Fora desse horário o chamado é aceito normalmente, e quem abriu fica sabendo quando o TI volta. O prazo só conta dentro do horário.</Dica></span>
+                </span>
               </span>
             </label>
             {cfg.horario.ativo && (
@@ -229,13 +237,13 @@ export function FilaAtendimento() {
   );
 }
 
-function Secao({ titulo, ajuda, children }: { titulo: string; ajuda: string; children: ReactNode }) {
+function Secao({ titulo, ajuda, children }: { titulo: string; ajuda: ReactNode; children: ReactNode }) {
   return (
     <section className="space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha md:p-5">
-      <div>
-        <h2 className="font-display text-lg font-extrabold">{titulo}</h2>
-        <p className="text-tinta-2">{ajuda}</p>
-      </div>
+      <h2 className="flex items-center gap-2 font-display text-lg font-extrabold">
+        {titulo}
+        <span className="font-sans text-base font-normal"><Dica rotulo={`Ajuda: ${titulo.toLowerCase()}`}>{ajuda}</Dica></span>
+      </h2>
       {children}
     </section>
   );

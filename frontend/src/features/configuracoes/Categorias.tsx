@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, GripVertical, Lock, Plus, Search, Trash2, TriangleAlert, X } from "lucide-react";
+import { Dica } from "../../components/Dica";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EsqueletoLinhas } from "../../components/Esqueleto";
 import { BarraSalvar } from "./BarraSalvar";
@@ -128,10 +129,10 @@ export function Categorias() {
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
         {/* lista */}
         <section className="space-y-3 lg:w-80 lg:shrink-0" aria-labelledby="titulo-lista-cat">
-          <div>
-            <h2 id="titulo-lista-cat" className="font-display text-xl font-extrabold">Categorias</h2>
-            <p className="mt-1 text-sm text-tinta-2">A ordem aqui é a ordem em que aparecem para quem abre o chamado.</p>
-          </div>
+          <h2 id="titulo-lista-cat" className="flex items-center gap-2 font-display text-xl font-extrabold">
+            Categorias
+            <span className="font-sans text-base font-normal"><Dica rotulo="Ordem das categorias">A ordem aqui é a ordem em que aparecem para quem abre o chamado. Arraste para mudar.</Dica></span>
+          </h2>
           <ul className="space-y-1.5">
             {lista.map((c, i) => (
               <li key={c.id} draggable
@@ -236,8 +237,10 @@ function EdicaoCategoria({ c, uso, erro, mudar, descartarNova }: {
       </div>
 
       <div className="space-y-2">
-        <h3 className="font-bold">O que pode ter acontecido <span className="font-normal text-tinta-2">({c.sugestoes.length} de {MAX_SUG})</span></h3>
-        <p className="text-sm text-tinta-2">Aparecem como botões no passo “Conte o que está acontecendo”. Um toque já começa a descrição. Até {MAX_SUG}, para caber na tela do celular.</p>
+        <h3 className="flex items-center gap-2 font-bold">
+          O que pode ter acontecido <span className="font-normal text-tinta-2">({c.sugestoes.length} de {MAX_SUG})</span>
+          <Dica rotulo="Onde aparecem as sugestões">Aparecem como botões no passo “Conte o que está acontecendo”. Um toque já começa a descrição. Até {MAX_SUG}, para caber na tela do celular.</Dica>
+        </h3>
         <div className="flex flex-wrap items-center gap-2">
           {c.sugestoes.map((s) => (
             <span key={s} className="inline-flex min-h-10 items-center rounded-full bg-mar-50 pl-3.5 font-semibold ring-1 ring-acento/30">
@@ -261,8 +264,10 @@ function EdicaoCategoria({ c, uso, erro, mudar, descartarNova }: {
       </div>
 
       <div className="space-y-2">
-        <h3 className="font-bold">Perguntas que ajudam o TI</h3>
-        <p className="text-sm text-tinta-2">Aparecem ao lado da descrição, no computador. Um toque coloca a pergunta no texto para a pessoa responder.</p>
+        <h3 className="flex items-center gap-2 font-bold">
+          Perguntas que ajudam o TI
+          <Dica rotulo="Onde aparecem as perguntas">Aparecem ao lado da descrição, no computador. Um toque coloca a pergunta no texto para a pessoa responder.</Dica>
+        </h3>
         <ul className="space-y-2">
           {c.dicas.map((d, i) => (
             <li key={i} className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import { CabecalhoPagina } from "../../components/CabecalhoPagina";
+import { Dica, idDaDica, RotuloComDica } from "../../components/Dica";
 import { Printer } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
@@ -36,12 +37,11 @@ export function QrCodes() {
   return (
     <div className="space-y-6">
       <div className="space-y-5 print:hidden">
-        <CabecalhoPagina titulo="QR code para abrir chamado" subtitulo="Imprima e cole perto dos computadores e impressoras. Quem escanear cai direto no formulário de novo chamado." />
+        <CabecalhoPagina titulo={<span className="inline-flex items-center gap-3">QR code para abrir chamado <Dica rotulo="Para que serve">Imprima e cole perto dos computadores e impressoras. Quem escanear cai direto no formulário de novo chamado.</Dica></span>} />
         <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_12rem]">
           <div>
-            <label htmlFor="base" className="rotulo">Endereço que o QR abre</label>
-            <input id="base" className="campo" value={base} onChange={(e) => setBase(e.target.value.trim())} />
-            <p className="ajuda">Use o endereço da página de redirecionamento no site da Prefeitura, se ela já existir, com <code>?novo=1</code> no fim (abre direto o formulário).</p>
+            <RotuloComDica htmlFor="base" dica={<>Use o endereço da página de redirecionamento no site da Prefeitura, se ela já existir, com <code>?novo=1</code> no fim (abre direto o formulário).</>}>Endereço que o QR abre</RotuloComDica>
+            <input id="base" aria-describedby={idDaDica("base")} className="campo" value={base} onChange={(e) => setBase(e.target.value.trim())} />
           </div>
           <div>
             <label htmlFor="qtd" className="rotulo">Etiquetas</label>

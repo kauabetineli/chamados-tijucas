@@ -1,4 +1,5 @@
 import { AlertTriangle, Info, Megaphone, PenLine, Plus, Users, X } from "lucide-react";
+import { Dica } from "./Dica";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "../lib/auth";
 import { avisar } from "../lib/avisos";
@@ -104,8 +105,12 @@ export function NovoAviso({ aoFechar }: { aoFechar: () => void }) {
     <PainelRapido
       idTitulo="titulo-novo-aviso"
       largura="max-w-lg"
-      titulo="Avisar todos"
-      subtitulo={<p className="mt-0.5 text-sm text-tinta-2">Aparece para todos, inclusive em Novo chamado. Evita vários chamados do mesmo problema.</p>}
+      titulo={
+        <span className="inline-flex items-center gap-2.5">
+          Avisar todos
+          <Dica rotulo="Onde o aviso aparece">Aparece para todos, inclusive em Novo chamado. Evita vários chamados do mesmo problema.</Dica>
+        </span>
+      }
       aoTentarFechar={aoFechar}
       rodape={
         <>
@@ -228,7 +233,6 @@ export function LinhaAvisos({ compacto }: { compacto?: boolean }) {
         >
           <Megaphone className="size-5 shrink-0" aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate">Avisar todos</span>
-          {!avisos.length && <span className="text-xs font-normal">nenhum no ar</span>}
           {!!avisos.length && <Plus className="size-4 shrink-0" aria-hidden="true" />}
         </button>
       )}
@@ -353,7 +357,7 @@ export function MuralAvisos({ enxuto, className = "" }: { enxuto?: boolean; clas
         )}
       </div>
       {avisos === null ? null : avisos.length === 0 ? (
-        <p className="text-xs text-tinta-2">Nenhum aviso agora. Algo fora do ar? Avise todos por aqui.</p>
+        <p className="text-xs text-tinta-2">Nenhum aviso no ar.</p>
       ) : (
         <ul className="space-y-2">{avisos.map((a) => <CartaoAviso key={a.id} a={a} podeEncerrar={tecnico} />)}</ul>
       )}

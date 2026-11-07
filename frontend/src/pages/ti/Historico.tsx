@@ -85,7 +85,7 @@ export function Historico() {
 
   return (
     <div className="max-w-3xl space-y-5">
-      <CabecalhoPagina titulo="Soluções" subtitulo="Antes de atender, veja como o TI já resolveu problemas parecidos." />
+      <CabecalhoPagina titulo="Soluções" />
 
       <label className="relative block">
         <span className="sr-only">Pesquisar no histórico</span>

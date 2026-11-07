@@ -139,7 +139,7 @@ export function Registrar() {
   return (
     <form onSubmit={registrar} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
       <div className="space-y-6">
-        <CabecalhoPagina titulo="Registrar pedido" subtitulo="Para o que chegou por WhatsApp, ligação ou no corredor. Leva menos de um minuto." />
+        <CabecalhoPagina titulo="Registrar pedido" />
 
         <div className="space-y-8 rounded-2xl bg-superficie p-5 ring-1 ring-linha md:p-8">
           {/* 1 */}
@@ -206,11 +206,14 @@ export function Registrar() {
                       ))}
                     </ul>
                   )}
-                  <p className="ajuda">
-                    {solicitante
-                      ? <span className="inline-flex items-center gap-1.5 text-ok"><CheckCircle2 className="size-4" aria-hidden="true" /> Tem conta: vai acompanhar pelo sistema.</span>
-                      : "Sem conta? O nome digitado fica registrado assim mesmo."}
-                  </p>
+                  {/* só depois de digitar: diz se a pessoa vai acompanhar pelo sistema */}
+                  {(solicitante || busca.trim().length > 2) && (
+                    <p className="ajuda">
+                      {solicitante
+                        ? <span className="inline-flex items-center gap-1.5 text-ok"><CheckCircle2 className="size-4" aria-hidden="true" /> Tem conta: vai acompanhar pelo sistema.</span>
+                        : !sugestoes.length && "Sem conta? O nome digitado fica registrado assim mesmo."}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="setor" className="rotulo">Setor</label>
@@ -254,7 +257,7 @@ export function Registrar() {
           </Passo>
 
           {/* 4 */}
-          <Passo n={4} id="r-impacto" titulo="Isso está atrapalhando quem?" feito>
+          <Passo n={4} id="r-impacto" titulo="Isso está atrapalhando quem?" feito dica="Define a prioridade na fila, como quando o próprio servidor abre.">
             <div className="grid gap-1 rounded-xl bg-fundo p-1 sm:grid-cols-3" role="radiogroup" aria-labelledby="r-impacto">
               {(Object.keys(ROTULO_IMPACTO) as Impacto[]).map((k) => (
                 <label key={k} className={segmento(impacto === k)}>
@@ -263,7 +266,6 @@ export function Registrar() {
                 </label>
               ))}
             </div>
-            <p className="ajuda">Define a prioridade na fila, como quando o próprio servidor abre.</p>
           </Passo>
 
           {/* 5 */}
@@ -331,7 +333,7 @@ function RegistradosHoje({ eu }: { eu: string }) {
       {lista === null ? (
         <div className="mt-3 space-y-3">{[0, 1, 2].map((i) => <Bloco key={i} className="h-10" />)}</div>
       ) : lista.length === 0 ? (
-        <p className="mt-2 text-sm text-tinta-2">Nada ainda. Cada pedido que chega fora do sistema e é registrado aqui entra na contagem do piloto.</p>
+        <p className="mt-2 text-sm text-tinta-2">Nada registrado hoje.</p>
       ) : (
         <ul className="mt-2 divide-y divide-linha">
           {lista.map((c) => (

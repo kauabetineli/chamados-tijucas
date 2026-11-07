@@ -70,14 +70,14 @@ export function Perfil() {
 
   const itens = [
     ...(tecnico ? [
-      { para: "/ti/painel", Icone: BarChart3, titulo: "Painel da equipe", detalhe: "Indicadores e o piloto" },
-      { para: "/ti/usuarios", Icone: Users, titulo: admin ? "Pessoas e setores" : "Pessoas", detalhe: admin ? "Contas, senha nova, bloquear e setores" : "Buscar contato e ramal" },
+      { para: "/ti/painel", Icone: BarChart3, titulo: "Painel da equipe" },
+      { para: "/ti/usuarios", Icone: Users, titulo: admin ? "Pessoas e setores" : "Pessoas" },
     ] : []),
     ...(admin ? [
-      { para: "/ti/configuracoes", Icone: SlidersHorizontal, titulo: "Configurações do TI", detalhe: "Automação, equipe, categorias e a fila" },
+      { para: "/ti/configuracoes", Icone: SlidersHorizontal, titulo: "Configurações do TI" },
     ] : []),
-    ...(u.equipe_projeto ? [{ para: "/projeto/feedback", Icone: MessageSquare, titulo: "Feedback do sistema", detalhe: "Equipe do projeto: o que as pessoas acharam" }] : []),
-    { para: "/configuracoes", Icone: Settings, titulo: "Configurações", detalhe: "Aparência, senha, meus dados e sair" },
+    ...(u.equipe_projeto ? [{ para: "/projeto/feedback", Icone: MessageSquare, titulo: "Feedback do sistema" }] : []),
+    { para: "/configuracoes", Icone: Settings, titulo: "Configurações", detalhe: "Aparência, senha, meus dados e sair" as string | undefined },
   ];
 
   return (
@@ -102,7 +102,7 @@ export function Perfil() {
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-mar-50 text-acento"><Icone className="size-5" aria-hidden="true" /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold text-tinta">{titulo}</span>
-                  <span className="block text-sm text-tinta-2">{detalhe}</span>
+                  {detalhe && <span className="block text-sm text-tinta-2">{detalhe}</span>}
                 </span>
                 <ChevronRight className="size-5 shrink-0 text-tinta-2" aria-hidden="true" />
               </Link>

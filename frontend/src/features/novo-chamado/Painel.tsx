@@ -64,7 +64,7 @@ export function Painel({ f }: { f: FormularioChamado }) {
       <div className="space-y-6">
         <CabecalhoPagina
           titulo="Novo chamado"
-          subtitulo={f.setor ? <>Para o TI, a partir de <span className="font-semibold text-tinta">{f.setor}</span></> : "Conte o que aconteceu. O TI vê na fila e responde por aqui."}
+          subtitulo={f.setor ? <>Para o TI, a partir de <span className="font-semibold text-tinta">{f.setor}</span></> : undefined}
         />
 
         <AvisoNoNovoChamado />

@@ -270,7 +270,8 @@ function Interno({ fluxo, listas, porNo, teste, noSel, setNoSel, mudar, resumoTe
     <CtxFluxo.Provider value={{ fluxo, listas, porNo, teste }}>
       <div className="flex h-full min-h-0">
         <aside className="hidden w-48 shrink-0 overflow-y-auto border-r border-linha p-3 md:block" aria-label="Blocos para adicionar">
-          <p className="mb-3 text-sm text-tinta-2">Arraste para o desenho ou clique para ligar abaixo do bloco selecionado.</p>
+          {/* a instrução só aparece enquanto o fluxo ainda está vazio (só o gatilho) */}
+          {fluxo.nos.length <= 1 && <p className="mb-3 text-sm text-tinta-2">Arraste para o desenho ou clique para ligar abaixo do bloco selecionado.</p>}
           <Paleta fluxo={fluxo} aoAdicionar={(i) => adicionar(i)} />
         </aside>
         <div className="relative min-w-0 flex-1" onDragOver={(e) => { if (e.dataTransfer.types.includes(MIME)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } }} onDrop={onDrop}>

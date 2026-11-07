@@ -109,7 +109,7 @@ export function SeletorAnexos({
             <Upload className={`size-6 shrink-0 ${sobre ? "text-acento" : "text-tinta-2"}`} aria-hidden="true" />
             <span className="min-w-0 text-sm leading-tight">
               <span className="block font-semibold">{sobre ? "Solte para anexar" : "Arraste a foto ou o vídeo aqui"}</span>
-              <span className="block text-tinta-2">ou <span className="font-semibold text-acento underline underline-offset-4">escolha um arquivo</span></span>
+              <span className="block text-tinta-2">ou <span className="font-semibold text-acento underline underline-offset-4">escolha um arquivo</span> · print: Ctrl+V</span>
             </span>
             <input type="file" accept="image/*,video/*" multiple className="sr-only" onChange={(e) => { adicionar(e.target.files); e.target.value = ""; }} />
           </label>
@@ -166,7 +166,7 @@ export function SeletorAnexos({
           <Upload className={`size-8 ${sobre ? "text-acento" : "text-tinta-2"}`} aria-hidden="true" />
           <span className="font-semibold">{sobre ? "Solte para anexar" : "Arraste aqui sua foto ou vídeo"}</span>
           <span className="text-sm text-tinta-2">
-            ou <span className="font-semibold text-acento underline underline-offset-4">escolha um arquivo</span> do computador
+            ou <span className="font-semibold text-acento underline underline-offset-4">escolha um arquivo</span> do computador. Print da tela: Ctrl+V
           </span>
           <input type="file" accept="image/*,video/*" multiple className="sr-only" onChange={(e) => { adicionar(e.target.files); e.target.value = ""; }} />
         </label>
@@ -245,7 +245,7 @@ export function GaleriaAnexos({ chamado }: { chamado: Chamado }) {
   return (
     <div className="space-y-2">
       {chamado.midia_pendente && temVideo && (
-        <p className="text-sm text-tinta-2">O vídeo está sendo otimizado pelo servidor e fica mais leve em alguns minutos.</p>
+        <p className="text-sm text-tinta-2" role="status">Otimizando o vídeo…</p>
       )}
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {chamado.anexos.map((nome, i) => {
