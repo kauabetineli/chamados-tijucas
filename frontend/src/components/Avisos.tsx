@@ -70,7 +70,7 @@ export function Avisos() {
   return createPortal(
     <ol
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 top-3 md:top-4 flex flex-col items-center gap-2 px-3 md:right-4 md:left-auto md:w-96 md:items-end md:px-0"
+      className="fora-da-gaveta pointer-events-none fixed inset-x-0 top-3 md:top-4 flex flex-col items-center gap-2 px-3 md:right-4 md:left-auto md:w-96 md:items-end md:px-0"
       style={{ zIndex: 90 }}
     >
       {lista.map((a) => <Item key={a.id} a={a} />)}

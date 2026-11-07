@@ -34,15 +34,26 @@ export function useVerChamado() {
   return { aberto, abrir, fechar };
 }
 
-// espera o painel abrir (ele define --altura-painel) e rola só o necessário
+// espera o painel abrir e rola só o necessário (PC: o painel fica à direita e não cobre a lista; celular: cobre a tela)
 function manterVisivel(el: Element) {
   window.setTimeout(() => {
-    const altura = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--altura-painel")) || 0;
-    if (!altura) return; // celular: a folha cobre a tela, não precisa
     const r = el.getBoundingClientRect();
-    const limite = window.innerHeight - altura - 16;
-    if (r.bottom > limite) window.scrollBy({ top: r.bottom - limite + 8, behavior: "smooth" });
+    if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, 60);
+}
+
+/** Chamados da lista que está na tela, na ordem em que aparecem (para o ↑ ↓ do painel). */
+export function chamadosNaTela(): { id: string; el: Element }[] {
+  const vistos = new Set<string>();
+  const lista: { id: string; el: Element }[] = [];
+  document.querySelectorAll("[data-ver-chamado]").forEach((el) => {
+    if (el.closest("[data-gaveta]")) return; // links dentro do próprio painel (soluções parecidas) não contam
+    const id = el.getAttribute("data-ver-chamado")!;
+    if (vistos.has(id)) return;
+    vistos.add(id);
+    lista.push({ id, el });
+  });
+  return lista;
 }
 
 /**
@@ -64,7 +75,7 @@ export function LinkChamado({ id, para, className, children, ...resto }: {
     abrir(id, e.currentTarget);
   }
   return (
-    <Link to={para} onClick={clique} className={className} {...resto}>
+    <Link to={para} onClick={clique} className={className} data-ver-chamado={id} {...resto}>
       {children}
     </Link>
   );

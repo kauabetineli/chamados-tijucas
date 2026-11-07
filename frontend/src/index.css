@@ -238,6 +238,15 @@ svg.lucide.size-8 { width: calc(32rem / 17); height: calc(32rem / 17); }
 /* painel do chamado que sobe de baixo (components/PainelChamado.tsx) */
 @keyframes painel-sobe { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 .painel-sobe { animation: painel-sobe 200ms cubic-bezier(.2,.8,.2,1) both; }
+@keyframes gaveta-entra { from { transform: translateX(32px); opacity: 0; } to { transform: none; opacity: 1; } }
+.gaveta-entra { animation: gaveta-entra 180ms cubic-bezier(.2,.8,.2,1) both; }
+/* chamado aberto na gaveta da direita (PC): os avisos rápidos e o "Sua opinião" saem de cima dela */
+/* conteúdo alinhado à esquerda; com a gaveta aberta ele encolhe ao lado dela (nunca fica por baixo) */
+.conteudo { max-width: calc(var(--max, 64rem) + var(--largura-painel, 0px)); }
+@media (min-width: 768px) {
+  .conteudo { padding-right: calc(2rem + var(--largura-painel, 0px)); }
+  .fora-da-gaveta { right: calc(1rem + var(--largura-painel, 0px)) !important; }
+}
 .animar-chegada { animation: chegou 420ms cubic-bezier(.2,.8,.2,1) both; }
 
 @media print {

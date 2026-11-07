@@ -62,10 +62,12 @@ function LinhaApoio({ c, posicao, novaMensagem }: { c: Chamado; posicao?: number
     <p className="mt-0.5 truncate text-sm text-tinta-2">
       {novaMensagem && <NovaMensagem />}
       {partes.map((t) => <span key={t}>{t} · </span>)}
-      {/* celular: setor; PC (lg+): categoria, porque o setor tem coluna própria */}
-      {setor && <span className="lg:hidden">{setor} · </span>}
-      <span className="hidden lg:inline">{c.expand?.categoria?.nome ?? "Sem categoria"} · </span>
-      {nomeSolicitante(c)} · <span className="tabular-nums">{c.protocolo}</span> <MarcaTeste ficticio={c.ficticio} />
+      {/* o que ganhou coluna própria some daqui; a largura que conta é a da LISTA (@container), não a da tela,
+          porque com o chamado aberto ao lado a lista fica estreita */}
+      {setor && <span className="@3xl:hidden">{setor} · </span>}
+      <span className="hidden @3xl:inline">{c.expand?.categoria?.nome ?? "Sem categoria"}<span className="@5xl:hidden"> · </span></span>
+      <span className="@5xl:hidden">{nomeSolicitante(c)}</span>
+      <span className="@4xl:hidden"> · <span className="tabular-nums">{c.protocolo}</span></span> <MarcaTeste ficticio={c.ficticio} />
     </p>
   );
 }
@@ -245,19 +247,21 @@ function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir
         </span>
       )}
       <TipoCategoria c={c} />
+      <span className="hidden w-24 shrink-0 font-display text-sm font-bold tabular-nums @4xl:block">{c.protocolo}</span>
       <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} draggable={false} className="min-w-0 flex-1 py-1">
         <p className="line-clamp-2 leading-snug font-semibold md:line-clamp-1">
           <EtiquetaPrioridade prioridade={c.prioridade} escolhida={escolhida(c)} />{resumo(c.descricao, 140)}
         </p>
         <LinhaApoio c={c} posicao={posicao} novaMensagem={novaMensagem} />
       </LinkChamado>
-      {/* PC: colunas */}
-      <span className="hidden w-36 shrink-0 truncate text-sm text-tinta-2 lg:block">{c.expand?.setor?.nome ?? "—"}</span>
-      <span className="hidden w-24 shrink-0 text-sm text-tinta-2 md:block"><Espera c={c} /></span>
-      <span className="hidden md:block"><BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} comNome /></span>
-      <span className="hidden md:block"><BotaoMais c={c} aoAbrir={aoAcoes} /></span>
-      {/* celular: espera em cima, com quem embaixo (as ações abrem segurando a linha) */}
-      <span className="flex shrink-0 flex-col items-end text-xs text-tinta-2 md:hidden">
+      {/* lista larga: colunas (aparecem conforme cabem) */}
+      <span className="hidden w-32 shrink-0 truncate text-sm @5xl:block" title={nomeSolicitante(c)}>{nomeSolicitante(c)}</span>
+      <span className="hidden w-32 shrink-0 truncate text-sm text-tinta-2 @3xl:block">{c.expand?.setor?.nome ?? "—"}</span>
+      <span className="hidden w-24 shrink-0 text-sm text-tinta-2 @2xl:block"><Espera c={c} /></span>
+      <span className="hidden @2xl:block"><BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} comNome /></span>
+      <span className="hidden @2xl:block"><BotaoMais c={c} aoAbrir={aoAcoes} /></span>
+      {/* lista estreita (celular ou com o chamado aberto ao lado): espera em cima, com quem embaixo */}
+      <span className="flex shrink-0 flex-col items-end text-xs text-tinta-2 @2xl:hidden">
         <Espera c={c} />
         <BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} />
       </span>
@@ -305,7 +309,7 @@ function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, real
 
 /**
  * Seção da fila: título + uma superfície com as linhas separadas por divisórias.
- * No PC, um cabeçalho de colunas (Problema, Setor, Espera, Com quem) alinhado com as linhas.
+ * Com a lista larga, um cabeçalho de colunas (Protocolo, Problema, Quem pediu, Setor, Esperando, Com) alinhado com as linhas.
  */
 function Secao({ titulo, total, nota, vazio, arrastavel, children }: { titulo: string; total: number; nota?: string; vazio?: string; arrastavel: boolean; children: ReactNode }) {
   return (
@@ -317,14 +321,16 @@ function Secao({ titulo, total, nota, vazio, arrastavel, children }: { titulo: s
       {total === 0 && vazio ? (
         <p className="rounded-2xl bg-superficie p-6 text-center text-tinta-2 ring-1 ring-linha">{vazio}</p>
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-superficie ring-1 ring-linha">
-          <div className="hidden items-center gap-3 border-b border-linha py-2 pr-1.5 pl-2 text-xs font-bold tracking-wider text-tinta-2 uppercase md:flex" aria-hidden="true">
-            {arrastavel && <span className="w-4" />}
+        <div className="@container overflow-hidden rounded-2xl bg-superficie ring-1 ring-linha">
+          <div className="hidden items-center gap-3 border-b border-linha py-2 pr-1.5 pl-2 text-xs font-bold tracking-wider text-tinta-2 uppercase @2xl:flex" aria-hidden="true">
+            {arrastavel && <span className="hidden w-4 md:block" />}
             <span className="w-10" />
+            <span className="hidden w-24 @4xl:block">Protocolo</span>
             <span className="flex-1">Problema</span>
-            <span className="hidden w-36 lg:block">Setor</span>
-            <span className="w-24" title="Na fila: há quanto tempo espera. Em atendimento: desde que começou. Em espera: desde que parou.">Tempo</span>
-            <span className="w-[7.75rem]">Com quem</span>
+            <span className="hidden w-32 @5xl:block">Quem pediu</span>
+            <span className="hidden w-32 @3xl:block">Setor</span>
+            <span className="w-24" title="Na fila: há quanto tempo espera. Em atendimento: desde que começou. Em espera: desde que parou.">Esperando</span>
+            <span className="w-[7.75rem]">Com</span>
             <span className="w-11" />
           </div>
           <ul className="divide-y divide-linha">{children}</ul>

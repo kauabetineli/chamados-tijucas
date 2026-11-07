@@ -6,11 +6,12 @@ import { useAuth } from "../lib/auth";
 import { aoAbrirOpiniao, nomeDaTela } from "../lib/opiniao";
 import { ehTecnico, mensagemErro, pb } from "../lib/pb";
 import { PainelRapido } from "./PainelRapido";
+import { useVerChamado } from "../lib/verChamado";
 
 /**
  * "Sua opinião": botão no canto de baixo do PC e janela de envio (o celular abre pela tela "Você").
  * O botão some nas telas com botão de enviar no rodapé (Novo chamado, Registrar, Configurações do TI)
- * e sobe junto com o painel do chamado aberto.
+ * e some enquanto um chamado está aberto na gaveta da direita.
  */
 
 const SEM_BOTAO = ["/novo", "/ti/registrar", "/ti/configuracoes", "/projeto/feedback"];
@@ -26,16 +27,18 @@ export function Opiniao() {
   const { usuario } = useAuth();
   const caminho = useLocation().pathname;
   const [aberta, setAberta] = useState<null | { nota?: boolean }>(null);
+  // com um chamado aberto na gaveta, o botão sai da frente (a lista fica estreita)
+  const { aberto: chamadoAberto } = useVerChamado();
   useEffect(() => aoAbrirOpiniao((o) => setAberta(o)), []);
   if (!usuario) return null;
   return (
     <>
-      {!SEM_BOTAO.includes(caminho) && (
+      {!SEM_BOTAO.includes(caminho) && !chamadoAberto && (
         <button
           type="button"
           onClick={() => setAberta({})}
           className="fixed right-6 z-30 hidden h-14 items-center gap-2.5 rounded-full bg-noite py-2 pr-5 pl-2 font-bold text-white shadow-lg ring-1 ring-white/10 hover:bg-mar-700 md:flex print:hidden"
-          style={{ bottom: "calc(1.5rem + var(--altura-painel, 0px))" }}
+          style={{ bottom: "1.5rem" }}
         >
           <span className="grid size-10 place-items-center rounded-full bg-campo"><MessageSquare className="size-5" aria-hidden="true" /></span>
           Sua opinião

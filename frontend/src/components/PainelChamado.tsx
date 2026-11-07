@@ -1,60 +1,79 @@
-import { ExternalLink, GripHorizontal, X } from "lucide-react";
-import { useEffect, useRef, useState, type PointerEvent as PE } from "react";
+import { ChevronDown, ChevronUp, Maximize2, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as KE, type PointerEvent as PE } from "react";
 import { Link } from "react-router";
 import { useAuth } from "../lib/auth";
 import { ehTecnico } from "../lib/pb";
 import { useMediaQuery } from "../lib/useMediaQuery";
-import { useVerChamado } from "../lib/verChamado";
+import { chamadosNaTela, useVerChamado } from "../lib/verChamado";
 import { DetalheChamado } from "../pages/Chamado";
 
-const CHAVE_ALTURA = "dinodesk:altura-painel";
-const MINIMO = 260;
+const CHAVE_LARGURA = "dinodesk:largura-painel";
+const MIN = 460, PADRAO = 600;
+const maximo = () => Math.max(MIN, Math.min(900, window.innerWidth - 520));
 
-function alturaSalva() {
+function larguraSalva() {
   try {
-    const v = Number(localStorage.getItem(CHAVE_ALTURA));
-    if (v >= MINIMO) return v;
+    const v = Number(localStorage.getItem(CHAVE_LARGURA));
+    if (v >= MIN) return Math.min(v, maximo());
   } catch { /* ok */ }
-  return Math.round(window.innerHeight * 0.55);
+  return Math.min(PADRAO, maximo());
 }
 
 /**
- * Painel do chamado que sobe de baixo (como no SoftDesk): a lista continua em cima e dá para
- * trocar de chamado com um clique. Abre com ?ver=<id> (ver lib/verChamado.tsx).
- * - PC: ocupa a parte de baixo da tela; a alça no topo muda a altura (lembrada no aparelho).
+ * Chamado aberto ao lado da lista, sem sair dela. Abre com ?ver=<id> (ver lib/verChamado.tsx).
+ * - PC: gaveta à direita (600 px; a borda esquerda muda a largura, lembrada no aparelho). A lista encolhe ao lado
+ *   (Layout reserva --largura-painel) e ↑ ↓ (ou K e J) passam para o chamado de cima/de baixo da lista.
  * - Celular: folha quase da altura da tela; arrastar a alça para baixo (ou o "voltar") fecha.
  */
 export function PainelChamado() {
-  const { aberto, fechar } = useVerChamado();
+  const { aberto, abrir, fechar } = useVerChamado();
   const { usuario } = useAuth();
   const pc = useMediaQuery("(min-width: 768px)");
-  const [altura, setAltura] = useState(alturaSalva);
+  const [largura, setLargura] = useState(larguraSalva);
   const [puxando, setPuxando] = useState(0); // celular: quanto a folha já desceu no arrasto
-  const arrasto = useRef<{ y: number; altura: number } | null>(null);
+  const arrasto = useRef<{ pos: number; largura: number } | null>(null);
   const fecharRef = useRef(fechar);
   fecharRef.current = fechar;
 
-  // a página ganha espaço embaixo (no PC) para a lista rolar por inteiro acima do painel
+  // a lista ganha espaço à direita (no PC) para não ficar por baixo da gaveta
   useEffect(() => {
     const raiz = document.documentElement;
-    if (aberto && pc) raiz.style.setProperty("--altura-painel", `${altura}px`);
-    else raiz.style.removeProperty("--altura-painel");
-    return () => { raiz.style.removeProperty("--altura-painel"); };
-  }, [aberto, pc, altura]);
+    if (aberto && pc) raiz.style.setProperty("--largura-painel", `${largura}px`);
+    else raiz.style.removeProperty("--largura-painel");
+    return () => { raiz.style.removeProperty("--largura-painel"); };
+  }, [aberto, pc, largura]);
 
-  // Esc fecha (se não houver outra janela aberta por cima nem alguém digitando)
+  const vizinho = useCallback((passo: 1 | -1) => {
+    const lista = chamadosNaTela();
+    const i = lista.findIndex((x) => x.id === aberto);
+    return i < 0 ? null : lista[i + passo] ?? null;
+  }, [aberto]);
+  const irPara = useCallback((passo: 1 | -1) => {
+    const v = vizinho(passo);
+    if (v) abrir(v.id, v.el);
+  }, [vizinho, abrir]);
+  // os botões ↑ ↓ ficam apagados no começo/fim da lista (a lista muda em tempo real: confere a cada troca)
+  const [limites, setLimites] = useState({ antes: false, depois: false });
+  useEffect(() => {
+    if (!aberto) return;
+    const t = window.setTimeout(() => setLimites({ antes: !!vizinho(-1), depois: !!vizinho(1) }), 50);
+    return () => window.clearTimeout(t);
+  }, [aberto, vizinho]);
+
+  // Esc fecha; ↑ ↓ / K J trocam de chamado (se não houver outra janela por cima nem alguém digitando)
   useEffect(() => {
     if (!aberto) return;
     const tecla = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       const alvo = e.target as HTMLElement;
-      if (alvo.closest("input, textarea, select")) return;
-      fecharRef.current();
+      if (alvo.closest("input, textarea, select, [contenteditable]")) return;
+      if (e.key === "Escape") fecharRef.current();
+      else if (pc && !e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "ArrowDown" || e.key === "j")) { e.preventDefault(); irPara(1); }
+      else if (pc && !e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "ArrowUp" || e.key === "k")) { e.preventDefault(); irPara(-1); }
     };
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
-  }, [aberto]);
+  }, [aberto, pc, irPara]);
 
   // celular: a página de trás não rola com a folha aberta
   useEffect(() => {
@@ -67,79 +86,107 @@ export function PainelChamado() {
   if (!aberto) return null;
   const pagina = ehTecnico(usuario) ? `/ti/chamado/${aberto}` : `/chamado/${aberto}`;
 
-  const alca = {
-    onPointerDown: (e: PE) => {
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-      arrasto.current = { y: e.clientY, altura };
-    },
-    onPointerMove: (e: PE) => {
-      const a = arrasto.current;
-      if (!a) return;
-      if (pc) {
-        const max = window.innerHeight - 120;
-        setAltura(Math.min(max, Math.max(MINIMO, a.altura + (a.y - e.clientY))));
-      } else {
-        setPuxando(Math.max(0, e.clientY - a.y));
-      }
-    },
-    onPointerUp: () => {
-      arrasto.current = null;
-      if (pc) {
-        try { localStorage.setItem(CHAVE_ALTURA, String(altura)); } catch { /* ok */ }
-      } else {
-        if (puxando > 120) fechar();
-        setPuxando(0);
-      }
-    },
-  };
-
-  const barra = (
-    <div className="flex shrink-0 items-center gap-2 border-b border-linha px-3 py-1.5">
-      <div
-        {...alca}
-        className={`flex flex-1 touch-none items-center justify-center self-stretch py-1.5 text-tinta-2 ${pc ? "cursor-row-resize" : "cursor-grab"}`}
-        role="separator"
-        aria-label={pc ? "Arraste para mudar a altura do painel" : "Arraste para baixo para fechar"}
-      >
-        {pc ? <GripHorizontal className="size-5" aria-hidden="true" /> : <span className="h-1.5 w-12 rounded-full bg-linha" aria-hidden="true" />}
-      </div>
-      <Link to={pagina} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-tinta-2 hover:bg-fundo hover:text-tinta" title="Abrir em página inteira">
-        <ExternalLink className="size-4" aria-hidden="true" /> <span className="hidden sm:inline">Página inteira</span>
+  const botao = "grid size-10 place-items-center rounded-lg text-tinta-2 hover:bg-fundo hover:text-tinta disabled:opacity-30 disabled:hover:bg-transparent";
+  const controles = (
+    <div className="flex shrink-0 items-center gap-0.5">
+      {pc && (
+        <>
+          <button type="button" className={botao} onClick={() => irPara(-1)} disabled={!limites.antes} aria-label="Chamado de cima" title="Chamado de cima (↑ ou K)">
+            <ChevronUp className="size-5" aria-hidden="true" />
+          </button>
+          <button type="button" className={botao} onClick={() => irPara(1)} disabled={!limites.depois} aria-label="Chamado de baixo" title="Chamado de baixo (↓ ou J)">
+            <ChevronDown className="size-5" aria-hidden="true" />
+          </button>
+        </>
+      )}
+      <Link to={pagina} className={botao} aria-label="Abrir em página inteira" title="Abrir em página inteira">
+        <Maximize2 className="size-4" aria-hidden="true" />
       </Link>
-      <button type="button" onClick={fechar} className="grid size-10 place-items-center rounded-full text-tinta-2 hover:bg-fundo hover:text-tinta" aria-label="Fechar o chamado">
-        <X className="size-5" />
+      <button type="button" onClick={fechar} className={botao} aria-label="Fechar o chamado" title="Fechar (Esc)">
+        <X className="size-5" aria-hidden="true" />
       </button>
     </div>
   );
 
-  const conteudo = (
-    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-[max(24px,env(safe-area-inset-bottom))] md:px-6">
-      {/* key: trocar de chamado volta o painel para o topo e recarrega tudo */}
-      <DetalheChamado key={aberto} id={aberto} embutido />
-    </div>
-  );
+  // key: trocar de chamado volta o painel para o topo e recarrega tudo
+  const detalhe = <DetalheChamado key={aberto} id={aberto} embutido gaveta={pc} controles={controles} />;
 
   if (pc) {
+    const borda = {
+      onPointerDown: (e: PE) => {
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+        arrasto.current = { pos: e.clientX, largura };
+      },
+      onPointerMove: (e: PE) => {
+        const a = arrasto.current;
+        if (a) setLargura(Math.min(maximo(), Math.max(MIN, a.largura + (a.pos - e.clientX))));
+      },
+      onPointerUp: () => {
+        arrasto.current = null;
+        try { localStorage.setItem(CHAVE_LARGURA, String(largura)); } catch { /* ok */ }
+      },
+      onDoubleClick: () => { const v = Math.min(PADRAO, maximo()); setLargura(v); try { localStorage.setItem(CHAVE_LARGURA, String(v)); } catch { /* ok */ } },
+      onKeyDown: (e: KE) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        e.stopPropagation();
+        const v = Math.min(maximo(), Math.max(MIN, largura + (e.key === "ArrowLeft" ? 24 : -24)));
+        setLargura(v);
+        try { localStorage.setItem(CHAVE_LARGURA, String(v)); } catch { /* ok */ }
+      },
+    };
     return (
       <section
         aria-label="Chamado aberto"
-        className="painel-sobe fixed right-0 bottom-0 flex flex-col border-t-2 border-acento bg-superficie shadow-[0_-12px_32px_-12px_rgb(0_0_0/0.35)]"
-        style={{ height: altura, zIndex: 30, left: "var(--largura-lateral, 0px)" }}
+        data-gaveta
+        className="gaveta-entra fixed top-0 right-0 bottom-0 flex flex-col border-l border-linha bg-superficie shadow-[-12px_0_32px_-12px_rgb(0_0_0/0.25)] print:hidden"
+        style={{ width: largura, zIndex: 30 }}
       >
-        {barra}
-        {conteudo}
+        <div
+          {...borda}
+          role="separator"
+          tabIndex={0}
+          aria-orientation="vertical"
+          aria-label="Largura do painel (setas para ajustar)"
+          aria-valuemin={MIN}
+          aria-valuemax={maximo()}
+          aria-valuenow={largura}
+          title="Arraste para mudar a largura · duplo clique volta ao padrão"
+          className="group absolute inset-y-0 -left-1.5 z-10 w-3 cursor-col-resize touch-none focus-visible:outline-none"
+        >
+          <span className="mx-auto block h-full w-0.5 bg-transparent group-hover:bg-acento group-focus-visible:bg-acento" aria-hidden="true" />
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-4 pb-6">{detalhe}</div>
       </section>
     );
   }
+
+  const alca = {
+    onPointerDown: (e: PE) => {
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      arrasto.current = { pos: e.clientY, largura };
+    },
+    onPointerMove: (e: PE) => {
+      const a = arrasto.current;
+      if (a) setPuxando(Math.max(0, e.clientY - a.pos));
+    },
+    onPointerUp: () => {
+      arrasto.current = null;
+      if (puxando > 120) fechar();
+      setPuxando(0);
+    },
+  };
 
   return (
     <div className="fixed inset-0" style={{ zIndex: 95 }}>
       <div className="absolute inset-0 bg-noite/50" onClick={fechar} aria-hidden="true" />
       {/* o arrasto move o invólucro; a animação de entrada fica na folha (animação venceria o transform) */}
       <div className="absolute inset-x-0 bottom-0" style={{ transform: puxando ? `translateY(${puxando}px)` : undefined }}>
-        <section aria-label="Chamado aberto" className="painel-sobe flex h-[92dvh] flex-col rounded-t-2xl bg-superficie shadow-2xl">
-          {barra}
-          {conteudo}
+        <section aria-label="Chamado aberto" data-gaveta className="painel-sobe flex h-[92dvh] flex-col rounded-t-2xl bg-superficie shadow-2xl">
+          <div {...alca} className="flex shrink-0 cursor-grab touch-none justify-center py-2.5" role="separator" aria-label="Arraste para baixo para fechar">
+            <span className="h-1.5 w-12 rounded-full bg-linha" aria-hidden="true" />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(24px,env(safe-area-inset-bottom))]">{detalhe}</div>
         </section>
       </div>
     </div>

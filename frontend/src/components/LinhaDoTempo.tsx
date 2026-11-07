@@ -45,7 +45,9 @@ function PreviasImagens({ arquivos, aoRemover }: { arquivos: File[]; aoRemover: 
  * botão "Imagem" (galeria ou câmera), colar print (Ctrl+V) ou arrastar no PC.
  * A imagem aberta fica no endereço (?imagem=<mensagem>.<n>): o "voltar" do celular fecha a tela cheia.
  */
-export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status, aoMudarChamado }: {
+export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status, aoMudarChamado, semTitulo }: {
+  /** na gaveta a aba "Conversa" já é o título */
+  semTitulo?: boolean;
   chamadoId: string;
   solicitanteId: string;
   /** para o técnico: o botão "Para <nome>" do campo de mensagem */
@@ -155,8 +157,8 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
 
   return (
     <section aria-labelledby="titulo-conversa">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 id="titulo-conversa" className="text-xl font-bold">Conversa</h2>
+      <div className={`mb-3 flex flex-wrap items-center gap-2 ${semTitulo ? "justify-end" : "justify-between"}`}>
+        <h2 id="titulo-conversa" className={semTitulo ? "sr-only" : "text-xl font-bold"}>Conversa</h2>
         {/* o técnico pode esconder o registro de mudanças; o servidor vê tudo (lá o registro é curto) */}
         {tecnico && (
           <div role="group" aria-label="O que mostrar" className="flex rounded-lg bg-fundo p-0.5 text-sm ring-1 ring-linha">

@@ -20,16 +20,50 @@ interface Parecido {
  * os de descrição mais parecida primeiro (palavras em comum). É o histórico do TI trabalhando a favor
  * de quem atende agora. Só aparece se houver algum; fica fechado para não empurrar a conversa para baixo.
  */
-export function SolucoesParecidas({ chamadoId, categoriaId, categoriaNome }: { chamadoId: string; categoriaId: string; categoriaNome?: string }) {
-  const [dados, setDados] = useState<{ total: number; itens: Parecido[] } | null>(null);
-  const [aberto, setAberto] = useState(false);
+export type DadosParecidas = { total: number; itens: Parecido[] } | null;
 
+/** Busca as soluções parecidas (null enquanto carrega). */
+export function useSolucoesParecidas(chamadoId: string, ligado = true): DadosParecidas {
+  const [dados, setDados] = useState<DadosParecidas>(null);
   useEffect(() => {
     setDados(null);
+    if (!ligado) return;
     pb.send<{ total: number; itens: Parecido[] }>(`/api/chamados/${chamadoId}/solucoes-parecidas`, { requestKey: `parecidas-${chamadoId}` })
       .then(setDados)
       .catch(() => setDados({ total: 0, itens: [] }));
-  }, [chamadoId]);
+  }, [chamadoId, ligado]);
+  return dados;
+}
+
+/** A lista em si (aberta): usada no cartão que abre e fecha e na aba "Soluções parecidas" do painel do chamado. */
+export function ListaParecidas({ dados, categoriaId }: { dados: { total: number; itens: Parecido[] }; categoriaId: string }) {
+  return (
+    <>
+      <ul className="divide-y divide-linha">
+        {dados.itens.map((p) => (
+          <li key={p.id} className="py-3">
+            <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-tinta-2">
+              <LinkChamado id={p.id} para={`/ti/chamado/${p.id}`} className="font-display font-bold text-acento hover:underline">{p.protocolo}</LinkChamado>
+              {p.resolvido_em && <span>resolvido em {dataCurta(p.resolvido_em)}</span>}
+            </p>
+            <p className="mt-0.5 text-sm text-tinta-2">{resumo(p.descricao, 110)}</p>
+            {p.diagnostico && <p className="mt-1.5 text-sm"><b>Causa:</b> {p.diagnostico}</p>}
+            <p className="mt-0.5 text-sm"><b>Solução:</b> <span className="selecionavel">{p.solucao}</span></p>
+          </li>
+        ))}
+      </ul>
+      {dados.total > dados.itens.length && (
+        <Link to={`/ti/historico?categoria=${categoriaId}`} className="mt-1 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-acento hover:underline">
+          <History className="size-4" aria-hidden="true" /> Ver todas as {dados.total} em Soluções
+        </Link>
+      )}
+    </>
+  );
+}
+
+export function SolucoesParecidas({ chamadoId, categoriaId, categoriaNome }: { chamadoId: string; categoriaId: string; categoriaNome?: string }) {
+  const dados = useSolucoesParecidas(chamadoId);
+  const [aberto, setAberto] = useState(false);
 
   if (dados === null) return <Bloco className="h-14 w-full rounded-2xl" />;
   if (!dados.itens.length) return null;
@@ -53,24 +87,7 @@ export function SolucoesParecidas({ chamadoId, categoriaId, categoriaNome }: { c
       </button>
       {aberto && (
         <div className="border-t border-linha px-4 pb-4">
-          <ul className="divide-y divide-linha">
-            {dados.itens.map((p) => (
-              <li key={p.id} className="py-3">
-                <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-tinta-2">
-                  <LinkChamado id={p.id} para={`/ti/chamado/${p.id}`} className="font-display font-bold text-acento hover:underline">{p.protocolo}</LinkChamado>
-                  {p.resolvido_em && <span>resolvido em {dataCurta(p.resolvido_em)}</span>}
-                </p>
-                <p className="mt-0.5 text-sm text-tinta-2">{resumo(p.descricao, 110)}</p>
-                {p.diagnostico && <p className="mt-1.5 text-sm"><b>Causa:</b> {p.diagnostico}</p>}
-                <p className="mt-0.5 text-sm"><b>Solução:</b> <span className="selecionavel">{p.solucao}</span></p>
-              </li>
-            ))}
-          </ul>
-          {dados.total > dados.itens.length && (
-            <Link to={`/ti/historico?categoria=${categoriaId}`} className="mt-1 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-acento hover:underline">
-              <History className="size-4" aria-hidden="true" /> Ver todos os {dados.total} no Histórico
-            </Link>
-          )}
+          <ListaParecidas dados={dados} categoriaId={categoriaId} />
         </div>
       )}
     </section>

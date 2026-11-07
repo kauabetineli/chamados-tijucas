@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { ChevronUp, ClipboardList, History, ListOrdered, Plus, SquarePen, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router";
@@ -48,7 +49,7 @@ export function Layout() {
   // celular, técnico: tocar de novo em "Fila" (já estando nela) abre o menu das visões
   const [menuFila, setMenuFila] = useState(false);
   useEffect(() => setMenuFila(false), [caminho, params]);
-  const largura = caminho === "/ti/configuracoes" ? "max-w-[96rem]" : caminho === "/ti/chamados" || caminho === "/ti/registrar" || focado ? "max-w-7xl" : "max-w-5xl";
+  const largura = caminho === "/ti/configuracoes" ? "96rem" : caminho === "/ti" || caminho === "/ti/chamados" || caminho === "/ti/registrar" || focado ? "80rem" : "64rem";
 
   return (
     // PC: barra lateral à esquerda + conteúdo. Celular: topo + barra de baixo (a lateral não aparece).
@@ -56,10 +57,10 @@ export function Layout() {
     <BarraLateral numeros={numeros} />
     <div className={`flex min-h-dvh min-w-0 flex-1 flex-col md:pb-0 ${semBarra ? "" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
 
-      {/* com o painel do chamado aberto no PC, sobra espaço embaixo para a lista rolar inteira acima dele */}
+      {/* com o chamado aberto na gaveta da direita (PC), a lista encolhe ao lado dela (--largura-painel) */}
       {/* celular: SEM barra no topo (a tela toda é do conteúdo, como no app). A pessoa fica na barra de baixo
           ("Você"); o nome "Dino Desk" fica na tela de entrar, na aba do navegador e na barra lateral do PC. */}
-      <main className={`w-full flex-1 px-4 pt-5 pb-8 md:px-8 md:pt-8 ${largura}`} style={{ paddingBottom: "calc(2rem + var(--altura-painel, 0px))" }}>
+      <main className="conteudo w-full flex-1 px-4 pt-5 pb-8 md:px-8 md:pt-8" style={{ "--max": largura } as CSSProperties}>
         <Outlet />
         <Avisos />
         <PainelChamado />

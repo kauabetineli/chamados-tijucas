@@ -1,14 +1,16 @@
 import { ArrowLeft, Check, CheckCircle2, Hourglass, MessageCircleQuestion, ThumbsDown, ThumbsUp } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { GaleriaAnexos } from "../components/Anexos";
 import { EsqueletoChamado } from "../components/Esqueleto";
 import { IconeCategoria } from "../components/Icone";
 import { LinhaDoTempo } from "../components/LinhaDoTempo";
 import { PainelTecnico } from "../components/PainelTecnico";
-import { SeloStatus, SeloTeste } from "../components/Selos";
+import { EtiquetaPrioridade, SeloStatus, SeloTeste } from "../components/Selos";
 import { SenhaFila } from "../components/SenhaFila";
-import { SolucoesParecidas } from "../components/SolucoesParecidas";
+import { ListaParecidas, SolucoesParecidas, useSolucoesParecidas } from "../components/SolucoesParecidas";
+import { AbasPagina } from "../components/CabecalhoPagina";
+import { Espera } from "../components/Espera";
 import { useAuth } from "../lib/auth";
 import { dentroDoHorario, mensagemForaDoHorario, useConfigTI } from "../lib/configTI";
 import { dataHora, ROTULO_AGUARDANDO, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS } from "../lib/formato";
@@ -29,7 +31,14 @@ export function Chamado() {
  * Conteúdo do chamado. Usado na página inteira e, com `embutido`, no painel que sobe de baixo
  * (components/PainelChamado.tsx): sem o "voltar" e sem a faixa de "chamado aberto".
  */
-export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolean }) {
+export function DetalheChamado({ id, embutido, gaveta, controles }: {
+  id: string;
+  embutido?: boolean;
+  /** PC: gaveta da direita (components/PainelChamado.tsx), em formato compacto com abas */
+  gaveta?: boolean;
+  /** botões do painel (↑ ↓, página inteira, fechar), no canto do cabeçalho */
+  controles?: ReactNode;
+}) {
   const { usuario } = useAuth();
   const tecnico = ehTecnico(usuario);
   // celular (coluna única): soluções parecidas vão para depois das ações do técnico
@@ -62,12 +71,13 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
   if (erro && !c) {
     return (
       <div className="max-w-2xl">
+        {controles && <div className="mb-2 flex justify-end">{controles}</div>}
         <p className="font-semibold text-alerta">Não foi possível abrir este chamado. {erro}</p>
         {!embutido && <Link to={voltar} className="btn-secundario mt-4">Voltar</Link>}
       </div>
     );
   }
-  if (!c) return <EsqueletoChamado tecnico={tecnico} />;
+  if (!c) return <>{controles && <div className="mb-2 flex justify-end">{controles}</div>}<EsqueletoChamado tecnico={tecnico && !gaveta} /></>;
 
   const doSolicitante = c.solicitante === usuario?.id;
   const parecidas = tecnico && c.status !== "resolvido" && c.categoria
@@ -76,6 +86,22 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
   // "aguardando" é a etapa do meio (o TI está com o chamado), com outro nome
   const etapa = c.status === "aguardando" ? 1 : ETAPAS.indexOf(c.status);
   const rotuloEtapa = (s: Status) => (s === "em_andamento" && c.status === "aguardando" ? "Em espera" : ROTULO_STATUS[s]);
+
+  const paraOServidor = (
+    <>
+      {c.status === "aberto" && doSolicitante && aFrente !== null && (
+        <SenhaFila aFrente={aFrente} protocolo={c.protocolo} categoria={c.expand?.categoria?.nome} icone={c.expand?.categoria?.icone} animar={novo} />
+      )}
+      {c.status === "aguardando" && c.aguardando_motivo && !tecnico && <AvisoEspera c={c} />}
+      {c.status === "resolvido" && doSolicitante && !c.confirmado && <Confirmacao chamadoId={c.id} aoConcluir={carregar} />}
+    </>
+  );
+  const oQueOTIFez = c.status === "resolvido" && (c.diagnostico || c.solucao) ? <OQueOTIFez c={c} doSolicitante={doSolicitante} /> : null;
+  const conversa = <LinhaDoTempo chamadoId={c.id} solicitanteId={c.solicitante} solicitanteNome={nomeSolicitante(c)} status={c.status} aoMudarChamado={carregar} semTitulo={gaveta} />;
+
+  if (gaveta) {
+    return <Gaveta c={c} tecnico={tecnico} controles={controles} aoMudar={carregar} paraOServidor={paraOServidor} oQueOTIFez={oQueOTIFez} conversa={conversa} />;
+  }
 
   return (
     <div className="max-w-5xl">
@@ -101,7 +127,10 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
         {/* min-w-0: em celular bem estreito (320 px) o conteúdo encolhe em vez de vazar da tela */}
         <div className="min-w-0 space-y-7 md:col-start-1">
           <header>
-            <p className="font-display text-3xl font-extrabold tracking-tight min-[360px]:text-4xl">{c.protocolo}</p>
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-display text-3xl font-extrabold tracking-tight min-[360px]:text-4xl">{c.protocolo}</p>
+              {controles}
+            </div>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <SeloStatus status={c.status} />
               <SeloTeste ficticio={c.ficticio} />
@@ -135,32 +164,7 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
             ))}
           </ol>
 
-          {c.status === "aberto" && doSolicitante && aFrente !== null && (
-            <SenhaFila aFrente={aFrente} protocolo={c.protocolo} categoria={c.expand?.categoria?.nome} icone={c.expand?.categoria?.icone} animar={novo} />
-          )}
-
-          {c.status === "aguardando" && c.aguardando_motivo && !tecnico && (
-            c.aguardando_motivo === "solicitante" ? (
-              <div role="status" className="flex items-start gap-3 rounded-2xl border-l-8 border-acento bg-mar-50 p-4">
-                <MessageCircleQuestion className="mt-0.5 size-6 shrink-0 text-acento" aria-hidden="true" />
-                <div>
-                  <p className="font-bold">O TI precisa de uma resposta sua.</p>
-                  <p className="text-tinta-2">Leia a última mensagem na conversa e responda por lá. O atendimento continua assim que você responder.</p>
-                  <a href="#mensagem" className="mt-2 inline-flex min-h-11 items-center font-semibold text-acento underline underline-offset-4">Ir para a conversa</a>
-                </div>
-              </div>
-            ) : (
-              <div role="status" className="flex items-start gap-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
-                <Hourglass className="mt-0.5 size-6 shrink-0 text-acento" aria-hidden="true" />
-                <p>
-                  <b>{c.expand?.responsavel?.name ?? "O TI"} está aguardando {ROTULO_AGUARDANDO[c.aguardando_motivo]}.</b>{" "}
-                  <span className="text-tinta-2">O chamado continua com o TI; você não precisa abrir outro.</span>
-                </p>
-              </div>
-            )
-          )}
-
-          {c.status === "resolvido" && doSolicitante && !c.confirmado && <Confirmacao chamadoId={c.id} aoConcluir={carregar} />}
+          {paraOServidor}
 
           <section className="space-y-4">
             <p className="texto-livre text-lg whitespace-pre-wrap">{c.descricao}</p>
@@ -189,33 +193,137 @@ export function DetalheChamado({ id, embutido }: { id: string; embutido?: boolea
           {/* celular: as ações do técnico vêm logo depois dos dados; as soluções parecidas, depois delas */}
           {!pc && parecidas}
 
-          {c.status === "resolvido" && (c.diagnostico || c.solucao) && (
-            <section className="rounded-2xl border-l-8 border-campo bg-superficie p-5 ring-1 ring-linha">
-              <h2 className="text-xl font-bold">O que o TI fez</h2>
-              {c.diagnostico && (
-                <p className="texto-livre mt-2"><span className="font-semibold">Causa: </span>{c.diagnostico}</p>
-              )}
-              {c.solucao && (
-                <p className="texto-livre mt-1"><span className="font-semibold">Solução: </span>{c.solucao}</p>
-              )}
-              {c.confirmado && (
-                <div className="mt-3 space-y-1 text-sm">
-                  <p className="font-semibold text-ok">{doSolicitante ? "Você confirmou" : "Solicitante confirmou"} que deu certo.</p>
-                  {c.avaliacao && (
-                    <p className="flex items-center gap-1.5 font-semibold">
-                      {c.avaliacao === "bom"
-                        ? <><ThumbsUp className="size-4 text-ok" aria-hidden="true" /> Atendimento avaliado como bom</>
-                        : <><ThumbsDown className="size-4 text-alerta" aria-hidden="true" /> Atendimento avaliado como "poderia ser melhor"</>}
-                    </p>
-                  )}
-                  {c.avaliacao_comentario && <p className="texto-livre text-tinta-2">“{c.avaliacao_comentario}”</p>}
-                </div>
-              )}
-            </section>
-          )}
+          {oQueOTIFez}
 
-          <LinhaDoTempo chamadoId={c.id} solicitanteId={c.solicitante} solicitanteNome={nomeSolicitante(c)} status={c.status} aoMudarChamado={carregar} />
+          {conversa}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Servidor com o chamado em espera: o que o TI está esperando (e, se for ele, o que fazer). */
+function AvisoEspera({ c }: { c: TChamado }) {
+  if (!c.aguardando_motivo) return null;
+  return c.aguardando_motivo === "solicitante" ? (
+    <div role="status" className="flex items-start gap-3 rounded-2xl border-l-8 border-acento bg-mar-50 p-4">
+      <MessageCircleQuestion className="mt-0.5 size-6 shrink-0 text-acento" aria-hidden="true" />
+      <div>
+        <p className="font-bold">O TI precisa de uma resposta sua.</p>
+        <p className="text-tinta-2">Leia a última mensagem na conversa e responda por lá. O atendimento continua assim que você responder.</p>
+        <a href="#mensagem" className="mt-2 inline-flex min-h-11 items-center font-semibold text-acento underline underline-offset-4">Ir para a conversa</a>
+      </div>
+    </div>
+  ) : (
+    <div role="status" className="flex items-start gap-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
+      <Hourglass className="mt-0.5 size-6 shrink-0 text-acento" aria-hidden="true" />
+      <p>
+        <b>{c.expand?.responsavel?.name ?? "O TI"} está aguardando {ROTULO_AGUARDANDO[c.aguardando_motivo]}.</b>{" "}
+        <span className="text-tinta-2">O chamado continua com o TI; você não precisa abrir outro.</span>
+      </p>
+    </div>
+  );
+}
+
+function OQueOTIFez({ c, doSolicitante }: { c: TChamado; doSolicitante: boolean }) {
+  return (
+    <section className="rounded-2xl border-l-8 border-campo bg-superficie p-5 ring-1 ring-linha">
+      <h2 className="text-xl font-bold">O que o TI fez</h2>
+      {c.diagnostico && (
+        <p className="texto-livre mt-2"><span className="font-semibold">Causa: </span>{c.diagnostico}</p>
+      )}
+      {c.solucao && (
+        <p className="texto-livre mt-1"><span className="font-semibold">Solução: </span>{c.solucao}</p>
+      )}
+      {c.confirmado && (
+        <div className="mt-3 space-y-1 text-sm">
+          <p className="font-semibold text-ok">{doSolicitante ? "Você confirmou" : "Solicitante confirmou"} que deu certo.</p>
+          {c.avaliacao && (
+            <p className="flex items-center gap-1.5 font-semibold">
+              {c.avaliacao === "bom"
+                ? <><ThumbsUp className="size-4 text-ok" aria-hidden="true" /> Atendimento avaliado como bom</>
+                : <><ThumbsDown className="size-4 text-alerta" aria-hidden="true" /> Atendimento avaliado como "poderia ser melhor"</>}
+            </p>
+          )}
+          {c.avaliacao_comentario && <p className="texto-livre text-tinta-2">“{c.avaliacao_comentario}”</p>}
+        </div>
+      )}
+    </section>
+  );
+}
+
+type Aba = "conversa" | "fotos" | "parecidas";
+
+/**
+ * Chamado na gaveta da direita (PC): cabeçalho fixo com protocolo, situação e os botões do painel; o problema e os dados
+ * em duas colunas; as ações do técnico numa linha; e abas Conversa / Fotos / Soluções parecidas.
+ */
+function Gaveta({ c, tecnico, controles, aoMudar, paraOServidor, oQueOTIFez, conversa }: {
+  c: TChamado; tecnico: boolean; controles?: ReactNode; aoMudar: () => void;
+  paraOServidor: ReactNode; oQueOTIFez: ReactNode; conversa: ReactNode;
+}) {
+  const [aba, setAba] = useState<Aba>("conversa");
+  const comParecidas = tecnico && c.status !== "resolvido" && !!c.categoria;
+  const parecidas = useSolucoesParecidas(c.id, comParecidas);
+  const fotos = c.anexos?.length ?? 0;
+  const nParecidas = parecidas?.itens.length ?? 0;
+  const ramal = ramalDe(c.expand?.solicitante, c.expand?.setor);
+  const abas: { id: Aba; rotulo: string; n?: number }[] = [
+    { id: "conversa", rotulo: "Conversa" },
+    ...(fotos ? [{ id: "fotos" as const, rotulo: "Fotos e vídeos", n: fotos }] : []),
+    ...(nParecidas ? [{ id: "parecidas" as const, rotulo: "Soluções parecidas", n: nParecidas }] : []),
+  ];
+  const abaAtual = abas.some((a) => a.id === aba) ? aba : "conversa";
+
+  return (
+    <div className="space-y-5">
+      <header className="sticky -top-4 z-10 -mx-6 -mt-4 flex items-start gap-3 border-b border-linha bg-superficie px-6 pt-4 pb-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-2xl leading-tight font-extrabold tracking-tight">{c.protocolo}</h2>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <SeloStatus status={c.status} />
+            <EtiquetaPrioridade prioridade={c.prioridade} />
+            <SeloTeste ficticio={c.ficticio} />
+            <span className="inline-flex items-center gap-1.5 text-sm text-tinta-2">
+              <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4" />
+              {c.expand?.categoria?.nome}
+            </span>
+          </div>
+        </div>
+        {controles}
+      </header>
+
+      <p className="texto-livre text-lg whitespace-pre-wrap">{c.descricao}</p>
+
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        {tecnico && <Dado termo="Quem pediu" valor={`${nomeSolicitante(c)}${ramal ? ` (ramal ${ramal})` : ""}`} />}
+        <Dado termo="Setor" valor={c.expand?.setor?.nome} />
+        {tecnico && <Dado termo="Como chegou" valor={ROTULO_ORIGEM[c.origem]} />}
+        <Dado termo="Quem é afetado" valor={ROTULO_IMPACTO[c.impacto]} />
+        <div>
+          <dt className="text-tinta-2">{({ resolvido: "Aberto em", aberto: "Esperando", em_andamento: "Em atendimento", aguardando: "Em espera" } as const)[c.status]}</dt>
+          <dd className="font-semibold">{c.status === "resolvido" ? dataHora(c.created) : <Espera c={c} />}</dd>
+        </div>
+        {!tecnico && <Dado termo="Responsável no TI" valor={c.expand?.responsavel?.name} />}
+      </dl>
+
+      {paraOServidor}
+      {tecnico && <PainelTecnico chamado={c} aoMudar={aoMudar} linha />}
+      {oQueOTIFez}
+
+      <div>
+        {/* uma aba só (sem fotos nem soluções parecidas) ainda serve de título da conversa */}
+        <div className="mb-4">
+          <AbasPagina rotulo="O que ver do chamado" itens={abas.map((a) => ({ rotulo: a.rotulo, numero: a.n, ativo: abaAtual === a.id, aoClicar: () => setAba(a.id) }))} />
+        </div>
+        {abaAtual === "conversa" && conversa}
+        {abaAtual === "fotos" && <GaleriaAnexos chamado={c} />}
+        {abaAtual === "parecidas" && parecidas && (
+          <>
+            <p className="text-sm text-tinta-2">Chamados de {c.expand?.categoria?.nome ?? "mesma categoria"} já resolvidos, os mais parecidos primeiro.</p>
+            <ListaParecidas dados={parecidas} categoriaId={c.categoria} />
+          </>
+        )}
       </div>
     </div>
   );

@@ -9,8 +9,11 @@ import { EscolhaEspera } from "./EscolhaEspera";
 import { RegistroSolucao } from "./RegistroSolucao";
 import { COR_PRIORIDADE } from "./Selos";
 
-/** Ações do técnico sobre um chamado: atender, priorizar, atribuir e resolver. */
-export function PainelTecnico({ chamado: c, aoMudar }: { chamado: Chamado; aoMudar: () => void }) {
+/**
+ * Ações do técnico sobre um chamado: atender, priorizar, atribuir e resolver.
+ * `linha` (gaveta do chamado no PC): as ações numa linha só, com prioridade e responsável em seletores compactos.
+ */
+export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado; aoMudar: () => void; linha?: boolean }) {
   const { usuario } = useAuth();
   const [tecnicos, setTecnicos] = useState<Usuario[]>([]);
   const [params] = useSearchParams();
@@ -51,6 +54,104 @@ export function PainelTecnico({ chamado: c, aoMudar }: { chamado: Chamado; aoMud
     } finally {
       setSalvando(false);
     }
+  }
+
+  const formResolverEl = resolvendo && (
+    <form
+      ref={formResolver}
+      className="space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const guardou = comRegistro && !!(diagnostico.trim() || solucao.trim());
+        salvar(comRegistro
+          ? { status: "resolvido", diagnostico: diagnostico.trim(), solucao: solucao.trim() }
+          : { status: "resolvido", diagnostico: "", solucao: "" },
+          `${c.protocolo} resolvido.${guardou ? " A solução foi para Soluções." : ""}${c.solicitante ? " Quem pediu vai confirmar se deu certo." : ""}`);
+      }}
+    >
+      <RegistroSolucao ligado={comRegistro} aoLigar={setComRegistro} diagnostico={diagnostico} aoDiagnostico={setDiagnostico} solucao={solucao} aoSolucao={setSolucao} prefixo="painel" />
+      <div className="flex gap-2">
+        <button className="btn-sucesso flex-1" disabled={salvando}>Marcar como resolvido</button>
+        <button type="button" className="btn-secundario" onClick={() => setResolvendo(false)}>Cancelar</button>
+      </div>
+    </form>
+  );
+
+  if (linha) {
+    const b = "min-h-11 px-4";
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {c.status === "aberto" && (
+            <button className={`btn-primario ${b}`} disabled={salvando}
+              onClick={() => salvar({ status: "em_andamento", responsavel: usuario!.id }, deColega ? `${c.protocolo} agora está com você, em atendimento.` : `Atendimento do ${c.protocolo} começado.`)}>
+              <Play className="size-5" aria-hidden="true" /> {deColega ? "Assumir e começar" : "Começar"}
+            </button>
+          )}
+          {c.status === "aguardando" && (
+            <button className={`btn-primario ${b}`} disabled={salvando} onClick={() => salvar({ status: "em_andamento" }, `Atendimento do ${c.protocolo} retomado.`)}>
+              <Play className="size-5" aria-hidden="true" /> Retomar
+            </button>
+          )}
+          {emAtendimento && !resolvendo && (
+            <button className={`btn-sucesso ${b}`} onClick={() => setResolvendo(true)}>
+              <CheckCircle2 className="size-5" aria-hidden="true" /> Resolver
+            </button>
+          )}
+          {c.status === "em_andamento" && !resolvendo && (
+            <button className={`btn-secundario ${b}`} disabled={salvando} aria-expanded={esperar} onClick={() => setEsperar(!esperar)}>
+              <Hourglass className="size-5" aria-hidden="true" /> Pôr em espera
+            </button>
+          )}
+          {c.status === "resolvido" && (
+            <button className={`btn-secundario ${b}`} disabled={salvando} onClick={() => salvar({ status: "aberto" }, `${c.protocolo} reaberto.`)}>
+              <RotateCcw className="size-5" aria-hidden="true" /> Reabrir
+            </button>
+          )}
+          <select
+            aria-label="Com quem está"
+            className="campo min-h-11 w-auto py-2 pr-9 text-sm font-semibold"
+            value={c.responsavel}
+            onChange={(e) => salvar({ responsavel: e.target.value }, e.target.value ? `${c.protocolo} agora está com ${nomeDe(e.target.value)}.` : `${c.protocolo} ficou sem responsável.`)}
+          >
+            <option value="">Com: ninguém (livre)</option>
+            {tecnicos.map((t) => <option key={t.id} value={t.id}>Com: {t.id === usuario?.id ? "você" : t.name}</option>)}
+          </select>
+          <select
+            aria-label="Prioridade"
+            className="campo min-h-11 w-auto py-2 pr-9 text-sm font-semibold"
+            value={c.prioridade}
+            onChange={(e) => { const p = e.target.value as Prioridade; salvar({ prioridade: p }, `Prioridade do ${c.protocolo}: ${ROTULO_PRIORIDADE[p]}. O lugar na fila foi atualizado.`); }}
+          >
+            {(Object.keys(ROTULO_PRIORIDADE) as Prioridade[]).reverse().map((p) => <option key={p} value={p}>Prioridade: {ROTULO_PRIORIDADE[p]}</option>)}
+          </select>
+          {emAtendimento && !resolvendo && (
+            <button type="button" className="btn min-h-11 px-3 text-sm text-tinta-2 hover:text-tinta" disabled={salvando}
+              onClick={() => salvar({ status: "aberto", responsavel: "" }, `${c.protocolo} voltou para a fila, sem responsável.`)}>
+              <Undo2 className="size-4" aria-hidden="true" /> Devolver para a fila
+            </button>
+          )}
+        </div>
+        {c.status === "aguardando" && c.aguardando_motivo && (
+          <div className="space-y-2 rounded-xl bg-fundo p-3 ring-1 ring-linha">
+            <p className="text-sm">
+              <b>Em espera:</b> aguardando {ROTULO_AGUARDANDO[c.aguardando_motivo]}
+              {paraData(c.aguardando_desde || "") && <span className="text-tinta-2"> · {tempoRelativo(c.aguardando_desde!)}</span>}
+              {c.aguardando_motivo === "solicitante" && <span className="text-tinta-2">. Volta sozinho quando a pessoa responder.</span>}
+            </p>
+            <EscolhaEspera nome="motivo-gaveta" valor={c.aguardando_motivo} desabilitado={salvando} aoEscolher={(m) => salvar({ aguardando_motivo: m }, `Agora aguardando ${ROTULO_AGUARDANDO[m]}.`)} />
+          </div>
+        )}
+        {esperar && c.status === "em_andamento" && (
+          <div className="space-y-2 rounded-xl p-3 ring-1 ring-linha">
+            <p className="text-sm font-semibold">Está aguardando o quê?</p>
+            <EscolhaEspera nome="motivo-novo-gaveta" valor="" desabilitado={salvando} aoEscolher={(m) => salvar({ status: "aguardando", aguardando_motivo: m }, `${c.protocolo} em espera: aguardando ${ROTULO_AGUARDANDO[m]}.`)} />
+          </div>
+        )}
+        {formResolverEl}
+        {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
+      </div>
+    );
   }
 
   return (
@@ -116,26 +217,7 @@ export function PainelTecnico({ chamado: c, aoMudar }: { chamado: Chamado; aoMud
         </button>
       )}
 
-      {resolvendo && (
-        <form
-          ref={formResolver}
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const guardou = comRegistro && !!(diagnostico.trim() || solucao.trim());
-            salvar(comRegistro
-              ? { status: "resolvido", diagnostico: diagnostico.trim(), solucao: solucao.trim() }
-              : { status: "resolvido", diagnostico: "", solucao: "" },
-              `${c.protocolo} resolvido.${guardou ? " A solução foi para o Histórico." : ""}${c.solicitante ? " Quem pediu vai confirmar se deu certo." : ""}`);
-          }}
-        >
-          <RegistroSolucao ligado={comRegistro} aoLigar={setComRegistro} diagnostico={diagnostico} aoDiagnostico={setDiagnostico} solucao={solucao} aoSolucao={setSolucao} prefixo="painel" />
-          <div className="flex gap-2">
-            <button className="btn-sucesso flex-1" disabled={salvando}>Marcar como resolvido</button>
-            <button type="button" className="btn-secundario" onClick={() => setResolvendo(false)}>Cancelar</button>
-          </div>
-        </form>
-      )}
+      {formResolverEl}
 
       <fieldset>
         <legend className="rotulo">Prioridade</legend>
