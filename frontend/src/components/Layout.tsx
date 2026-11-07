@@ -84,7 +84,8 @@ export function Layout() {
                 aria-expanded={tecnico && i.para === "/ti" ? menuFila : undefined}
                 className={({ isActive: marcado }) => { const isActive = ativo(i, marcado); return (
                   i.destaque
-                    ? "m-2 flex h-[60px] items-center justify-center gap-2 rounded-xl bg-mar-700 font-bold text-white"
+                    // ação principal: botão redondo no meio, saltando um pouco para fora da barra, com o rótulo inteiro embaixo
+                    ? "flex h-[76px] flex-col items-center justify-end gap-1 pb-2.5 text-sm font-bold text-tinta"
                     : `flex h-[76px] flex-col items-center justify-center gap-1 text-sm font-semibold ${
                         isActive ? "text-acento" : "text-tinta-2"
                       }`
@@ -92,7 +93,14 @@ export function Layout() {
               >
                 {({ isActive: marcado }) => {
                   const isActive = ativo(i, marcado);
-                  if (i.destaque) return <><i.Icone className="size-6" aria-hidden="true" /> {i.rotulo}</>;
+                  if (i.destaque) return (
+                    <>
+                      <span className="-mt-8 grid size-14 place-items-center rounded-full bg-mar-700 text-white shadow-lg ring-4 ring-fundo">
+                        <i.Icone className="size-7" strokeWidth={2.6} aria-hidden="true" />
+                      </span>
+                      {i.rotulo}
+                    </>
+                  );
                   return (
                     <>
                       {/* aba marcada: "pílula" atrás do ícone, como a barra nativa do Android. No "Você" a foto já é o
