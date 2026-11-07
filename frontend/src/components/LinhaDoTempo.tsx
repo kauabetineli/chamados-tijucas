@@ -1,6 +1,7 @@
 import { EsqueletoConversa } from "./Esqueleto";
 import { Hourglass, ImagePlus, Lock, Send, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
+import { Avatar } from "./Avatar";
+import { Fragment, useCallback, useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
 import { avisar } from "../lib/avisos";
@@ -44,9 +45,11 @@ function PreviasImagens({ arquivos, aoRemover }: { arquivos: File[]; aoRemover: 
  * botão "Imagem" (galeria ou câmera), colar print (Ctrl+V) ou arrastar no PC.
  * A imagem aberta fica no endereço (?imagem=<mensagem>.<n>): o "voltar" do celular fecha a tela cheia.
  */
-export function LinhaDoTempo({ chamadoId, solicitanteId, status, aoMudarChamado }: {
+export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status, aoMudarChamado }: {
   chamadoId: string;
   solicitanteId: string;
+  /** para o técnico: o botão "Para <nome>" do campo de mensagem */
+  solicitanteNome?: string;
   /** situação do chamado: libera o "Enviar e aguardar resposta" para o técnico */
   status?: Status;
   aoMudarChamado?: () => void;
@@ -63,6 +66,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, status, aoMudarChamado 
   const [interno, setInterno] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+  const [soMensagens, setSoMensagens] = useState(false);
 
   const carregar = useCallback(async () => {
     const lista = await pb.collection("interacoes").getFullList<Interacao>({
@@ -151,65 +155,97 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, status, aoMudarChamado 
 
   return (
     <section aria-labelledby="titulo-conversa">
-      <h2 id="titulo-conversa" className="mb-3 text-xl font-bold">Conversa e andamento</h2>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 id="titulo-conversa" className="text-xl font-bold">Conversa</h2>
+        {/* o técnico pode esconder o registro de mudanças; o servidor vê tudo (lá o registro é curto) */}
+        {tecnico && (
+          <div role="group" aria-label="O que mostrar" className="flex rounded-lg bg-fundo p-0.5 text-sm ring-1 ring-linha">
+            {([[false, "Tudo"], [true, "Só mensagens"]] as const).map(([v, rot]) => (
+              <button key={rot} type="button" aria-pressed={soMensagens === v} onClick={() => setSoMensagens(v)}
+                className={`min-h-9 rounded-md px-3 font-semibold ${soMensagens === v ? "bg-superficie text-tinta shadow-sm ring-1 ring-linha" : "text-tinta-2 hover:text-tinta"}`}>
+                {rot}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       {!carregou && <EsqueletoConversa />}
       <ol className="space-y-3">
-        {itens.map((i) => {
-          if (i.tipo !== "comentario") {
+        {agrupar(itens, soMensagens).map((g, gi, todos) => {
+          const dia = g.novoDia ? <span className="font-semibold text-tinta">{diaCurto(g.itens[0].created)}</span> : null;
+          if (g.tipo === "mudancas") {
+            // mudanças seguidas (status, responsável, prioridade, abertura) viram UMA linha fina
             return (
-              <li key={i.id} className="flex gap-2 text-sm text-tinta-2">
-                <span className="mt-1.5 size-2 shrink-0 rounded-full bg-linha" aria-hidden="true" />
-                <span className="texto-livre min-w-0">
-                  {i.texto}
-                  {i.expand?.autor && <> ({i.expand.autor.name})</>}
-                  <span className="ml-1 whitespace-nowrap">{dataHora(i.created)}</span>
-                </span>
+              <li key={g.itens[0].id} className="px-2 text-center text-sm text-tinta-2">
+                {dia}{dia && " · "}
+                {g.itens.map((i, n) => (
+                  <Fragment key={i.id}>
+                    {n > 0 && " · "}
+                    <span className="texto-livre" title={`${dataHora(i.created)}${i.expand?.autor ? ` · ${i.expand.autor.name}` : ""}`}>{textoMudanca(i)}</span>
+                  </Fragment>
+                ))}
               </li>
             );
           }
-          // sem autor = mensagem automática de uma regra (Configurações do TI > Automação)
+          const i = g.itens[0];
+          // sem autor = mensagem automática de uma regra (Configurações > Automação)
           const automatica = !i.autor;
           const doSolicitante = !automatica && i.autor === solicitanteId;
+          const nome = automatica ? (i.interno ? "Nota automática" : "Resposta automática") : primeiroNome(i.expand?.autor?.name ?? "Usuário");
+          // mensagens seguidas da mesma pessoa: o rosto aparece só na última
+          const seguinte = todos[gi + 1];
+          const continua = seguinte?.tipo === "mensagem" && !seguinte.novoDia && seguinte.itens[0].autor === i.autor;
+          const rosto = continua
+            ? <span className="w-7 shrink-0" aria-hidden="true" />
+            : automatica
+            ? <span className="grid size-7 shrink-0 place-items-center rounded-full bg-fundo text-xs font-bold text-tinta-2 ring-1 ring-linha" aria-hidden="true">TI</span>
+            : <Avatar id={i.autor} nome={i.expand?.autor?.name} tamanho="sm" />;
           return (
-            <li key={i.id} className={`flex ${doSolicitante ? "justify-start" : "justify-end"}`}>
-              <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                  i.interno
-                    ? "border-2 border-dashed border-tinta-2/40 bg-superficie"
-                    : doSolicitante
-                      ? "bg-superficie ring-1 ring-linha"
-                      : "bg-mar-50"
-                }`}
-              >
-                <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
-                  {i.interno && <Lock className="size-4" aria-label="Nota interna" />}
-                  {automatica ? (i.interno ? "Nota automática" : "Resposta automática") : i.expand?.autor?.name ?? "Usuário"}
-                  {!doSolicitante && !i.interno && <span className="font-normal text-tinta-2">(TI)</span>}
-                </p>
-                {i.texto && <p className="selecionavel texto-livre whitespace-pre-wrap">{i.texto}</p>}
-                {!!i.anexos?.length && (
-                  <ul className={`mt-2 grid gap-1.5 ${i.anexos.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-                    {i.anexos.map((nome, n) => (
-                      <li key={nome}>
-                        <button
-                          type="button"
-                          onClick={() => abrirImagem(i.id, n)}
-                          className="block w-full overflow-hidden rounded-xl ring-1 ring-linha hover:ring-2 hover:ring-acento"
-                          aria-label={`Ver imagem ${n + 1} em tela cheia`}
-                        >
-                          <img
-                            src={pb.files.getURL(i, nome, { thumb: "400x400" })}
-                            alt=""
-                            className={`w-full object-cover ${i.anexos!.length > 1 ? "aspect-square" : "max-h-64"}`}
-                          />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <p className="mt-1 text-xs text-tinta-2">{dataHora(i.created)}</p>
-              </div>
-            </li>
+            <Fragment key={i.id}>
+              {dia && <li className="pt-1 text-center text-sm text-tinta-2">{dia}</li>}
+              <li className={`flex items-end gap-2 ${doSolicitante ? "" : "flex-row-reverse"} ${continua ? "-mb-1.5" : ""}`}>
+                {rosto}
+                <div
+                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
+                    i.interno
+                      ? "bg-sol-50 ring-1 ring-linha"
+                      : doSolicitante
+                        ? "rounded-bl-md bg-superficie ring-1 ring-linha"
+                        : "rounded-br-md bg-mar-50"
+                  }`}
+                >
+                  {i.interno && (
+                    <p className="mb-1 flex items-center gap-1.5 text-sm font-bold">
+                      <Lock className="size-4" aria-hidden="true" /> Nota interna · só o TI vê
+                    </p>
+                  )}
+                  {i.texto && <p className="selecionavel texto-livre whitespace-pre-wrap">{i.texto}</p>}
+                  {!!i.anexos?.length && (
+                    <ul className={`mt-2 grid gap-1.5 ${i.anexos.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+                      {i.anexos.map((arquivo, n) => (
+                        <li key={arquivo}>
+                          <button
+                            type="button"
+                            onClick={() => abrirImagem(i.id, n)}
+                            className="block w-full overflow-hidden rounded-xl ring-1 ring-linha hover:ring-2 hover:ring-acento"
+                            aria-label={`Ver imagem ${n + 1} em tela cheia`}
+                          >
+                            <img
+                              src={pb.files.getURL(i, arquivo, { thumb: "400x400" })}
+                              alt=""
+                              className={`w-full object-cover ${i.anexos!.length > 1 ? "aspect-square" : "max-h-64"}`}
+                            />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="mt-1 text-xs text-tinta-2" title={dataHora(i.created)}>
+                    {nome}{!doSolicitante && !automatica && !i.interno && " (TI)"} · {hora(i.created)}
+                  </p>
+                </div>
+              </li>
+            </Fragment>
           );
         })}
       </ol>
@@ -221,13 +257,25 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, status, aoMudarChamado 
         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setSobre(false); }}
         onDrop={(e) => { if (!arrastando(e)) return; e.preventDefault(); setSobre(false); adicionar(e.dataTransfer.files); }}
       >
+        {tecnico && (
+          <div role="group" aria-label="Quem vai ler" className="flex w-fit rounded-lg bg-fundo p-0.5 text-sm ring-1 ring-linha">
+            <button type="button" aria-pressed={!interno} onClick={() => setInterno(false)}
+              className={`min-h-9 rounded-md px-3 font-semibold ${!interno ? "bg-superficie text-tinta shadow-sm ring-1 ring-linha" : "text-tinta-2 hover:text-tinta"}`}>
+              Para {solicitanteNome ? primeiroNome(solicitanteNome) : "quem pediu"}
+            </button>
+            <button type="button" aria-pressed={interno} onClick={() => setInterno(true)}
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 font-semibold ${interno ? "bg-sol-50 text-tinta shadow-sm ring-1 ring-linha" : "text-tinta-2 hover:text-tinta"}`}>
+              <Lock className="size-4" aria-hidden="true" /> Nota interna
+            </button>
+          </div>
+        )}
         {tecnico && !interno && <RespostasProntas selecionada={texto} aoEscolher={setTexto} />}
         <label htmlFor="mensagem" className="sr-only">Mensagem</label>
         <div className="relative">
           <textarea
             id="mensagem"
-            className="campo min-h-24"
-            placeholder={tecnico ? "Escreva para o solicitante" : "Escreva para o TI"}
+            className={`campo min-h-24 ${interno ? "bg-sol-50" : ""}`}
+            placeholder={!tecnico ? "Escreva para o TI" : interno ? "Só o TI vai ler" : `Escreva para ${solicitanteNome ? primeiroNome(solicitanteNome) : "quem pediu"}`}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             // print colado (Ctrl+V) vai como imagem da mensagem
@@ -255,12 +303,6 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, status, aoMudarChamado 
               onChange={(e) => { adicionar(e.target.files); e.target.value = ""; }}
             />
           </label>
-          {tecnico && (
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
-              <input type="checkbox" checked={interno} onChange={(e) => setInterno(e.target.checked)} className="size-5 accent-acento" />
-              Nota interna (só o TI vê)
-            </label>
-          )}
           <div className="ml-auto flex flex-wrap justify-end gap-2">
             {podeAguardar && (
               <button
@@ -292,4 +334,42 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, status, aoMudarChamado 
       )}
     </section>
   );
+}
+
+const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] || nome;
+const hora = (iso: string) => new Date(iso.replace(" ", "T")).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+const chaveDia = (iso: string) => new Date(iso.replace(" ", "T")).toDateString();
+function diaCurto(iso: string) {
+  const d = new Date(iso.replace(" ", "T"));
+  const hoje = new Date();
+  const ontem = new Date(Date.now() - 86400000);
+  if (d.toDateString() === hoje.toDateString()) return "Hoje";
+  if (d.toDateString() === ontem.toDateString()) return "Ontem";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", ...(d.getFullYear() !== hoje.getFullYear() ? { year: "numeric" } : {}) });
+}
+
+/** Mudança em texto curto: quem fez entra só quando não está no próprio texto. */
+function textoMudanca(i: Interacao) {
+  const quem = i.expand?.autor?.name;
+  const t = i.texto.replace(/\.$/, "");
+  return quem && !t.includes(quem) ? `${t} (${primeiroNome(quem)})` : t;
+}
+
+type Grupo = { tipo: "mensagem" | "mudancas"; itens: Interacao[]; novoDia: boolean };
+
+/** Junta mudanças seguidas do mesmo dia numa linha só; marca onde começa um dia novo. */
+function agrupar(itens: Interacao[], soMensagens: boolean): Grupo[] {
+  const grupos: Grupo[] = [];
+  let ultimoDia = "";
+  for (const i of itens) {
+    const mudanca = i.tipo !== "comentario";
+    if (mudanca && soMensagens) continue;
+    const dia = chaveDia(i.created);
+    const novoDia = dia !== ultimoDia;
+    ultimoDia = dia;
+    const anterior = grupos[grupos.length - 1];
+    if (mudanca && anterior?.tipo === "mudancas" && !novoDia) anterior.itens.push(i);
+    else grupos.push({ tipo: mudanca ? "mudancas" : "mensagem", itens: [i], novoDia });
+  }
+  return grupos;
 }
