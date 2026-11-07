@@ -21,14 +21,17 @@ backend/                     PocketBase 0.40.4 (um executável + SQLite)
     automacao.pb.js          Configurações do TI: /api/ti/automacao(/testar), /api/ti/equipe, config_ti, cron dos fluxos de tempo
     usuarios.pb.js           /api/sistema/info, /api/ti/usuarios, /api/ti/setores; protege o campo "ficticio"
     videos.pb.js             cron que comprime vídeos com ffmpeg
+    feedback.pb.js           "Sua opinião": POST /api/feedback (só a equipe do projeto lê)
+    avisos.pb.js             "Também estou com esse problema" nos avisos do TI (/api/avisos/{id}/tambem)
     lib/                     regras.js, automacao.js (motor dos fluxos e da fila), avisos.js (ntfy), config.js, usuarios.js, videos.js
   config.json                (fora do Git) ambiente, ntfy. Modelo: config.exemplo.json
 frontend/src/                React 19 + Vite + TypeScript + Tailwind v4 (tokens em index.css)
   pages/                     telas do servidor (MeusChamados, NovoChamado, Chamado)
-  pages/ti/                  telas do TI (Fila, TodosChamados = tabela com filtros, Registrar, Historico, Painel, Usuarios, QrCodes)
+  pages/ti/                  telas do TI (Fila, TodosChamados = tabela com filtros, Registrar, Historico = "Soluções", Painel, Usuarios, QrCodes)
+  pages/projeto/             Feedback do sistema (só contas com equipe_projeto)
   features/novo-chamado/     abertura de chamado em ETAPAS modulares (etapas.tsx); celular = passo a passo, PC = painel
   features/configuracoes/    Configurações do TI (só admin, /ti/configuracoes): Automação (editor de fluxos em fluxo/, React Flow), Equipe, Categorias, Fila e atendimento
-  components/                peças reutilizadas (Anexos, Selos, Layout, BarraLateral, PainelChamado, MuralAvisos...)
+  components/                peças reutilizadas (CabecalhoPagina, Layout, BarraLateral, BarraTopo, PainelChamado = gaveta do chamado, MuralAvisos, Colunas, Opiniao...)
   lib/pb.ts                  cliente PocketBase, TIPOS das coleções, mensagemErro()
 ferramentas/                 CLI + servidor MCP para gerar dados de teste e operar o sistema (ver abaixo)
 scripts/                     PowerShell de instalação/backup/atualização no PC servidor (ASCII + CRLF)
@@ -109,10 +112,12 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 12. **Confirmação de ação = aviso rápido**: `avisar("2026-00012 agora está com Hugo.")` (`frontend/src/lib/avisos.ts`).
     Some sozinho no canto da tela, sem botão para fechar obrigatório. Não crie faixas de aviso fixas na página.
     Erro de formulário continua perto do campo (`role="alert"`); erro de ação rápida: `avisar(msg, { tipo: "erro" })`.
-13. **Carregando = esqueleto**, nunca só o texto "Carregando...": use `components/Esqueleto.tsx` (`EsqueletoCartoes`,
+13. **Página nova começa com `CabecalhoPagina`** (título no mesmo lugar em todas as telas, abas sublinhadas com `AbasPagina`).
+    Conteúdo alinhado à esquerda; nada de `mx-auto` no contêiner da página.
+14. **Carregando = esqueleto**, nunca só o texto "Carregando...": use `components/Esqueleto.tsx` (`EsqueletoCartoes`,
     `EsqueletoLinhas`, `EsqueletoTabela`, `EsqueletoChamado`, `EsqueletoConversa` ou `Bloco` para montar um novo)
     no formato do que vai aparecer. Números que ainda não chegaram não aparecem como "0".
-14. **Sinais das listas**: um sinal = um significado (docs/ARQUITETURA.md, "Sinais das listas"). Prioridade só com
+15. **Sinais das listas**: um sinal = um significado (docs/ARQUITETURA.md, "Sinais das listas"). Prioridade só com
     `EtiquetaPrioridade` (aparece para Urgente e Alta), espera com `Espera`, situação com `SeloStatus`, "teste" com
     `MarcaTeste`. Não crie pílula nova nem use cor de prioridade para outra coisa.
 
@@ -120,7 +125,7 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 
 - `users` (auth): name, **matricula** (login, até 8 dígitos, única), email (opcional), setor → setores,
   papel (`solicitante` | `tecnico`), admin (admin do TI), ramal (próprio, opcional), trocar_senha, bloqueado, ficticio,
-  ausente_de/ausente_ate/ausencia_motivo e sem_automatico (técnicos; só o TI vê).
+  ausente_de/ausente_ate/ausencia_motivo e sem_automatico (técnicos; só o TI vê), equipe_projeto (vê o Feedback do sistema; só o superusuário marca).
   **Não há cadastro público**: só o admin do TI cria contas (`POST /api/ti/usuarios`); a pessoa só troca a própria senha.
   O PocketBase ESCONDE o e-mail de outros usuários; o TI usa `GET /api/ti/usuarios`. O servidor vê as contas de técnicos
   (nome do responsável e de quem respondeu), sem matrícula, ramal e marcas internas (hook `onRecordEnrich` em usuarios.pb.js).
@@ -137,6 +142,9 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
   midia_pendente, ficticio. "aguardando" = em espera: continua com o responsável, fora da fila e da carga.
 - `avisos`: mural "Avisos do TI" (texto, tipo `info`|`problema`, ate = some sozinho depois, autor). Técnico publica e
   encerra (encerrar = `ate` vira agora; não se apaga). Aparece na barra lateral (PC) e no topo de Meus chamados/Fila (celular).
+  `tambem` = quem tocou em "Também estou com esse problema" (só o TI vê a lista; todos recebem `tambem_total`/`tambem_eu`).
+- `feedbacks`: "Sua opinião" sobre o sistema (tipo, texto, tela, nota, papel, setor, situacao). Grava só por `POST /api/feedback`;
+  só usuários com `equipe_projeto = true` (marcado pelo superusuário em `/_/`) leem e mudam a situação.
 - `respostas_prontas`: texto, ordem. Frases do TI, editáveis por qualquer técnico (só o TI lê).
 - `interacoes`: chamado, autor (vazio = mensagem automática de uma regra), tipo (`comentario`|`status`|`prioridade`|`atribuicao`|`sistema`), texto, interno,
   anexos (até 4 imagens por mensagem; mensagem pode ser só imagem).

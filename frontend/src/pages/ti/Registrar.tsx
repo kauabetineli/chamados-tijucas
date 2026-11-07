@@ -93,7 +93,7 @@ export function Registrar() {
     if (!solicitante && !busca.trim() && !setor) return setErro("Diga quem pediu ou escolha o setor (passo 1).");
     if (!categoria) return setErro("Escolha a categoria (passo 2).");
     if (!descricao.trim()) return setErro("Escreva o que foi pedido (passo 3).");
-    if (resolvido && comRegistro && (!diagnostico.trim() || !solucao.trim())) return setErro("Preencha a causa e o que foi feito (passo 5), ou desmarque o registro no Histórico.");
+    if (resolvido && comRegistro && (!diagnostico.trim() || !solucao.trim())) return setErro("Preencha a causa e o que foi feito (passo 5), ou desmarque o registro em Soluções.");
     setSalvando(true);
     setProgresso(arquivos.length ? 0 : null);
     try {

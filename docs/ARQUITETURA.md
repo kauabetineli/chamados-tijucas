@@ -125,26 +125,71 @@ Não existe "criar conta" público: se o sistema for para a internet, ninguém d
 
 ## Ver o chamado sem sair da lista
 
-Clicar num chamado (Fila, Todos os chamados, Histórico, Meus chamados) abre um **painel que sobe de baixo**
-(`components/PainelChamado.tsx`) em vez de trocar de página, como no SoftDesk: dá para ir de um chamado a outro
-com um clique. O chamado aberto fica no endereço (`?ver=<id>`, `lib/verChamado.tsx`), então o "voltar" do celular
-fecha o painel. No PC a alça muda a altura (lembrada no aparelho) e a lista rola acima do painel; no celular é
-uma folha quase da altura da tela que fecha arrastando para baixo. Ctrl+clique abre a página inteira.
-Use `<LinkChamado id para>` em toda lista nova de chamados.
+Clicar num chamado (Fila, Todos os chamados, Soluções, Meus chamados) abre o chamado **ao lado da lista**
+(`components/PainelChamado.tsx`) em vez de trocar de página. O chamado aberto fica no endereço (`?ver=<id>`,
+`lib/verChamado.tsx`), então o "voltar" fecha o painel. Ctrl+clique abre a página inteira.
+- **PC: gaveta à direita** (600 px; a borda esquerda muda a largura, lembrada no aparelho). O conteúdo da página encolhe
+  ao lado dela (`--largura-painel`, classe `.conteudo` em `index.css`), então nada fica por baixo. **↑ ↓ (ou K e J)**
+  passam para o chamado de cima/de baixo da lista que está na tela (`chamadosNaTela()` lê os `data-ver-chamado` na ordem).
+  Formato compacto (`DetalheChamado gaveta`): protocolo e situação no topo fixo, dados em duas colunas, ações do técnico
+  numa linha (`PainelTecnico linha`) e abas **Conversa / Fotos e vídeos / Soluções parecidas**.
+- **Celular:** folha quase da altura da tela que fecha arrastando para baixo (o layout de página, numa coluna).
+Use `<LinkChamado id para>` em toda lista nova de chamados (é ele que marca `data-ver-chamado`).
 
-## Barra lateral e Avisos do TI
+A Fila tem colunas (Protocolo, Problema, Quem pediu, Setor, Esperando, Com) que aparecem **conforme a largura da lista**
+(container queries `@2xl`…`@5xl`, não a largura da tela): com a gaveta aberta a lista fica estreita e volta ao formato
+de cartão, sem rolar para o lado.
 
-No PC o menu fica numa **barra lateral** (`components/BarraLateral.tsx`): ganha a altura que o topo ocupava (o painel
-do chamado precisa dela) e mostra números ao vivo (Fila: aguardando e atrasados; servidor: em aberto). A pessoa
-**arrasta a borda direita** para mudar a largura (200–380 px, duplo clique volta ao padrão; setas do teclado também),
-e pode **recolher** para só ícones (começa recolhida em telas com menos de 1280 px). As duas escolhas ficam no aparelho.
-A largura vai para `--largura-lateral`, usada pelo painel do chamado. No celular não há barra no topo: só a barra de baixo. Técnico: Fila, Registrar, Histórico e **Você** (o avatar;
-lá dentro ficam Meus números, Painel, Pessoas e Configurações). Servidor: Meus chamados, Novo chamado e Você.
+## Cabeçalho das páginas
 
-Na lateral fica o mural **Avisos do TI** (coleção `avisos`, migration `1760000008`): "Internet do Paço instável, já
-estamos vendo". Serve para o servidor não abrir 10 chamados do mesmo problema (problema 1 do diagnóstico). O técnico
-publica com prazo (1 h, 4 h, fim do dia, 3 dias ou até encerrar); o aviso some sozinho e fica registrado.
-No celular o mural aparece no topo de Meus chamados e da Fila.
+Toda página começa com `CabecalhoPagina` (`components/CabecalhoPagina.tsx`): o título fica sempre no mesmo lugar e na
+mesma altura, ações à direita e abas sublinhadas embaixo (`AbasPagina`). O conteúdo é **alinhado à esquerda** (32 px da
+barra), com largura máxima por tela (`--max` no Layout). Texto e ícones usam tamanhos inteiros (a base é 17 px: ver
+o topo de `index.css`); vermelho só onde há algo a fazer (fora do prazo, Urgente).
+
+## Barra lateral (TI), barra do topo (servidor) e Avisos do TI
+
+No PC o **técnico** tem a **barra lateral** (`components/BarraLateral.tsx`): o botão **Registrar pedido** no topo e três
+grupos, **Atendimento** (Fila com os subitens Comigo, Livres, Em espera e Fora do prazo; Todos os chamados), **Consulta**
+(Soluções, Painel) e **Administração** (só o admin: Pessoas e setores, Configurações). A Fila mostra um número só; o
+vermelho fica no subitem "Fora do prazo" (`/ti?filtro=prazo`). Em espera ganha um ponto azul quando alguém respondeu.
+A pessoa **arrasta a borda direita** para mudar a largura (200–380 px, duplo clique volta ao padrão) e pode **recolher**
+para só ícones. O **servidor** usa poucas telas: no PC tem uma **barra no topo** (`components/BarraTopo.tsx`) com Meus
+chamados, Histórico, Novo chamado e o avatar, e o conteúdo ganha a largura toda (com avisos e "Como funciona" à direita).
+No celular não há barra no topo, só a de baixo. Técnico: Fila, Registrar, Soluções e **Você**; servidor: Início,
+Novo chamado (botão redondo no meio) e Você.
+
+**Avisos do TI** (coleção `avisos`, migrations `1760000008` e `1760000016`): "Internet do Paço fora do ar, já estamos
+vendo". Serve para o servidor não abrir 10 chamados do mesmo problema (problema 1 do diagnóstico). Na lateral é uma
+linha só: **Avisar todos** abre modelos prontos (Internet fora do ar, Sistema parado, Impressoras, Manutenção programada
+ou escrever outro) que já trazem texto e tipo; o trecho `[entre colchetes]` vem selecionado para completar, e o prazo é
+um toque (1 h, 2 h, fim do dia, 3 dias, até encerrar). Com aviso no ar, a linha fica colorida com "some em…" e
+"Resolvido, encerrar". No **Novo chamado** o servidor vê os avisos de problema ("O TI já sabe") e pode tocar em
+**Também estou com esse problema** (`POST /api/avisos/{id}/tambem`): o TI vê o número na hora, em vez de dez chamados
+repetidos. No celular o mural aparece no topo de Meus chamados e da Fila.
+
+## Sua opinião (feedback do sistema)
+
+Para a equipe do projeto (extensão) saber o que melhorar no piloto, sem misturar com os chamados ao TI: botão
+**Sua opinião** no canto do PC (e item em Você no celular), com "Algo não funcionou / Tenho uma ideia / Quero elogiar",
+nota de 1 a 5 opcional e a tela em que a pessoa estava. Depois de confirmar um chamado, no máximo uma vez a cada 30 dias,
+um aviso rápido convida a dar nota. Grava em `feedbacks` por `POST /api/feedback`. Só quem tem `equipe_projeto = true`
+em `users` (marcado pelo superusuário em `/_/`) vê a área **Feedback** (`/projeto/feedback`): contadores, filtros,
+situação de cada item (novo, visto, resolvido, virou melhoria) e planilha CSV.
+
+## Conversa do chamado
+
+Mensagens e mudanças ficam juntas, com pesos diferentes (`components/LinhaDoTempo.tsx`): mudanças seguidas do mesmo dia
+viram **uma linha fina** centralizada; mensagens são balões com o rosto de quem escreveu (o de quem pediu à esquerda, o
+do TI à direita) e a data aparece uma vez por dia. O técnico tem o filtro **Só mensagens** e escolhe no campo **Para
+<nome>** ou **Nota interna** (amarela, só o TI vê). Depois de abrir um chamado, o servidor vê a tela **Chamado enviado!**
+com o Dino, a posição na fila e o que acontece em seguida.
+
+## Tabela de Todos os chamados
+
+Cada técnico ajusta a tabela do seu jeito (`components/Colunas.tsx`, guardado neste navegador): arrastar a borda do
+título muda a largura (cada coluna tem um mínimo), duplo clique ajusta ao texto mais longo da tela, e o menu
+**Colunas** mostra/esconde colunas (inclusive Setor separado), troca a densidade e tem "Voltar ao padrão".
 
 ## Jeito de aplicativo no celular
 

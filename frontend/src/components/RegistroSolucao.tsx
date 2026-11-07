@@ -20,7 +20,7 @@ export function RegistroSolucao({ ligado, aoLigar, diagnostico, aoDiagnostico, s
       <label className="flex cursor-pointer items-start gap-3 rounded-xl p-3 ring-1 ring-linha hover:ring-acento">
         <input type="checkbox" className="mt-1 size-5 accent-acento" checked={ligado} onChange={(e) => aoLigar(e.target.checked)} />
         <span>
-          <span className="flex items-center gap-1.5 font-semibold"><BookOpen className="size-4 text-acento" aria-hidden="true" /> Guardar causa e solução no Histórico</span>
+          <span className="flex items-center gap-1.5 font-semibold"><BookOpen className="size-4 text-acento" aria-hidden="true" /> Guardar causa e solução em Soluções</span>
           <span className="block text-sm text-tinta-2">Opcional. Vale para o que não é rotina: na próxima vez, quem atender vê como foi resolvido.</span>
         </span>
       </label>
