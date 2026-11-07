@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth";
 import { Avisos } from "./Avisos";
 import { Avatar } from "./Avatar";
 import { BarraLateral } from "./BarraLateral";
+import { BarraTopo } from "./BarraTopo";
 import { Opiniao } from "./Opiniao";
 import { PainelChamado } from "./PainelChamado";
 import { ehTecnico } from "../lib/pb";
@@ -16,7 +17,7 @@ import { useTecladoAberto } from "../lib/teclado";
 type Item = { para: string; rotulo: string; Icone: typeof Plus; fim?: boolean; destaque?: boolean; avatar?: boolean };
 
 const SOLICITANTE: Item[] = [
-  { para: "/", rotulo: "Meus chamados", Icone: ClipboardList, fim: true },
+  { para: "/", rotulo: "Início", Icone: ClipboardList, fim: true },
   { para: "/novo", rotulo: "Novo chamado", Icone: Plus, destaque: true },
   { para: "/perfil", rotulo: "Você", Icone: UserRound, avatar: true },
 ];
@@ -49,13 +50,15 @@ export function Layout() {
   // celular, técnico: tocar de novo em "Fila" (já estando nela) abre o menu das visões
   const [menuFila, setMenuFila] = useState(false);
   useEffect(() => setMenuFila(false), [caminho, params]);
-  const largura = caminho === "/ti/configuracoes" ? "96rem" : caminho === "/ti" || caminho === "/ti/chamados" || caminho === "/ti/registrar" || focado ? "80rem" : "64rem";
+  const largura = !tecnico ? "72rem" : caminho === "/ti/configuracoes" ? "96rem" : caminho === "/ti" || caminho === "/ti/chamados" || caminho === "/ti/registrar" || focado ? "80rem" : "64rem";
 
   return (
     // PC: barra lateral à esquerda + conteúdo. Celular: topo + barra de baixo (a lateral não aparece).
     <div className="md:flex">
-    <BarraLateral numeros={numeros} />
+    {/* PC: o TI tem a barra lateral; o servidor, uma barra no topo (poucas telas) */}
+    {tecnico && <BarraLateral numeros={numeros} />}
     <div className={`flex min-h-dvh min-w-0 flex-1 flex-col md:pb-0 ${semBarra ? "" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
+      {!tecnico && <BarraTopo numeros={numeros} />}
 
       {/* com o chamado aberto na gaveta da direita (PC), a lista encolhe ao lado dela (--largura-painel) */}
       {/* celular: SEM barra no topo (a tela toda é do conteúdo, como no app). A pessoa fica na barra de baixo

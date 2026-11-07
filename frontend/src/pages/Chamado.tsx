@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, CheckCircle2, Hourglass, MessageCircleQuestion, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ArrowLeft, Check, Hourglass, MessageCircleQuestion, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { GaleriaAnexos } from "../components/Anexos";
@@ -49,6 +49,7 @@ export function DetalheChamado({ id, embutido, gaveta, controles }: {
   const [c, setC] = useState<TChamado | null>(null);
   const [aFrente, setAFrente] = useState<number | null>(null);
   const [erro, setErro] = useState("");
+  const [viuEnviado, setViuEnviado] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -99,6 +100,19 @@ export function DetalheChamado({ id, embutido, gaveta, controles }: {
   const oQueOTIFez = c.status === "resolvido" && (c.diagnostico || c.solucao) ? <OQueOTIFez c={c} doSolicitante={doSolicitante} /> : null;
   const conversa = <LinhaDoTempo chamadoId={c.id} solicitanteId={c.solicitante} solicitanteNome={nomeSolicitante(c)} status={c.status} aoMudarChamado={carregar} semTitulo={gaveta} />;
 
+  // logo depois de abrir: a tela "Chamado enviado!" (some no "Acompanhar meu chamado")
+  if (novo && !viuEnviado) {
+    return (
+      <ChamadoEnviado
+        c={c}
+        aFrente={aFrente}
+        comEmail={!!usuario?.email}
+        foraDoHorario={!dentroDoHorario(config) ? mensagemForaDoHorario(config) : ""}
+        aoAcompanhar={() => { setViuEnviado(true); window.scrollTo({ top: 0 }); }}
+      />
+    );
+  }
+
   if (gaveta) {
     return <Gaveta c={c} tecnico={tecnico} controles={controles} aoMudar={carregar} paraOServidor={paraOServidor} oQueOTIFez={oQueOTIFez} conversa={conversa} />;
   }
@@ -111,16 +125,6 @@ export function DetalheChamado({ id, embutido, gaveta, controles }: {
         </Link>
       )}
 
-      {novo && (
-        <div role="status" className="mb-5 flex items-start gap-3 rounded-2xl bg-campo-50 p-4 text-ok">
-          <CheckCircle2 className="mt-0.5 size-6 shrink-0" aria-hidden="true" />
-          <p className="font-semibold">
-            Chamado aberto. O TI já vê o seu pedido na fila e você recebe as respostas por aqui
-            {usuario?.email ? " e por e-mail" : ""}.
-            {!dentroDoHorario(config) && <span className="mt-1 block font-normal">{mensagemForaDoHorario(config)}</span>}
-          </p>
-        </div>
-      )}
 
       {/* no celular: dados do chamado, ações do técnico, conversa. No computador: ações na lateral */}
       <div className="grid gap-x-8 gap-y-7 md:grid-cols-[minmax(0,1fr)_20rem] md:grid-rows-[auto_1fr]">
@@ -197,6 +201,41 @@ export function DetalheChamado({ id, embutido, gaveta, controles }: {
 
           {conversa}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Logo depois de abrir o chamado: o Dino, a posição na fila e o que acontece agora. */
+function ChamadoEnviado({ c, aFrente, comEmail, foraDoHorario, aoAcompanhar }: {
+  c: TChamado; aFrente: number | null; comEmail: boolean; foraDoHorario: string; aoAcompanhar: () => void;
+}) {
+  return (
+    <div className="mx-auto max-w-xl space-y-6 py-2 text-center md:py-6" role="status">
+      <img src="/icone.svg" alt="" className="animar-chegada mx-auto size-24" />
+      <div>
+        <h1 className="text-3xl font-bold">Chamado enviado!</h1>
+        <p className="mt-2 text-lg text-tinta-2">
+          O TI já recebeu. Você não precisa mandar WhatsApp: a resposta chega por aqui{comEmail ? " e por e-mail" : ""}.
+        </p>
+        {foraDoHorario && <p className="mt-2 text-tinta-2">{foraDoHorario}</p>}
+      </div>
+      {c.status === "aberto" && aFrente !== null && (
+        <div className="text-left">
+          <SenhaFila aFrente={aFrente} protocolo={c.protocolo} categoria={c.expand?.categoria?.nome} icone={c.expand?.categoria?.icone} animar />
+        </div>
+      )}
+      <ol className="space-y-3 rounded-2xl bg-superficie p-5 text-left ring-1 ring-linha">
+        {["Alguém do TI pega o seu chamado.", "Se precisar, ele pergunta por aqui.", "Quando resolver, você confirma se deu certo."].map((t, i) => (
+          <li key={t} className="flex items-center gap-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-mar-50 font-bold text-acento">{i + 1}</span>
+            <span>{t}</span>
+          </li>
+        ))}
+      </ol>
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+        <button type="button" className="btn-primario" onClick={aoAcompanhar}>Acompanhar meu chamado</button>
+        <Link to="/" className="btn-secundario">Voltar ao início</Link>
       </div>
     </div>
   );

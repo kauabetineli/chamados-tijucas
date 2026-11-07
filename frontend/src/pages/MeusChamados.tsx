@@ -1,5 +1,5 @@
 import { AbasPagina, CabecalhoPagina } from "../components/CabecalhoPagina";
-import { CheckCircle2, Hourglass, MessageCircleQuestion, Plus, Search, Wrench } from "lucide-react";
+import { CheckCircle2, MessageCircleQuestion, Plus, Search, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { EsqueletoLinhas } from "../components/Esqueleto";
@@ -8,8 +8,11 @@ import { LinhaChamado } from "../components/LinhaChamado";
 import { Paginacao, usePaginacao } from "../components/Paginacao";
 import { SenhaFila } from "../components/SenhaFila";
 import { useAuth } from "../lib/auth";
-import { resumo, ROTULO_AGUARDANDO } from "../lib/formato";
-import { EXPAND_CHAMADO, pb, type Chamado } from "../lib/pb";
+import { avisar } from "../lib/avisos";
+import { convidarOpiniao } from "../lib/opiniao";
+import { Avatar } from "../components/Avatar";
+import { resumo, ROTULO_AGUARDANDO, tempoRelativo } from "../lib/formato";
+import { EXPAND_CHAMADO, mensagemErro, pb, type Chamado } from "../lib/pb";
 import { buscarPagina } from "../lib/paginar";
 import { useRealtime } from "../lib/useRealtime";
 import { ultimaVisita } from "../lib/visto";
@@ -23,6 +26,10 @@ export function MeusChamados() {
   const [posicoes, setPosicoes] = useState<Posicoes>({});
   // última mensagem ou mudança feita pelo TI em cada chamado (para o "Nova resposta")
   const [ultimaDoTI, setUltimaDoTI] = useState<Record<string, number>>({});
+  // última mensagem escrita pelo TI (aparece em "Com o TI")
+  const [ultimaMensagem, setUltimaMensagem] = useState<Record<string, string>>({});
+  const [verTodaFila, setVerTodaFila] = useState(false);
+  const [confirmando, setConfirmando] = useState("");
 
   const carregar = useCallback(async () => {
     if (!usuario) return;
@@ -34,17 +41,22 @@ export function MeusChamados() {
         expand: EXPAND_CHAMADO,
       }),
       pb.send<{ itens: Posicoes }>("/api/fila/minhas-posicoes", {}),
-      pb.collection("interacoes").getList<{ chamado: string; created: string }>(1, 200, {
+      pb.collection("interacoes").getList<{ chamado: string; created: string; tipo: string; texto: string }>(1, 200, {
         filter: pb.filter('chamado.solicitante = {:u} && autor != {:u} && (tipo = "comentario" || tipo = "status")', { u: usuario.id }),
         sort: "-created",
-        fields: "chamado,created",
+        fields: "chamado,created,tipo,texto",
       }).catch(() => ({ items: [] })),
     ]);
     setChamados(lista);
     setPosicoes(pos?.itens ?? {});
     const mapa: Record<string, number> = {};
-    for (const i of doTI.items) mapa[i.chamado] ??= Date.parse(i.created.replace(" ", "T"));
+    const msgs: Record<string, string> = {};
+    for (const i of doTI.items) {
+      mapa[i.chamado] ??= Date.parse(i.created.replace(" ", "T"));
+      if (i.tipo === "comentario" && i.texto) msgs[i.chamado] ??= i.texto;
+    }
     setUltimaDoTI(mapa);
+    setUltimaMensagem(msgs);
   }, [usuario]);
 
   useEffect(() => { carregar().catch(() => setChamados([])); }, [carregar]);
@@ -59,7 +71,7 @@ export function MeusChamados() {
   // histórico (todos os resolvidos): paginado no banco, com busca
   const [params, setParams] = useSearchParams();
   const aba = params.get("aba") === "historico" ? "historico" : "abertos";
-  const { aberto: verId } = useVerChamado();
+  const { aberto: verId, abrir } = useVerChamado();
   const pag = usePaginacao("meus-anteriores", 10);
   const [busca, setBusca] = useState("");
   const [historico, setHistorico] = useState<Chamado[] | null>(null);
@@ -130,18 +142,45 @@ export function MeusChamados() {
     setParams(p, { replace: true });
   };
 
+  // "O Hugo está cuidando de 1 chamado seu, 15 estão na fila e 1 precisa da sua resposta."
+  const cuidando = [...new Set(emAtendimento.map((c) => c.expand?.responsavel?.name?.split(" ")[0]).filter(Boolean))];
+  const resumoDoDia = emAberto === 0 ? "Nada em aberto agora." : [
+    emAtendimento.length ? `${cuidando.length === 1 ? `${cuidando[0]} está` : "O TI está"} cuidando de ${emAtendimento.length} ${emAtendimento.length === 1 ? "chamado seu" : "chamados seus"}` : "",
+    naFila.length ? `${naFila.length} ${naFila.length === 1 ? "está" : "estão"} na fila` : "",
+    precisaDeVoce ? `${precisaDeVoce} ${precisaDeVoce === 1 ? "precisa" : "precisam"} de você` : "",
+  ].filter(Boolean).join(", ").replace(/, ([^,]*)$/, " e $1") + ".";
+
+  async function deuCerto(c: Chamado) {
+    setConfirmando(c.id);
+    try {
+      await pb.send(`/api/chamados/${c.id}/confirmar`, { method: "POST", body: {} });
+      avisar(`Que bom! ${c.protocolo} encerrado.`);
+      convidarOpiniao();
+      await carregar();
+    } catch (err) {
+      avisar(mensagemErro(err), { tipo: "erro" });
+    } finally {
+      setConfirmando("");
+    }
+  }
+
+  const FILA_CURTA = 3;
+  const filaVisivel = verTodaFila ? naFila : naFila.slice(0, FILA_CURTA);
+
   return (
-    <div className="max-w-2xl space-y-7">
+    <div className="grid items-start gap-x-10 gap-y-7 lg:grid-cols-[minmax(0,1fr)_19rem]">
+    <div className="min-w-0 space-y-7">
       <CabecalhoPagina
-        titulo="Meus chamados"
+        titulo={`${saudacao()}, ${usuario?.name.split(" ")[0] ?? ""}!`}
+        subtitulo={aba === "abertos" ? resumoDoDia : undefined}
         abas={<AbasPagina rotulo="Quais chamados" itens={[
           { rotulo: "Em aberto", ativo: aba === "abertos", aoClicar: () => irPara("abertos"), numero: emAberto },
           { rotulo: "Histórico", ativo: aba === "historico", aoClicar: () => irPara("historico"), numero: totalHistorico },
         ]} />}
       />
 
-      {/* no PC o mural fica na barra lateral */}
-      <MuralAvisos className="md:hidden" />
+      {/* celular: avisos aqui no topo; PC: na coluna da direita */}
+      <MuralAvisos className="lg:hidden" />
 
       {aba === "abertos" ? (
         <>
@@ -170,44 +209,60 @@ export function MeusChamados() {
                 />
               ))}
               {paraConfirmar.map((c) => (
-                <CartaoAcao
-                  key={c.id}
-                  c={c}
-                  selecionado={verId === c.id}
-                  Icone={CheckCircle2}
-                  titulo="O TI marcou como resolvido. Deu certo?"
-                  acao="Confirmar"
-                  detalhe={c.solucao ? `Solução: ${resumo(c.solucao, 90)}` : undefined}
-                  novidade={novidade(c)}
-                />
+                <div key={c.id} className={`rounded-2xl border-l-8 border-acento bg-mar-50 p-4 ring-1 ${verId === c.id ? "ring-2 ring-acento" : "ring-linha"}`}>
+                  <LinkChamado id={c.id} para={`/chamado/${c.id}`} className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-acento" aria-hidden="true" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold">O TI resolveu: {resumo(c.descricao, 70).replace(/[.!?…]+$/, "")}. Deu certo?</span>
+                      <span className="block text-sm text-tinta-2">
+                        <span className="font-display font-bold text-tinta">{c.protocolo}</span>
+                        {c.solucao && <> · Solução: {resumo(c.solucao, 90)}</>}
+                      </span>
+                      {novidade(c) && <SeloNovidade />}
+                    </span>
+                  </LinkChamado>
+                  <div className="mt-3 flex flex-wrap gap-2 sm:pl-9">
+                    <button type="button" className="btn-sucesso min-h-11 flex-1 sm:flex-none" disabled={confirmando === c.id} onClick={() => deuCerto(c)}>
+                      {confirmando === c.id ? "Confirmando..." : "Sim, deu certo"}
+                    </button>
+                    <button type="button" className="btn-secundario min-h-11 flex-1 sm:flex-none" onClick={(e) => abrir(c.id, e.currentTarget)}>Ainda não</button>
+                  </div>
+                </div>
               ))}
             </section>
           )}
 
           {emAtendimento.length > 0 && (
             <section aria-labelledby="t-atend" className="space-y-3">
-              <h2 id="t-atend" className="text-xl font-bold">Com o TI</h2>
+              <h2 id="t-atend" className="text-xl font-bold">Com o TI agora</h2>
               {emAtendimento.map((c) => {
-                const Icone = c.status === "aguardando" ? Hourglass : Wrench;
-                const quem = c.expand?.responsavel?.name ?? "Um técnico";
+                const quem = c.expand?.responsavel?.name?.split(" ")[0] ?? "Um técnico";
+                const msg = ultimaMensagem[c.id];
                 return (
                   <LinkChamado
                     key={c.id}
                     id={c.id}
                     para={`/chamado/${c.id}`}
-                    className={`flex items-start gap-3 rounded-2xl border-l-8 border-sol bg-superficie p-4 ring-1 ${verId === c.id ? "ring-2 ring-acento" : "ring-linha hover:ring-acento"}`}
+                    className={`flex items-start gap-3 rounded-2xl bg-superficie p-4 ring-1 ${verId === c.id ? "ring-2 ring-acento" : "ring-linha hover:ring-acento"}`}
                   >
-                    <Icone className="mt-0.5 size-6 shrink-0 text-tinta" aria-hidden="true" />
-                    <span>
+                    {c.responsavel ? <Avatar id={c.responsavel} nome={c.expand?.responsavel?.name} /> : <Wrench className="mt-0.5 size-6 shrink-0" aria-hidden="true" />}
+                    <span className="min-w-0 flex-1">
                       <span className="block font-bold">
                         {c.status === "aguardando" && c.aguardando_motivo
-                            ? `${quem} está aguardando ${ROTULO_AGUARDANDO[c.aguardando_motivo]}.`
-                            : `${quem} está cuidando do seu chamado.`}
+                          ? `${quem} está aguardando ${ROTULO_AGUARDANDO[c.aguardando_motivo]}`
+                          : `${quem} está cuidando de: ${resumo(c.descricao, 60)}`}
                       </span>
-                      <span className="block text-tinta-2">
-                        <span className="font-display font-bold text-tinta">{c.protocolo}</span> {resumo(c.descricao, 70)}
+                      <span className="block text-sm text-tinta-2">
+                        <span className="font-display font-bold text-tinta">{c.protocolo}</span>
+                        {c.status === "aguardando" ? <> · {resumo(c.descricao, 60)}</> : c.iniciado_em ? <> · começou {tempoRelativo(c.iniciado_em)}</> : null}
                       </span>
-                      {novidade(c) && <SeloNovidade />}
+                      {msg && (
+                        <span className="mt-2 block rounded-xl rounded-tl-md bg-mar-50 px-3 py-2 text-sm">
+                          {novidade(c) && <b className="mb-0.5 block text-xs font-bold text-acento">Mensagem nova</b>}
+                          <span className="texto-livre line-clamp-2">“{msg}”</span>
+                        </span>
+                      )}
+                      {!msg && novidade(c) && <SeloNovidade />}
                     </span>
                   </LinkChamado>
                 );
@@ -217,8 +272,8 @@ export function MeusChamados() {
 
           {naFila.length > 0 && (
             <section aria-labelledby="t-fila" className="space-y-4">
-              <h2 id="t-fila" className="text-xl font-bold">Na fila</h2>
-              {naFila.map((c) => (
+              <h2 id="t-fila" className="text-xl font-bold">Na fila <span className="font-display text-base text-tinta-2">{naFila.length}</span></h2>
+              {filaVisivel.map((c, i) => i === 0 ? (
                 <LinkChamado key={c.id} id={c.id} para={`/chamado/${c.id}`} className={`block rounded-[18px] focus-visible:outline-offset-4 ${verId === c.id ? "ring-4 ring-acento" : ""}`}>
                   <SenhaFila
                     aFrente={posicoes[c.id]?.a_frente ?? 0}
@@ -229,7 +284,26 @@ export function MeusChamados() {
                     novidade={novidade(c)}
                   />
                 </LinkChamado>
+              ) : (
+                <LinkChamado
+                  key={c.id}
+                  id={c.id}
+                  para={`/chamado/${c.id}`}
+                  className={`flex items-center gap-4 rounded-2xl bg-superficie px-4 py-3 ring-1 ${verId === c.id ? "ring-2 ring-acento" : "ring-linha hover:ring-acento"}`}
+                >
+                  <span className="w-12 shrink-0 font-display text-2xl font-extrabold">{(posicoes[c.id]?.a_frente ?? 0) + 1}º</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold">{resumo(c.descricao, 80)}</span>
+                    <span className="block text-sm text-tinta-2">{c.expand?.categoria?.nome ?? "Outro"} · {c.protocolo}</span>
+                    {novidade(c) && <SeloNovidade />}
+                  </span>
+                </LinkChamado>
               ))}
+              {naFila.length > FILA_CURTA && (
+                <button type="button" className="btn-secundario w-full" onClick={() => setVerTodaFila(!verTodaFila)} aria-expanded={verTodaFila}>
+                  {verTodaFila ? "Mostrar menos" : `Ver os outros ${naFila.length - FILA_CURTA}`}
+                </button>
+              )}
               <p className="text-sm text-tinta-2">
                 A ordem segue a urgência de cada pedido e, depois, quem pediu primeiro.
               </p>
@@ -266,7 +340,33 @@ export function MeusChamados() {
         </section>
       )}
     </div>
+
+    {/* PC largo: coluna da direita com avisos e como funciona */}
+    <aside className="hidden space-y-5 lg:sticky lg:top-24 lg:block" aria-label="Informações">
+      <MuralAvisos />
+      <section aria-labelledby="t-como" className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
+        <h2 id="t-como" className="font-bold">Como funciona</h2>
+        <ol className="mt-3 space-y-3 text-sm">
+          {["Você abre o chamado e recebe a sua posição na fila.", "O TI atende na ordem da fila; o que é urgente passa na frente.", "A conversa acontece aqui, sem precisar mandar WhatsApp."].map((t, i) => (
+            <li key={t} className="flex gap-3">
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-mar-50 text-xs font-bold text-acento">{i + 1}</span>
+              <span>{t}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <section aria-labelledby="t-parou" className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
+        <h2 id="t-parou" className="font-bold">Parou o atendimento ao público?</h2>
+        <p className="mt-1 text-sm text-tinta-2">Abra o chamado e, em “Quem é afetado”, escolha <b className="text-tinta">O atendimento ao público parou</b>. Ele entra como urgente.</p>
+      </section>
+    </aside>
+    </div>
   );
+}
+
+function saudacao() {
+  const h = new Date().getHours();
+  return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
 }
 
 /** Cartão do "Precisa de você": o que a pessoa tem que fazer, com o botão da ação à direita. */
