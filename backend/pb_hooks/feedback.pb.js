@@ -1,7 +1,7 @@
 /// <reference path="../pb_data/types.d.ts" />
 
 // "Sua opinião": feedback sobre o sistema, para a equipe do projeto (ver migration 1760000015_feedback.js).
-// POST /api/feedback { tipo: problema|ideia|elogio|nota, texto, tela, nota (0 a 5) }
+// POST /api/feedback { tipo: problema|ideia|elogio|nota, texto, tela, nota (0 a 5) } (JSON ou multipart com "imagem")
 // O servidor preenche quem enviou, o papel, o setor e se é dado de teste. Limite: 30 por pessoa por dia.
 
 routerAdd("POST", "/api/feedback", (e) => {
@@ -29,6 +29,11 @@ routerAdd("POST", "/api/feedback", (e) => {
   r.set("setor", e.auth.getString("setor"));
   r.set("situacao", "novo");
   r.set("ficticio", e.auth.getBool("ficticio"));
+  // print opcional (multipart): o tamanho e o tipo são conferidos pelo campo (migration 1760000018)
+  try {
+    const arquivos = e.findUploadedFiles("imagem");
+    if (arquivos && arquivos.length) r.set("imagem", arquivos[0]);
+  } catch (_) { /* sem arquivo (JSON) */ }
   e.app.save(r);
   return e.json(200, { ok: true });
 }, $apis.requireAuth("users"));

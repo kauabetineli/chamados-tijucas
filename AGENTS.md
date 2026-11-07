@@ -147,7 +147,7 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 - `avisos`: mural "Avisos do TI" (texto, tipo `info`|`problema`|`resolvido`, ate = some sozinho depois, autor). Técnico publica e
   encerra (encerrar = `ate` vira agora; não se apaga). Aparece na barra lateral (PC) e no topo de Meus chamados/Fila (celular).
   `tambem` = quem tocou em "Também estou com esse problema" (só o TI vê a lista; todos recebem `tambem_total`/`tambem_eu`).
-- `feedbacks`: "Sua opinião" sobre o sistema (tipo, texto, tela, nota, papel, setor, situacao). Grava só por `POST /api/feedback`;
+- `feedbacks`: "Sua opinião" sobre o sistema (tipo, texto, tela, nota, imagem = print opcional, papel, setor, situacao). Grava só por `POST /api/feedback`;
   só usuários com `equipe_projeto = true` (marcado pelo superusuário em `/_/`) leem e mudam a situação.
 - `respostas_prontas`: texto, ordem, acao (opcional: ao enviar, põe em espera ou resolve). Frases do TI, editáveis por qualquer técnico (só o TI lê).
 - `interacoes`: chamado, autor (vazio = mensagem automática de uma regra), tipo (`comentario`|`status`|`prioridade`|`atribuicao`|`sistema`), texto, interno,

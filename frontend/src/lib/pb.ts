@@ -70,6 +70,8 @@ export interface Feedback extends RecordModel {
   setor: string;
   situacao: "novo" | "visto" | "resolvido" | "melhoria";
   anotacao: string;
+  /** print opcional enviado junto */
+  imagem?: string;
   ficticio: boolean;
   created: string;
   expand?: { setor?: Setor };

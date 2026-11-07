@@ -133,10 +133,17 @@ export function Feedback() {
                     {f.texto || <span className="text-tinta-2">(sem texto)</span>}
                   </button>
                 ) : (
-                  <p className="texto-livre whitespace-pre-line">{f.texto || <span className="text-tinta-2">(sem texto)</span>}</p>
+                  <>
+                    <p className="texto-livre whitespace-pre-line">{f.texto || <span className="text-tinta-2">(sem texto)</span>}</p>
+                    {f.imagem && (
+                      <a href={pb.files.getURL(f, f.imagem)} target="_blank" rel="noreferrer" className="mt-2 block w-fit" title="Abrir o print em tamanho real">
+                        <img src={pb.files.getURL(f, f.imagem, { thumb: "400x0" })} alt="Print enviado junto" className="max-h-48 rounded-lg ring-1 ring-linha" />
+                      </a>
+                    )}
+                  </>
                 )}
                 <p className="mt-1 text-sm text-tinta-2">
-                  {dataHora(f.created)}{f.tela && <> · tela: {f.tela}</>}{f.nota > 0 && <> · nota <b className="text-tinta">{f.nota}</b></>} <MarcaTeste ficticio={f.ficticio} />
+                  {dataHora(f.created)}{f.tela && <> · tela: {f.tela}</>}{f.imagem && <> · com print</>}{f.nota > 0 && <> · nota <b className="text-tinta">{f.nota}</b></>} <MarcaTeste ficticio={f.ficticio} />
                 </p>
               </div>
               <p className="text-sm">
@@ -162,6 +169,11 @@ export function Feedback() {
             <MarcaTeste ficticio={sel.ficticio} />
           </div>
           <p className="texto-livre text-lg whitespace-pre-line">{sel.texto || <span className="text-tinta-2">(sem texto)</span>}</p>
+          {sel.imagem && (
+            <a href={pb.files.getURL(sel, sel.imagem)} target="_blank" rel="noreferrer" className="block w-fit" title="Abrir o print em tamanho real">
+              <img src={pb.files.getURL(sel, sel.imagem, { thumb: "400x0" })} alt="Print enviado junto" className="max-h-72 rounded-xl ring-1 ring-linha" />
+            </a>
+          )}
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
             <div><dt className="text-tinta-2">Quem enviou</dt><dd className="font-semibold">{sel.autor_nome ?? "—"}</dd></div>
             <div><dt className="text-tinta-2">Papel e setor</dt><dd className="font-semibold">{PAPEL[sel.papel] ?? sel.papel}{sel.expand?.setor?.nome ? ` · ${sel.expand.setor.nome}` : ""}</dd></div>
