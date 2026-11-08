@@ -1,4 +1,4 @@
-import { CheckCircle2, Paperclip, Video, X } from "lucide-react";
+import { Camera, CheckCircle2, Paperclip, Video, X } from "lucide-react";
 import { Dica } from "./Dica";
 import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { arrastandoArquivo, type ControleAnexos } from "./Anexos";
@@ -51,10 +51,11 @@ export const CaixaComAnexos = forwardRef<HTMLTextAreaElement, {
   min?: number;
   max?: number;
 }>(function CaixaComAnexos(
-  { id, rotulo, valor, aoMudar, placeholder, arquivos, setArquivos, anexos, rotuloAnexar = "Anexar foto ou vídeo", aceitar = "image/*,video/*", min = 140, max = 360 },
+  { id, rotulo, valor, aoMudar, placeholder, arquivos, setArquivos, anexos, rotuloAnexar = "Anexar foto ou vídeo", aceitar = "image/*,video/*", min = 110, max = 360 },
   ref,
 ) {
   const [sobre, setSobre] = useState(false);
+  const toque = useMediaQuery("(pointer: coarse)");
   const interna = useRef<HTMLTextAreaElement | null>(null);
   const previas = useMemo(() => arquivos.map((a) => ({ a, url: URL.createObjectURL(a) })), [arquivos]);
   useEffect(() => () => previas.forEach((p) => URL.revokeObjectURL(p.url)), [previas]);
@@ -76,8 +77,10 @@ export const CaixaComAnexos = forwardRef<HTMLTextAreaElement, {
 
   return (
     <>
+      {/* campo único (como GitHub/Linear): texto em cima; embaixo, DENTRO do campo, as miniaturas e os ícones
+          de anexar (clipe; câmera só no celular). Sem faixa separada. */}
       <div
-        className={`relative overflow-hidden rounded-xl border-2 bg-superficie focus-within:border-acento ${sobre ? "border-acento" : "border-linha"}`}
+        className={`relative rounded-xl bg-superficie ring-1 transition-shadow focus-within:ring-2 focus-within:ring-acento ${sobre ? "ring-2 ring-acento" : "ring-linha"}`}
         onDragEnter={(e) => { if (arrastandoArquivo(e)) { e.preventDefault(); setSobre(true); } }}
         onDragOver={(e) => { if (arrastandoArquivo(e)) e.preventDefault(); }}
         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setSobre(false); }}
@@ -90,8 +93,8 @@ export const CaixaComAnexos = forwardRef<HTMLTextAreaElement, {
             if (typeof ref === "function") ref(el); else if (ref) ref.current = el;
           }}
           id={id}
-          rows={4}
-          className="block w-full resize-none bg-transparent px-4 py-3 text-base leading-relaxed text-tinta placeholder:text-tinta-2/70 focus:outline-none"
+          rows={3}
+          className="block w-full resize-none rounded-t-xl bg-transparent px-4 pt-3 pb-1 text-base leading-relaxed text-tinta placeholder:text-tinta-2/70 focus:outline-none"
           placeholder={placeholder}
           value={valor}
           onChange={(e) => aoMudar(e.target.value)}
@@ -100,28 +103,46 @@ export const CaixaComAnexos = forwardRef<HTMLTextAreaElement, {
             if (imgs.length) { e.preventDefault(); anexos.adicionar(imgs); }
           }}
         />
-        <div className="flex flex-wrap items-center gap-2 border-t border-linha bg-fundo/60 px-3 py-2">
-          <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm font-semibold text-acento hover:bg-mar-50">
-            <Paperclip className="size-4" aria-hidden="true" /> {rotuloAnexar}
+        {previas.length > 0 && (
+          <ul className="flex flex-wrap gap-2.5 px-4 pt-2 pb-1" aria-label="Anexos">
+            {previas.map(({ a, url }, i) => (
+              <li key={url} className="relative">
+                <span className="block size-16 overflow-hidden rounded-lg ring-1 ring-linha">
+                  {a.type.startsWith("video/") ? (
+                    <><video src={url} className="size-full bg-noite object-cover" muted preload="metadata" /><Video className="absolute bottom-1 left-1 size-3.5 text-white" aria-hidden="true" /></>
+                  ) : <img src={url} alt={`Anexo ${i + 1}`} className="size-full object-cover" />}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setArquivos((l) => l.filter((x) => x !== a))}
+                  className="absolute -top-2 -right-2 grid size-6 place-items-center rounded-full bg-superficie text-tinta-2 ring-1 ring-linha hover:text-alerta"
+                  aria-label={`Remover anexo ${i + 1}`}
+                >
+                  <X className="size-3.5" aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex items-center gap-0.5 px-1.5 pt-0.5 pb-1.5">
+          <label className="grid size-10 cursor-pointer place-items-center rounded-lg text-tinta-2 hover:bg-fundo hover:text-tinta focus-within:ring-2 focus-within:ring-acento" title={rotuloAnexar}>
+            <Paperclip className="size-5" aria-hidden="true" />
+            <span className="sr-only">{rotuloAnexar}</span>
             <input type="file" accept={aceitar} multiple className="sr-only" onChange={(e) => { anexos.adicionar(e.target.files); e.target.value = ""; }} />
           </label>
-          {previas.map(({ a, url }, i) => (
-            <span key={url} className="relative size-10 overflow-hidden rounded-md ring-1 ring-linha">
-              {a.type.startsWith("video/") ? (
-                <><video src={url} className="size-full bg-noite object-cover" muted preload="metadata" /><Video className="absolute bottom-0.5 left-0.5 size-3 text-white" aria-hidden="true" /></>
-              ) : <img src={url} alt={`Anexo ${i + 1}`} className="size-full object-cover" />}
-              <button type="button" onClick={() => setArquivos((l) => l.filter((x) => x !== a))} className="absolute top-0 right-0 rounded-bl-md bg-noite/80 p-0.5 text-white" aria-label={`Remover anexo ${i + 1}`}>
-                <X className="size-3" />
-              </button>
-            </span>
-          ))}
-          <span className="ml-auto hidden text-xs text-tinta-2 md:inline">
-            {anexos.preparando ? "Preparando anexo..." : <>ou cole um print com <kbd className="rounded border border-linha bg-superficie px-1 font-sans font-semibold">Ctrl</kbd>+<kbd className="rounded border border-linha bg-superficie px-1 font-sans font-semibold">V</kbd></>}
+          {toque && (
+            <label className="grid size-10 cursor-pointer place-items-center rounded-lg text-tinta-2 hover:bg-fundo hover:text-tinta focus-within:ring-2 focus-within:ring-acento" title="Tirar foto">
+              <Camera className="size-5" aria-hidden="true" />
+              <span className="sr-only">Tirar foto</span>
+              <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => { anexos.adicionar(e.target.files); e.target.value = ""; }} />
+            </label>
+          )}
+          <span className="ml-auto pr-2.5 text-xs text-tinta-2" aria-live="polite">
+            {anexos.preparando ? "Preparando anexo..." : previas.length ? `${previas.length} ${previas.length === 1 ? "anexo" : "anexos"}` : toque ? "" : "Ctrl+V cola um print"}
           </span>
-          {anexos.preparando && <span className="ml-auto text-xs text-tinta-2 md:hidden">Preparando anexo...</span>}
         </div>
         {sobre && (
-          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-mar-50/90 font-semibold text-acento">Solte para anexar</div>
+          <div className="pointer-events-none absolute inset-0 grid place-items-center rounded-xl bg-mar-50/90 font-semibold text-acento">Solte para anexar</div>
         )}
       </div>
       {anexos.aviso && <p className="mt-2 text-sm font-semibold text-alerta">{anexos.aviso}</p>}
