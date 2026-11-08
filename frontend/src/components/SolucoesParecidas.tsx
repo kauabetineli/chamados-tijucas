@@ -1,4 +1,6 @@
-import { ChevronDown, History, Lightbulb } from "lucide-react";
+import { ChevronDown, Copy, History, Lightbulb } from "lucide-react";
+import { avisar } from "../lib/avisos";
+import { copiarTexto } from "../lib/copiar";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { dataCurta, resumo } from "../lib/formato";
@@ -49,6 +51,12 @@ export function ListaParecidas({ dados, categoriaId }: { dados: { total: number;
             <p className="mt-0.5 text-sm text-tinta-2">{resumo(p.descricao, 110)}</p>
             {p.diagnostico && <p className="mt-1.5 text-sm"><b>Causa:</b> {p.diagnostico}</p>}
             <p className="mt-0.5 text-sm"><b>Solução:</b> <span className="selecionavel">{p.solucao}</span></p>
+            {p.solucao && (
+              <button type="button" className="mt-1 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-acento hover:bg-mar-50"
+                onClick={async () => avisar(await copiarTexto(p.solucao) ? "Solução copiada. Cole na resposta ou na solução deste chamado." : "Não deu para copiar. Selecione o texto e copie.", { tipo: "info" })}>
+                <Copy className="size-4" aria-hidden="true" /> Copiar solução
+              </button>
+            )}
           </li>
         ))}
       </ul>

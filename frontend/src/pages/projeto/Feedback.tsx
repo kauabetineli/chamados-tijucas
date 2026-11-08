@@ -21,7 +21,7 @@ const TIPO: Record<TFeedback["tipo"], { rot: string; classe: string }> = {
   nota: { rot: "Só nota", classe: "bg-fundo text-tinta-2 ring-1 ring-linha" },
 };
 const SITUACAO: Record<TFeedback["situacao"], string> = { novo: "Novo", visto: "Visto", resolvido: "Resolvido", melhoria: "Virou melhoria" };
-const PAPEL: Record<string, string> = { tecnico: "TI", solicitante: "Servidor" };
+const PAPEL: Record<string, string> = { tecnico: "TI", solicitante: "Servidor", observador: "Equipe do Dino Desk" };
 
 type Filtro = "tudo" | TFeedback["tipo"] | "novos";
 
@@ -130,11 +130,11 @@ export function Feedback() {
               <div className="min-w-0">
                 {larga ? (
                   <button type="button" aria-pressed={sel?.id === f.id} onClick={() => setSelId(f.id)} className="texto-livre line-clamp-2 text-left font-semibold hover:text-acento">
-                    {f.texto || <span className="text-tinta-2">(sem texto)</span>}
+                    {f.texto || <SemTexto nota={f.nota} />}
                   </button>
                 ) : (
                   <>
-                    <p className="texto-livre whitespace-pre-line">{f.texto || <span className="text-tinta-2">(sem texto)</span>}</p>
+                    <p className="texto-livre whitespace-pre-line">{f.texto || <SemTexto nota={f.nota} />}</p>
                     {f.imagem && (
                       <a href={pb.files.getURL(f, f.imagem)} target="_blank" rel="noreferrer" className="mt-2 block w-fit" title="Abrir o print em tamanho real">
                         <img src={pb.files.getURL(f, f.imagem, { thumb: "400x0" })} alt="Print enviado junto" className="max-h-48 rounded-lg ring-1 ring-linha" />
@@ -152,7 +152,7 @@ export function Feedback() {
               </p>
               <label className={larga ? "hidden" : "block"}>
                 <span className="sr-only">Situação</span>
-                <select className="campo w-full font-semibold" value={f.situacao} onChange={(e) => mudarSituacao(f, e.target.value as TFeedback["situacao"])}>
+                <select className="min-h-10 w-full cursor-pointer rounded-full bg-fundo px-3 text-sm font-semibold ring-1 ring-linha hover:ring-acento" value={f.situacao} onChange={(e) => mudarSituacao(f, e.target.value as TFeedback["situacao"])}>
                   {Object.entries(SITUACAO).map(([v, rot]) => <option key={v} value={v}>{rot}</option>)}
                 </select>
               </label>
@@ -168,7 +168,7 @@ export function Feedback() {
             <span className="text-sm text-tinta-2">{dataHora(sel.created)}</span>
             <MarcaTeste ficticio={sel.ficticio} />
           </div>
-          <p className="texto-livre text-lg whitespace-pre-line">{sel.texto || <span className="text-tinta-2">(sem texto)</span>}</p>
+          <p className="texto-livre text-lg whitespace-pre-line">{sel.texto || <SemTexto nota={sel.nota} />}</p>
           {sel.imagem && (
             <a href={pb.files.getURL(sel, sel.imagem)} target="_blank" rel="noreferrer" className="block w-fit" title="Abrir o print em tamanho real">
               <img src={pb.files.getURL(sel, sel.imagem, { thumb: "400x0" })} alt="Print enviado junto" className="max-h-72 rounded-xl ring-1 ring-linha" />
@@ -195,5 +195,18 @@ export function Feedback() {
       )}
       </div>
     </div>
+  );
+}
+
+const NOME_NOTA = ["Muito difícil", "Difícil", "Mais ou menos", "Fácil", "Muito fácil"];
+
+/** Opinião só com nota: em vez de "(sem texto)", a própria nota em destaque. */
+function SemTexto({ nota }: { nota: number }) {
+  if (!(nota > 0)) return <span className="text-tinta-2">(sem texto)</span>;
+  return (
+    <span className="inline-flex items-baseline gap-2">
+      <span className="font-display text-2xl font-extrabold">{nota}<span className="text-base text-tinta-2">/5</span></span>
+      <span className="text-tinta-2">{NOME_NOTA[nota - 1]}</span>
+    </span>
   );
 }

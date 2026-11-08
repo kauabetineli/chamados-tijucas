@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Avatar } from "../../components/Avatar";
+import { Dica } from "../../components/Dica";
 import { EsqueletoLinhas } from "../../components/Esqueleto";
 import { SeloTeste } from "../../components/Selos";
 import { avisar } from "../../lib/avisos";
@@ -55,15 +56,19 @@ export function Equipe({ equipe, recarregar }: { equipe: Tecnico[] | null; recar
 
   return (
     <div className="max-w-3xl space-y-4">
-      <div>
-        <h2 className="font-display text-xl font-extrabold">Quem está atendendo</h2>
-        <p className="mt-1 text-tinta-2">
-          Quem está ausente não recebe chamados das regras nem da divisão. A ausência termina sozinha na data marcada.
-          Cada técnico também pode marcar a própria ausência no Perfil.
-        </p>
-      </div>
+      <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
+        Quem está atendendo
+        <span className="font-sans text-base font-normal">
+          <Dica rotulo="Como funciona a ausência">Quem está ausente não recebe chamados das regras nem da divisão. A ausência termina sozinha na data marcada. Cada técnico também pode marcar a própria ausência no Perfil.</Dica>
+        </span>
+      </h2>
       {!ativos.length && <p className="rounded-xl bg-superficie p-4 text-tinta-2 ring-1 ring-linha">Nenhum técnico ativo.</p>}
-      {ativos.map((t) => <CartaoPessoa key={t.id} t={t} salvar={(c, m) => salvarPessoa(t, c, m)} />)}
+      {/* uma linha por técnico (antes, um cartão grande com 3 botões cada) */}
+      {ativos.length > 0 && (
+        <ul className="divide-y divide-linha rounded-2xl bg-superficie ring-1 ring-linha">
+          {ativos.map((t) => <li key={t.id}><CartaoPessoa t={t} salvar={(c, m) => salvarPessoa(t, c, m)} /></li>)}
+        </ul>
+      )}
 
       <fieldset className="space-y-2 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
         <legend className="sr-only">Chamados de quem fica ausente</legend>
@@ -129,22 +134,39 @@ function CartaoPessoa({ t, salvar, proprio }: { t: Tecnico; salvar: (corpo: Part
   }
 
   return (
-    <article className="space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
-      <div className="flex flex-wrap items-center gap-3">
-        <Avatar id={t.id} nome={t.nome} />
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 font-bold">{t.nome} <SeloTeste ficticio={t.ficticio} compacto /></p>
-          <p className="text-sm text-tinta-2">{t.carga} em atendimento{t.admin ? " · administrador" : ""}</p>
+    <article className={proprio ? "space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha" : "space-y-3 px-4 py-3"}>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {proprio ? (
+          // no Perfil o nome e o selo já estão no topo da página: aqui só a situação
+          <span className={`rounded-full px-3 py-1 text-sm font-bold ${ok ? "bg-campo-50 text-ok" : "bg-sol-50 text-ambar-tinta"}`}>{selo}</span>
+        ) : (
+          <div className="flex min-w-48 flex-1 items-center gap-3">
+            <Avatar id={t.id} nome={t.nome} tamanho="sm" />
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 font-bold">{t.nome} <SeloTeste ficticio={t.ficticio} compacto /></p>
+              <p className="text-sm text-tinta-2">
+                {t.carga} em atendimento{t.admin ? " · administrador" : ""}
+                {!ok && <> · <span className="font-semibold text-ambar-tinta">{selo}</span></>}
+              </p>
+            </div>
+          </div>
+        )}
+        <div role="radiogroup" aria-label={`Situação de ${t.nome}`} className={`flex rounded-lg bg-fundo p-0.5 text-sm ring-1 ring-linha ${proprio ? "ml-auto" : ""}`}>
+          {([["disp", "Disponível"], ["hoje", "Fora hoje"], ["periodo", "Período"]] as const).map(([k, rot]) => (
+            <button key={k} type="button" role="radio" aria-checked={marcada === k} onClick={() => escolher(k)}
+              title={k === "periodo" ? "Ausente por um período" : undefined}
+              className={`min-h-10 rounded-md px-3 font-semibold ${marcada === k ? "bg-superficie text-tinta shadow-sm ring-1 ring-linha" : "text-tinta-2 hover:text-tinta"}`}>
+              {rot}
+            </button>
+          ))}
         </div>
-        <span className={`rounded-full px-3 py-1 text-sm font-bold ${ok ? "bg-campo-50 text-ok" : "bg-sol-50 text-ambar-tinta"}`}>{selo}</span>
-      </div>
-      <div role="radiogroup" aria-label={`Situação de ${t.nome}`} className="grid gap-2 sm:grid-cols-3">
-        {([["disp", "Disponível"], ["hoje", "Fora hoje"], ["periodo", "Ausente por um período"]] as const).map(([k, rot]) => (
-          <button key={k} type="button" role="radio" aria-checked={marcada === k} onClick={() => escolher(k)}
-            className={`min-h-12 rounded-xl px-3 font-bold ${marcada === k ? "bg-mar-50 text-tinta ring-2 ring-acento" : "text-tinta-2 ring-1 ring-linha hover:ring-acento"}`}>
-            {rot}
-          </button>
-        ))}
+        {!proprio && (
+          <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm font-semibold" title="Recebe chamados pelas regras de distribuição">
+            <input type="checkbox" role="switch" className="size-5 accent-acento" checked={!t.sem_automatico}
+              onChange={() => salvar({ sem_automatico: !t.sem_automatico }, t.sem_automatico ? `${primeiro} volta a receber chamados das regras.` : `${primeiro} não recebe mais chamados das regras.`)} />
+            Automático
+          </label>
+        )}
       </div>
       {marcada === "periodo" && (
         <div className="grid gap-2 sm:grid-cols-[auto_auto_1fr]">
@@ -160,15 +182,7 @@ function CartaoPessoa({ t, salvar, proprio }: { t: Tecnico; salvar: (corpo: Part
           </label>
         </div>
       )}
-      {proprio ? (
-        t.sem_automatico && <p className="text-sm text-tinta-2">O administrador do TI deixou você fora da distribuição automática.</p>
-      ) : (
-      <label className="flex min-h-11 cursor-pointer items-center gap-3 font-semibold">
-        <input type="checkbox" role="switch" className="size-5 accent-acento" checked={!t.sem_automatico}
-          onChange={() => salvar({ sem_automatico: !t.sem_automatico }, t.sem_automatico ? `${primeiro} volta a receber chamados das regras.` : `${primeiro} não recebe mais chamados das regras.`)} />
-        Recebe chamados pelas regras de distribuição
-      </label>
-      )}
+      {proprio && t.sem_automatico && <p className="text-sm text-tinta-2">O administrador do TI deixou você fora da distribuição automática.</p>}
     </article>
   );
 }

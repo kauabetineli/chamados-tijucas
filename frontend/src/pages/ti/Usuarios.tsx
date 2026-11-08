@@ -524,6 +524,7 @@ function AbaPessoas({ setores, admin, setorFiltro, aoFiltrarSetor, recarregarTud
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState("");
   const [esconderTeste, setEsconderTeste] = useState(false);
+  const [papel, setPapel] = useState<"" | "solicitante" | "tecnico" | "observador">("");
   const pag = usePaginacao("usuarios", 25);
 
   const carregar = useCallback(async () => {
@@ -531,6 +532,7 @@ function AbaPessoas({ setores, admin, setorFiltro, aoFiltrarSetor, recarregarTud
     if (q.trim()) query.q = q.trim();
     if (setorFiltro) query.setor = setorFiltro;
     if (esconderTeste) query.ocultar_teste = "1";
+    if (papel) query.papel = papel;
     try {
       const r = await pb.send<{ itens: PessoaTI[]; total: number; pagina: number }>("/api/ti/usuarios", { query, requestKey: "pessoas" });
       setLista(r.itens);
@@ -539,7 +541,7 @@ function AbaPessoas({ setores, admin, setorFiltro, aoFiltrarSetor, recarregarTud
     } catch (err) {
       if (!(err as { isAbort?: boolean })?.isAbort) setLista([]);
     }
-  }, [q, setorFiltro, esconderTeste, pag.pagina, pag.porPagina, recarregarTudo, versao]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [q, setorFiltro, esconderTeste, papel, pag.pagina, pag.porPagina, recarregarTudo, versao]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const t = window.setTimeout(carregar, 200);
@@ -567,10 +569,20 @@ function AbaPessoas({ setores, admin, setorFiltro, aoFiltrarSetor, recarregarTud
           </button>
         )}
       </div>
-      <label className="flex w-fit cursor-pointer items-center gap-2 text-sm font-semibold text-tinta-2">
-        <input type="checkbox" className="size-5 accent-acento" checked={esconderTeste} onChange={(e) => { setEsconderTeste(e.target.checked); pag.voltarAoInicio(); }} />
-        Esconder contas de teste
-      </label>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div role="group" aria-label="Tipo de conta" className="flex rounded-lg bg-fundo p-0.5 text-sm ring-1 ring-linha">
+          {([["", "Todos"], ["solicitante", "Servidores"], ["tecnico", "TI"], ["observador", "Equipe do Dino Desk"]] as const).map(([v, rot]) => (
+            <button key={v} type="button" aria-pressed={papel === v} onClick={() => { setPapel(v); pag.voltarAoInicio(); }}
+              className={`min-h-9 rounded-md px-3 font-semibold ${papel === v ? "bg-superficie text-tinta shadow-sm ring-1 ring-linha" : "text-tinta-2 hover:text-tinta"}`}>
+              {rot}
+            </button>
+          ))}
+        </div>
+        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm font-semibold text-tinta-2">
+          <input type="checkbox" className="size-5 accent-acento" checked={esconderTeste} onChange={(e) => { setEsconderTeste(e.target.checked); pag.voltarAoInicio(); }} />
+          Esconder contas de teste
+        </label>
+      </div>
 
       {lista === null ? (
         <EsqueletoLinhas quantos={6} rotulo="Carregando pessoas..." />
@@ -592,7 +604,8 @@ function AbaPessoas({ setores, admin, setorFiltro, aoFiltrarSetor, recarregarTud
                     <Selos p={p} />
                   </span>
                   <span className="mt-0.5 flex flex-wrap gap-x-3 text-sm text-tinta-2">
-                    <span>Mat. <b className="font-display text-tinta">{p.matricula || "—"}</b></span>
+                    {/* sem matrícula (contas antigas, de teste): não mostra "Mat. —" */}
+                    {p.matricula && <span>Mat. <b className="font-display text-tinta">{p.matricula}</b></span>}
                     {p.setor_nome && <span className="inline-flex items-center gap-1"><Building2 className="size-3.5" aria-hidden="true" />{p.setor_nome}</span>}
                     {ramal && <span className="inline-flex items-center gap-1"><Phone className="size-3.5" aria-hidden="true" />{ramal}{!p.ramal && " (setor)"}</span>}
                     {p.email && <span className="truncate">{p.email}</span>}

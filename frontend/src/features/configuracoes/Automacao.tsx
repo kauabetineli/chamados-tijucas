@@ -1,3 +1,4 @@
+import { Dica } from "../../components/Dica";
 import { History, Plus, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Bloco as BlocoCinza } from "../../components/Esqueleto";
@@ -191,11 +192,15 @@ export function Automacao({ equipe, listas, respostas, pronto }: {
       <section aria-label="Fluxos" className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0 flex-[1_1_28rem]">
-            <h2 className="font-display text-xl font-extrabold">Fluxos</h2>
-            <p className="mt-1 text-tinta-2">
-              Cada fluxo é independente: começa num gatilho e segue os blocos ligados. Fluxos com o mesmo gatilho rodam na ordem dos números;
-              se dois escolherem pessoas diferentes, vale o primeiro. Na prioridade vale a maior e no prazo, o menor.
-            </p>
+            <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
+              Fluxos
+              <span className="font-sans text-base font-normal">
+                <Dica rotulo="Como os fluxos funcionam">
+                  Cada fluxo é independente: começa num gatilho e segue os blocos ligados. Fluxos com o mesmo gatilho rodam na ordem dos números;
+                  se dois escolherem pessoas diferentes, vale o primeiro. Na prioridade vale a maior e no prazo, o menor.
+                </Dica>
+              </span>
+            </h2>
           </div>
           <button type="button" className="btn-primario" onClick={criarFluxo}><Plus className="size-5" aria-hidden="true" /> Novo fluxo</button>
         </div>
