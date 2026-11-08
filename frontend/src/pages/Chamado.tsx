@@ -157,7 +157,8 @@ export function DetalheChamado({ id, embutido, gaveta, controles, etiqueta }: {
           {/* andamento em etapas: é de fato uma sequência */}
           {/* três colunas iguais: bolinha centralizada e o nome embaixo (cabe em qualquer largura, até 320 px);
               a linha que liga as etapas vai do centro de uma bolinha ao centro da próxima */}
-          <ol className="grid grid-cols-3" aria-label="Andamento do chamado">
+          {/* as etapas são para quem pediu acompanhar; o TI vê a situação no selo e age logo abaixo */}
+          {!tecnico && <ol className="grid grid-cols-3" aria-label="Andamento do chamado">
             {ETAPAS.map((s, i) => {
               const feita = i < etapa || c.status === "resolvido";
               return (
@@ -176,19 +177,13 @@ export function DetalheChamado({ id, embutido, gaveta, controles, etiqueta }: {
                 </li>
               );
             })}
-          </ol>
+          </ol>}
 
           {paraOServidor}
 
           <section className="space-y-4">
             <p className="texto-livre text-lg whitespace-pre-wrap">{c.descricao}</p>
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-              {tecnico && <Dado termo="Quem pediu" valor={nomeSolicitante(c) + (ramalDe(c.expand?.solicitante, c.expand?.setor) ? ` (ramal ${ramalDe(c.expand?.solicitante, c.expand?.setor)})` : "")} />}
-              <Dado termo="Setor" valor={c.expand?.setor?.nome} />
-              <Dado termo="Quem é afetado" valor={ROTULO_IMPACTO[c.impacto]} />
-              {tecnico && <Dado termo="Como chegou" valor={ROTULO_ORIGEM[c.origem]} />}
-              <Dado termo="Responsável no TI" valor={c.expand?.responsavel?.name} />
-            </dl>
+            <FichaChamado c={c} tecnico={tecnico} />
             <GaleriaAnexos chamado={c} />
           </section>
 
@@ -318,7 +313,6 @@ function Gaveta({ c, etiqueta, tecnico, soLeitura, controles, aoMudar, paraOServ
   const parecidas = useSolucoesParecidas(c.id, comParecidas);
   const fotos = c.anexos?.length ?? 0;
   const nParecidas = parecidas?.itens.length ?? 0;
-  const ramal = ramalDe(c.expand?.solicitante, c.expand?.setor);
   const abas: { id: Aba; rotulo: string; n?: number }[] = [
     { id: "conversa", rotulo: "Conversa" },
     ...(fotos ? [{ id: "fotos" as const, rotulo: "Fotos e vídeos", n: fotos }] : []),
@@ -366,23 +360,7 @@ function Gaveta({ c, etiqueta, tecnico, soLeitura, controles, aoMudar, paraOServ
         </ul>
       )}
 
-      {/* ficha compacta: ícone + valor em linha (antes, 5 pares rótulo/valor em 3 linhas) */}
-      <dl className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        {tecnico && (
-          <Ficha Icone={UserRound} termo="Quem pediu">
-            <b>{nomeSolicitante(c)}</b>{ramal && <span className="text-tinta-2"> (ramal {ramal})</span>}
-          </Ficha>
-        )}
-        {c.expand?.setor?.nome && <Ficha Icone={Building2} termo="Setor">{c.expand.setor.nome}</Ficha>}
-        <Ficha Icone={Users} termo="Quem é afetado">{tecnico ? IMPACTO_TI[c.impacto] : ROTULO_IMPACTO[c.impacto]}</Ficha>
-        {tecnico && <Ficha Icone={MessageCircle} termo="Como chegou">{ROTULO_ORIGEM[c.origem]}</Ficha>}
-        {/* tempo com a palavra na frente ("Esperando há 9 dias"): sem ícone aqui, porque o atraso já traz o relógio dele */}
-        <div className="flex min-w-0 items-center gap-1.5">
-          <dt className="text-tinta-2">{({ resolvido: "Aberto em", aberto: "Esperando", em_andamento: "Em atendimento", aguardando: "Em espera" } as const)[c.status]}</dt>
-          <dd>{c.status === "resolvido" ? dataHora(c.created) : <Espera c={c} />}</dd>
-        </div>
-        {!tecnico && c.expand?.responsavel?.name && <Ficha Icone={Wrench} termo="Responsável no TI">{c.expand.responsavel.name}</Ficha>}
-      </dl>
+      <FichaChamado c={c} tecnico={tecnico} />
 
       {tecnico && c.solicitante && <HistoricoDaPessoa c={c} />}
       {paraOServidor}
@@ -459,6 +437,29 @@ function HistoricoDaPessoa({ c }: { c: TChamado }) {
   );
 }
 
+/** Ficha compacta do chamado (gaveta e página): ícone + valor em linha, sem pares rótulo/valor empilhados. */
+function FichaChamado({ c, tecnico }: { c: TChamado; tecnico: boolean }) {
+  const ramal = ramalDe(c.expand?.solicitante, c.expand?.setor);
+  return (
+    <dl className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+      {tecnico && (
+        <Ficha Icone={UserRound} termo="Quem pediu">
+          <b>{nomeSolicitante(c)}</b>{ramal && <span className="text-tinta-2"> (ramal {ramal})</span>}
+        </Ficha>
+      )}
+      {c.expand?.setor?.nome && <Ficha Icone={Building2} termo="Setor">{c.expand.setor.nome}</Ficha>}
+      <Ficha Icone={Users} termo="Quem é afetado">{tecnico ? IMPACTO_TI[c.impacto] : ROTULO_IMPACTO[c.impacto]}</Ficha>
+      {tecnico && <Ficha Icone={MessageCircle} termo="Como chegou">{ROTULO_ORIGEM[c.origem]}</Ficha>}
+      {/* tempo com a palavra na frente ("Esperando há 9 dias"): sem ícone aqui, porque o atraso já traz o relógio dele */}
+      <div className="flex min-w-0 items-center gap-1.5">
+        <dt className="text-tinta-2">{({ resolvido: "Aberto em", aberto: "Esperando", em_andamento: "Em atendimento", aguardando: "Em espera" } as const)[c.status]}</dt>
+        <dd>{c.status === "resolvido" ? dataHora(c.created) : <Espera c={c} />}</dd>
+      </div>
+      {!tecnico && c.expand?.responsavel?.name && <Ficha Icone={Wrench} termo="Responsável no TI">{c.expand.responsavel.name}</Ficha>}
+    </dl>
+  );
+}
+
 /** "Quem é afetado" lido pelo TI (o servidor escolheu "Só eu", "Meu setor inteiro"...). */
 const IMPACTO_TI = { so_eu: "Só a pessoa", setor: "O setor todo", publico: "Atendimento ao público parado" } as const;
 
@@ -467,15 +468,6 @@ function Ficha({ Icone, termo, children }: { Icone: typeof Clock; termo: string;
     <div className="flex min-w-0 items-center gap-1.5" title={termo}>
       <dt className="shrink-0 text-tinta-2"><Icone className="size-4" aria-hidden="true" /><span className="sr-only">{termo}</span></dt>
       <dd className="min-w-0">{children}</dd>
-    </div>
-  );
-}
-
-function Dado({ termo, valor }: { termo: string; valor?: string }) {
-  return (
-    <div>
-      <dt className="text-sm text-tinta-2">{termo}</dt>
-      <dd className="font-semibold">{valor || "—"}</dd>
     </div>
   );
 }

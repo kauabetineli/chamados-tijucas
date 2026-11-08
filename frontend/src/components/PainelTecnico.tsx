@@ -130,6 +130,35 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
     </form>
   );
 
+  const seletorResponsavel = (
+    <Escolha
+              rotulo="Com quem está"
+              valor={c.responsavel || ""}
+              aoEscolher={mudarResponsavel}
+              opcoes={[
+                { valor: "", rotulo: "Livre", icone: <span className="size-7 shrink-0 rounded-full border-2 border-dashed border-tinta-2/50" aria-hidden="true" /> },
+                // você primeiro, depois os colegas
+                ...[...tecnicos].sort((a, b) => (a.id === usuario?.id ? -1 : b.id === usuario?.id ? 1 : 0)).map((t) => ({
+                  valor: t.id,
+                  rotulo: t.id === usuario?.id ? "Você" : t.name.split(" ")[0],
+                  icone: <Avatar id={t.id} nome={t.name} tamanho="sm" destaque={t.id === usuario?.id} />,
+                })),
+              ]}
+            />
+  );
+  const seletorPrioridade = (
+    <Escolha
+              rotulo="Prioridade"
+              valor={c.prioridade}
+              aoEscolher={(p) => mudarPrioridade(p as Prioridade)}
+              opcoes={(Object.keys(ROTULO_PRIORIDADE) as Prioridade[]).reverse().map((p) => ({
+                valor: p,
+                rotulo: ROTULO_PRIORIDADE[p],
+                icone: <SinalPrioridade prioridade={p} className="size-4 shrink-0" />,
+              }))}
+            />
+  );
+
   if (linha) {
     const b = "min-h-10 px-3.5 text-sm";
     return (
@@ -163,30 +192,8 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
           )}
           {/* na mesma linha da ação: com quem está e prioridade (seletores nativos, acessíveis) e o "⋯" com o resto */}
           <div className="contents">
-            <Escolha
-              rotulo="Com quem está"
-              valor={c.responsavel || ""}
-              aoEscolher={mudarResponsavel}
-              opcoes={[
-                { valor: "", rotulo: "Livre", icone: <span className="size-7 shrink-0 rounded-full border-2 border-dashed border-tinta-2/50" aria-hidden="true" /> },
-                // você primeiro, depois os colegas
-                ...[...tecnicos].sort((a, b) => (a.id === usuario?.id ? -1 : b.id === usuario?.id ? 1 : 0)).map((t) => ({
-                  valor: t.id,
-                  rotulo: t.id === usuario?.id ? "Você" : t.name.split(" ")[0],
-                  icone: <Avatar id={t.id} nome={t.name} tamanho="sm" destaque={t.id === usuario?.id} />,
-                })),
-              ]}
-            />
-            <Escolha
-              rotulo="Prioridade"
-              valor={c.prioridade}
-              aoEscolher={(p) => mudarPrioridade(p as Prioridade)}
-              opcoes={(Object.keys(ROTULO_PRIORIDADE) as Prioridade[]).reverse().map((p) => ({
-                valor: p,
-                rotulo: ROTULO_PRIORIDADE[p],
-                icone: <SinalPrioridade prioridade={p} className="size-4 shrink-0" />,
-              }))}
-            />
+            {seletorResponsavel}
+            {seletorPrioridade}
             {emAtendimento && !resolvendo && (
               <span className="ml-auto"><MenuMais>
                 <button type="button" role="menuitem" className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold hover:bg-fundo" disabled={salvando}
@@ -222,7 +229,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
 
   return (
     <div className="space-y-5 rounded-2xl bg-superficie p-5 ring-1 ring-linha">
-      <h2 className="text-xl font-bold">Atendimento</h2>
+      <h2 className="sr-only">Atendimento</h2>
 
       {c.status === "aberto" && (
         // quem toca em "Começar" fica com o chamado (antes ele continuava no nome do colega, em andamento sem ninguém)
@@ -286,28 +293,10 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
       {perguntaEl}
       {formResolverEl}
 
-      <fieldset>
-        <legend className="rotulo">Prioridade</legend>
-        <div className="grid grid-cols-2 gap-2">
-          {(Object.keys(ROTULO_PRIORIDADE) as Prioridade[]).reverse().map((p) => (
-            <label key={p} className="opcao min-h-12 py-2">
-              <input type="radio" name="prioridade" checked={c.prioridade === p} onChange={() => mudarPrioridade(p)} className="sr-only" />
-              <SinalPrioridade prioridade={p} className="size-4 shrink-0" />
-              {ROTULO_PRIORIDADE[p]}
-            </label>
-          ))}
-        </div>
-        <p className="ajuda">Sugerida pelo impacto informado na abertura.</p>
-      </fieldset>
-
-      <div>
-        <label htmlFor="resp" className="rotulo">Responsável</label>
-        <select id="resp" className="campo" value={c.responsavel} onChange={(e) => mudarResponsavel(e.target.value)}>
-          <option value="">Ninguém ainda</option>
-          {tecnicos.map((t) => (
-            <option key={t.id} value={t.id}>{t.id === usuario?.id ? `${t.name} (você)` : t.name}</option>
-          ))}
-        </select>
+      {/* com quem está e prioridade: as mesmas pílulas da gaveta (lista com avatar e sinal) */}
+      <div className="flex flex-wrap items-center gap-2 border-t border-linha pt-4">
+        {seletorResponsavel}
+        {seletorPrioridade}
       </div>
 
       {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}

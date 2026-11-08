@@ -212,7 +212,7 @@ function Numero({ termo, valor, dica, delta, neutro, nota, className = "" }: {
   return (
     <div className={`bg-superficie p-5 ${className}`}>
       <dt className="flex items-center gap-2 text-sm text-tinta-2">{termo}{dica && <Dica rotulo={`Como é calculado: ${termo.toLowerCase()}`}>{dica}</Dica>}</dt>
-      <dd className="mt-1 font-display text-4xl font-extrabold">{valor}</dd>
+      <dd className="mt-1 font-display text-3xl font-extrabold whitespace-nowrap sm:text-4xl">{valor}</dd>
       {delta && <dd className={`mt-1 text-sm font-semibold ${neutro ? "text-tinta-2" : delta.bom ? "text-ok" : "text-alerta"}`}>{delta.texto}</dd>}
       {nota && <dd className="mt-1 text-sm text-tinta-2">{nota}</dd>}
     </div>
