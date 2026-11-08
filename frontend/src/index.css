@@ -14,7 +14,7 @@
   - sucesso: text-ok · erro e atraso: text-alerta
   - preenchimentos com texto branco: bg-mar-700, bg-campo-700 (botões)
   - fundos suaves: bg-mar-50, bg-campo-50, bg-brasa-50, bg-sol-50
-  - etiqueta de prioridade Alta: bg-sol-50 + ring-ambar + text-ambar-tinta (só ela)
+  - prioridade Alta: barras em text-ambar + palavra em text-ambar-tinta (só ela)
   - escuro fixo (sobre foto/vídeo, senha amarela): bg-noite / text-noite
   Proibido: bg-white, bg-black, text-black, cor em hexadecimal no componente.
   Exceção consciente: escreva "tema-fixo" num comentário na linha ou na linha de cima.
@@ -41,8 +41,8 @@
   --color-brasa-50: #fdeceb;
 
   /* âmbar: SÓ a prioridade Alta (etiqueta). O amarelo forte (sol) fica para a "senha" da fila do servidor */
-  --color-ambar: #c79a00;      /* contorno da etiqueta Alta */
-  --color-ambar-tinta: #5c4400; /* texto da etiqueta Alta (sobre sol-50) */
+  --color-ambar: #c79a00;      /* barras da prioridade Alta */
+  --color-ambar-tinta: #5c4400; /* palavra "Alta" */
 
   /* neutros levemente frios, da família do azul da marca (antes puxavam para o verde e "turvavam" a tela) */
   --color-tinta: #16212b;     /* texto principal: quase preto, frio */

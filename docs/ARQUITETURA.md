@@ -302,7 +302,7 @@ GOV.UK) trocou isso por **um sinal = um significado, sempre no mesmo lugar**:
 - **Lista enxuta**: as linhas ficam numa superfície só, com divisórias. Cada linha: ícone da categoria à esquerda ·
   o PROBLEMA como título (a maior letra) · embaixo, onde e quem, com o protocolo por último · à direita, a espera e com quem
   está. No PC (lg+) setor, espera e "com quem" viram colunas alinhadas, com cabeçalho; no celular a ação abre segurando a linha.
-- **Prioridade**: etiqueta SÓ para Urgente (vermelha cheia) e Alta (âmbar, `--color-ambar`). Normal e Baixa não aparecem
+- **Prioridade**: sinal + palavra, sem caixinha, SÓ para Urgente (quadrado com "!", vermelho) e Alta (três barras, âmbar). Normal e Baixa não aparecem
   nas listas: a ordem da fila já diz isso (`EtiquetaPrioridade`; `sempre` para colunas e menus). Quando quem pediu
   escolheu a prioridade (e o admin ligou "mostrar na Fila"), a própria etiqueta ganha um ícone de pessoa, com o motivo no
   `title`: não é um sinal novo, é um detalhe da prioridade.
