@@ -15,6 +15,8 @@ const MAX = 300;
 export function RespostasProntas({ selecionada, aoEscolher }: { selecionada?: string; aoEscolher: (texto: string, acao?: AcaoPronta | "") => void }) {
   const { lista, recarregar } = useRespostasProntas();
   const [editando, setEditando] = useState(false);
+  // uma linha só: as 3 primeiras (a ordem é do TI, em Editar) e "+N" abre o resto
+  const [todas, setTodas] = useState(false);
 
   if (lista === null) {
     return <div className="flex flex-wrap gap-2" aria-hidden="true">{[28, 40, 34].map((w) => <Bloco key={w} className="h-8 rounded-full" />)}</div>;
@@ -23,13 +25,13 @@ export function RespostasProntas({ selecionada, aoEscolher }: { selecionada?: st
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {lista.map(({ id, texto, acao }) => (
+      {(todas ? lista : lista.slice(0, 3)).map(({ id, texto, acao }) => (
         <button
           key={id}
           type="button"
           title={acao ? `Ao enviar: ${ROTULO_ACAO[acao]}` : undefined}
           onClick={() => aoEscolher(texto, acao ?? "")}
-          className={`rounded-full px-3 py-1.5 text-left text-sm font-semibold ring-1 ${
+          className={`max-w-[18rem] truncate rounded-full px-3 py-1.5 text-left text-sm font-semibold ring-1 ${
             selecionada === texto ? "bg-mar-700 text-white ring-acento" : "bg-mar-50 text-acento ring-transparent hover:ring-acento"
           }`}
         >
@@ -39,13 +41,23 @@ export function RespostasProntas({ selecionada, aoEscolher }: { selecionada?: st
             : <Hourglass className="ml-1.5 inline size-3.5 align-[-2px]" aria-label={`e ${ROTULO_ACAO[acao]}`} />)}
         </button>
       ))}
+      {lista.length > 3 && (
+        <button
+          type="button"
+          aria-expanded={todas}
+          onClick={() => setTodas(!todas)}
+          className="rounded-full px-3 py-1.5 text-sm font-semibold text-acento ring-1 ring-linha hover:ring-acento"
+        >
+          {todas ? "Menos" : `+${lista.length - 3}`}
+        </button>
+      )}
       <button
         type="button"
         onClick={() => setEditando(true)}
         className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm font-semibold text-tinta-2 hover:bg-fundo hover:text-tinta"
         title="Criar, corrigir ou apagar respostas prontas"
       >
-        <Pencil className="size-3.5" aria-hidden="true" /> {lista.length ? "Editar" : "Criar respostas prontas"}
+        <Pencil className="size-3.5" aria-hidden="true" /> <span className={lista.length ? "sr-only" : ""}>{lista.length ? "Editar respostas prontas" : "Criar respostas prontas"}</span>
       </button>
     </div>
   );

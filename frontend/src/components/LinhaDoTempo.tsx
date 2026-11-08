@@ -203,10 +203,10 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
             return (
               <li key={g.itens[0].id} className="px-2 text-center text-sm text-tinta-2">
                 {dia}{dia && " · "}
-                {g.itens.map((i, n) => (
+                {enxugar(g.itens).map((i, n) => (
                   <Fragment key={i.id}>
                     {n > 0 && " · "}
-                    <span className="texto-livre" title={`${dataHora(i.created)}${i.expand?.autor ? ` · ${i.expand.autor.name}` : ""}`}>{textoMudanca(i)}</span>
+                    <span className="texto-livre" title={`${i.texto} · ${dataHora(i.created)}${i.expand?.autor ? ` · ${i.expand.autor.name}` : ""}`}>{textoMudanca(i)}</span>
                   </Fragment>
                 ))}
               </li>
@@ -415,8 +415,39 @@ function diaCurto(iso: string) {
 /** Mudança em texto curto: quem fez entra só quando não está no próprio texto. */
 function textoMudanca(i: Interacao) {
   const quem = i.expand?.autor?.name;
-  const t = i.texto.replace(/\.$/, "");
-  return quem && !t.includes(quem) ? `${t} (${primeiroNome(quem)})` : t;
+  const t = humanizar(i.texto.replace(/\.$/, ""));
+  return quem && !t.includes(primeiroNome(quem)) ? `${t} (${primeiroNome(quem)})` : t;
+}
+
+const RE_STATUS = /^Status: (.+?) → (.+?)(?: \((.+)\))?$/;
+
+/** Frases do registro em linguagem de gente (vale também para o que já está gravado). */
+function humanizar(t: string) {
+  let m = RE_STATUS.exec(t);
+  if (m) {
+    const [, , para, motivo] = m;
+    if (motivo === "o solicitante respondeu") return "Quem pediu respondeu · voltou para atendimento";
+    if (motivo?.startsWith("reaberto")) return "Reaberto por quem pediu";
+    const destino = para === "Em andamento" ? "Em atendimento" : para === "Aguardando" ? "Em espera" : para;
+    return motivo ? `${destino}: ${motivo.replace("do solicitante", "de quem pediu")}` : destino;
+  }
+  m = /^Prioridade: (.+?) → (.+?)(?: \(fluxo “(.+)”\))?$/.exec(t);
+  if (m) return m[3] ? `Prioridade ${m[2]} · automática` : `Prioridade ${m[2]}`;
+  m = /^Prioridade definida pelo fluxo “(.+)”: (.+)$/.exec(t);
+  if (m) return `Prioridade ${m[2]} · automática`;
+  m = /^Responsável: (.+?)(?: \(fluxo “.+”\))?$/.exec(t);
+  if (m) return `Com ${primeiroNome(m[1])}`;
+  if (t.startsWith("Devolvido para a fila")) return "Voltou para a fila";
+  return t;
+}
+
+/**
+ * Num grupo de mudanças, várias trocas de situação seguidas viram UMA (vale a última); o resto fica como está.
+ * Assim "Aberto → Em andamento · Em andamento → Em espera" vira só "Em espera: …".
+ */
+function enxugar(itens: Interacao[]) {
+  const ultimaSituacao = [...itens].reverse().find((i) => i.tipo === "status");
+  return itens.filter((i) => i.tipo !== "status" || i === ultimaSituacao);
 }
 
 type Grupo = { tipo: "mensagem" | "mudancas"; itens: Interacao[]; novoDia: boolean };
