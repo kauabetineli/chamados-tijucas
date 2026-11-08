@@ -48,7 +48,7 @@ function TipoCategoria({ c, grande }: { c: Chamado; grande?: boolean }) {
 function NovaMensagem() {
   return (
     <span className="font-semibold text-acento">
-      <MessageCircle className="inline size-3.5 align-[-2px]" aria-hidden="true" /> Nova mensagem ·{" "}
+      <MessageCircle className="inline size-3.5 align-[-2px]" aria-hidden="true" /> Nova mensagem
     </span>
   );
 }
@@ -60,15 +60,15 @@ function LinhaApoio({ c, posicao, novaMensagem }: { c: Chamado; posicao?: number
     c.status === "aguardando" ? `Aguardando ${c.aguardando_motivo ? ROTULO_AGUARDANDO[c.aguardando_motivo] : "algo"}` : "",
   ].filter(Boolean);
   return (
-    <p className="mt-0.5 truncate text-sm text-tinta-2">
+    <p className="meta mt-0.5 truncate text-sm text-tinta-2">
       {novaMensagem && <NovaMensagem />}
-      {partes.map((t) => <span key={t}>{t} · </span>)}
+      {partes.map((t) => <span key={t}>{t}</span>)}
       {/* o que ganhou coluna própria some daqui; a largura que conta é a da LISTA (@container), não a da tela,
           porque com o chamado aberto ao lado a lista fica estreita */}
-      {setor && <span className="@3xl:hidden">{setor} · </span>}
-      <span className="hidden @3xl:inline">{c.expand?.categoria?.nome ?? "Sem categoria"}<span className="@5xl:hidden"> · </span></span>
+      {setor && <span className="@3xl:hidden">{setor}</span>}
+      <span className="hidden @3xl:inline">{c.expand?.categoria?.nome ?? "Sem categoria"}</span>
       <span className="@5xl:hidden">{nomeSolicitante(c)}</span>
-      <span className="@4xl:hidden"> · <span className="tabular-nums">{c.protocolo}</span></span> <MarcaTeste ficticio={c.ficticio} />
+      <span className="tabular-nums @4xl:hidden">{c.protocolo}</span> <MarcaTeste ficticio={c.ficticio} />
     </p>
   );
 }
@@ -286,14 +286,14 @@ function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, real
         <div className="min-w-0 flex-1">
           <p id="titulo-proximo" className="flex flex-wrap items-center gap-x-2 text-xs font-bold tracking-wider text-acento uppercase">
             Seu próximo
-            {posicao > 1 && <span className="font-semibold tracking-normal text-tinta-2 normal-case" title="Os de cima estão com colegas">· {posicao}º da fila</span>}
-            {meu && <span className="font-semibold tracking-normal text-tinta normal-case">· passado para você</span>}
+            {posicao > 1 && <span className="font-semibold tracking-normal text-tinta-2 normal-case" title="Os de cima estão com colegas">{posicao}º da fila</span>}
+            {meu && <span className="font-semibold tracking-normal text-tinta normal-case">passado para você</span>}
           </p>
           <p className="mt-1 text-lg leading-snug font-semibold"><EtiquetaPrioridade prioridade={c.prioridade} escolhida={escolhida(c)} />{resumo(c.descricao, 220)}</p>
-          <p className="mt-1 text-sm text-tinta-2">
+          <p className="meta mt-1 text-sm text-tinta-2">
             {novaMensagem && <NovaMensagem />}
-            {[c.expand?.categoria?.nome, c.expand?.setor?.nome, `${nomeSolicitante(c)}${c.origem !== "sistema" ? `, ${ROTULO_ORIGEM[c.origem].toLowerCase()}` : ""}`, c.protocolo].filter(Boolean).join(" · ")}
-            {" · "}<Espera c={c} /> <MarcaTeste ficticio={c.ficticio} />
+            {[c.expand?.categoria?.nome, c.expand?.setor?.nome, `${nomeSolicitante(c)}${c.origem !== "sistema" ? `, ${ROTULO_ORIGEM[c.origem].toLowerCase()}` : ""}`, c.protocolo].filter(Boolean).map((t) => <span key={t}>{t}</span>)}
+            <Espera c={c} /> <MarcaTeste ficticio={c.ficticio} />
           </p>
         </div>
         <div className="-mt-1.5 -mr-2"><BotaoMais c={c} aoAbrir={aoAcoes} /></div>
@@ -605,7 +605,7 @@ export function Fila() {
         <ChevronRight className={`size-4 transition-transform ${verEspera ? "rotate-90" : ""}`} aria-hidden="true" />
         <Hourglass className="size-4" aria-hidden="true" />
         Em espera <span className="font-display">{esperando.length}</span>
-        <span className="font-normal">· fora da fila e da sua carga</span>
+        <span className="ml-1 font-normal">fora da fila e da sua carga</span>
       </button>
       {verEspera && <ul className="divide-y divide-linha border-t border-linha">{esperaOrdenada.map((c) => cartao(c, true))}</ul>}
     </div>
@@ -618,9 +618,11 @@ export function Fila() {
         titulo="Fila"
         subtitulo={chamados === null ? <Bloco className="mt-2 h-6 w-64" /> : (
             <p>
-              <b className="font-display text-tinta">{fila.length}</b> na fila
-              {" · "}<b className="font-display text-tinta">{atendendo.length + comOutros.length}</b> em atendimento
-              {esperando.length > 0 && <>{" · "}<b className="font-display text-tinta">{esperando.length}</b> seus em espera</>}
+              <span className="meta">
+                <span><b className="font-display text-tinta">{fila.length}</b> na fila</span>
+                <span><b className="font-display text-tinta">{atendendo.length + comOutros.length}</b> em atendimento</span>
+                {esperando.length > 0 && <span><b className="font-display text-tinta">{esperando.length}</b> seus em espera</span>}
+              </span>
             </p>
           )}
         acoes={<>
@@ -756,7 +758,7 @@ export function Fila() {
               <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-1 text-lg font-bold text-tinta-2 hover:text-tinta [&::-webkit-details-marker]:hidden">
                 <ChevronRight className="size-5 transition-transform group-open/equipe:rotate-90" aria-hidden="true" />
                 Com a equipe <span className="font-display text-base">{daEquipe.length}</span>
-                <span className="text-sm font-normal">· na fila, em atendimento ou em espera com colegas</span>
+                <span className="ml-1 text-sm font-normal">na fila, em atendimento ou em espera com colegas</span>
               </summary>
               <div className="mt-2 opacity-90">
                 {secao("Com a equipe", daEquipe, { semTitulo: true })}

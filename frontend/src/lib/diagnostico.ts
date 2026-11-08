@@ -27,7 +27,7 @@ export function ativarDiagnostico() {
 
   // a página foi recarregada? (no Android, depois de abrir a câmera, é o sinal de aba descartada)
   const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
-  console.info(`[página] carregou (${nav?.type ?? "?"}) às ${new Date().toLocaleTimeString()} · memória do aparelho: ${(navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? "?"} GB`);
+  console.info(`[página] carregou (${nav?.type ?? "?"}) às ${new Date().toLocaleTimeString()}, memória do aparelho: ${(navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? "?"} GB`);
   document.addEventListener("visibilitychange", () => console.info(`[página] ${document.visibilityState === "hidden" ? "foi para segundo plano" : "voltou"} às ${new Date().toLocaleTimeString()}`));
   window.addEventListener("pagehide", (e) => console.info(`[página] saindo (guardada na memória: ${e.persisted})`));
   window.addEventListener("error", (e) => console.error("[erro]", e.message));

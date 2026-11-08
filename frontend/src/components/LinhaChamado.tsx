@@ -38,10 +38,9 @@ export function LinhaChamado({ c, para, novidade, historico, selecionado }: {
           </span>
           <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm whitespace-nowrap text-tinta-2">
             {!historico && <SeloStatus status={c.status} />}
-            <span className="min-w-0 truncate">
-              {!historico && "· "}
-              {historico && c.resolvido_em ? `resolvido em ${dataCurta(c.resolvido_em)}` : tempoRelativo(c.created)}
-              {" · "}<span className="tabular-nums">{c.protocolo}</span> <MarcaTeste ficticio={c.ficticio} />
+            <span className="meta min-w-0 truncate">
+              <span>{historico && c.resolvido_em ? `resolvido em ${dataCurta(c.resolvido_em)}` : tempoRelativo(c.created)}</span>
+              <span className="tabular-nums">{c.protocolo}</span> <MarcaTeste ficticio={c.ficticio} />
             </span>
           </span>
           {historico && (

@@ -219,7 +219,8 @@ export function MeusChamados() {
                       <span className="block font-bold">O TI resolveu: {resumo(c.descricao, 70).replace(/[.!?…]+$/, "")}. Deu certo?</span>
                       <span className="block text-sm text-tinta-2">
                         <span className="font-display font-bold text-tinta">{c.protocolo}</span>
-                        {c.solucao && <> · Solução: {resumo(c.solucao, 90)}</>}
+                        {/* a solução pode ocupar várias linhas: vai na linha de baixo (sem o "·" de antes) */}
+                        {c.solucao && <span className="block">Solução: {resumo(c.solucao, 90)}</span>}
                       </span>
                       {(() => {
                         const faltam = diasParaConfirmar(c.resolvido_em, config.dias_confirmar);
@@ -263,9 +264,9 @@ export function MeusChamados() {
                           ? `${quem} está aguardando ${ROTULO_AGUARDANDO[c.aguardando_motivo]}`
                           : `${quem} está cuidando de: ${resumo(c.descricao, 60)}`}
                       </span>
-                      <span className="block text-sm text-tinta-2">
+                      <span className="meta block text-sm text-tinta-2">
                         <span className="font-display font-bold text-tinta">{c.protocolo}</span>
-                        {c.status === "aguardando" ? <> · {resumo(c.descricao, 60)}</> : c.iniciado_em ? <> · começou {tempoRelativo(c.iniciado_em)}</> : null}
+                        {c.status === "aguardando" ? <span>{resumo(c.descricao, 60)}</span> : c.iniciado_em ? <span>começou {tempoRelativo(c.iniciado_em)}</span> : null}
                       </span>
                       {msg && (
                         <span className="mt-2 block rounded-xl rounded-tl-md bg-mar-50 px-3 py-2 text-sm">
@@ -305,7 +306,7 @@ export function MeusChamados() {
                   <span className="w-12 shrink-0 font-display text-2xl font-extrabold">{(posicoes[c.id]?.a_frente ?? 0) + 1}º</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-semibold">{resumo(c.descricao, 80)}</span>
-                    <span className="block text-sm text-tinta-2">{c.expand?.categoria?.nome ?? "Outro"} · {c.protocolo}</span>
+                    <span className="meta block text-sm text-tinta-2"><span>{c.expand?.categoria?.nome ?? "Outro"}</span><span>{c.protocolo}</span></span>
                     {novidade(c) && <SeloNovidade />}
                   </span>
                 </LinkChamado>

@@ -32,7 +32,6 @@ export function SenhaFila({ aFrente, protocolo, categoria, icone, descricao, nov
         <p className="flex flex-wrap items-center gap-x-1.5 text-sm">
           <IconeCategoria nome={icone} className="size-4 shrink-0" />
           {categoria}
-          <span aria-hidden="true">·</span>
           <span className="font-display font-bold whitespace-nowrap">{protocolo}</span>
         </p>
         {novidade && (

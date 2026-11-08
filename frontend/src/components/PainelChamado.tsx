@@ -170,7 +170,7 @@ export function PainelChamado() {
           aria-valuemin={MIN}
           aria-valuemax={maximo()}
           aria-valuenow={largura}
-          title="Arraste para mudar a largura · duplo clique volta ao padrão"
+          title="Arraste para mudar a largura. Duplo clique volta ao padrão."
           className="group absolute inset-y-0 -left-1.5 z-10 w-3 cursor-col-resize touch-none focus-visible:outline-none"
         >
           <span className="mx-auto block h-full w-0.5 bg-transparent group-hover:bg-acento group-focus-visible:bg-acento" aria-hidden="true" />

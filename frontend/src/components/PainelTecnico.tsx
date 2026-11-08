@@ -201,7 +201,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
           <div className="space-y-2 rounded-xl bg-fundo p-3 ring-1 ring-linha">
             <p className="text-sm">
               <b>Em espera:</b> aguardando {ROTULO_AGUARDANDO[c.aguardando_motivo]}
-              {paraData(c.aguardando_desde || "") && <span className="text-tinta-2"> · {tempoRelativo(c.aguardando_desde!)}</span>}
+              {paraData(c.aguardando_desde || "") && <span className="text-tinta-2">, {tempoRelativo(c.aguardando_desde!)}</span>}
               {c.aguardando_motivo === "solicitante" && <span className="text-tinta-2">. Volta sozinho quando a pessoa responder.</span>}
             </p>
             <EscolhaEspera nome="motivo-gaveta" valor={c.aguardando_motivo} desabilitado={salvando} aoEscolher={(m) => salvar({ aguardando_motivo: m }, `Agora aguardando ${ROTULO_AGUARDANDO[m]}.`)} />
@@ -244,7 +244,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
             <Hourglass className="mt-0.5 size-4 shrink-0 text-acento" aria-hidden="true" />
             <span>
               <b>Em espera:</b> aguardando {ROTULO_AGUARDANDO[c.aguardando_motivo]}
-              {paraData(c.aguardando_desde || "") && <span className="text-tinta-2"> · {tempoRelativo(c.aguardando_desde!)}</span>}
+              {paraData(c.aguardando_desde || "") && <span className="text-tinta-2">, {tempoRelativo(c.aguardando_desde!)}</span>}
               {c.aguardando_motivo === "solicitante" && <span className="block text-tinta-2">Volta sozinho para atendimento quando a pessoa responder.</span>}
             </span>
           </p>

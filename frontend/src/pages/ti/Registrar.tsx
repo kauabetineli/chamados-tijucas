@@ -155,7 +155,7 @@ export function Registrar() {
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">Outro pedido de {ultimo.nome}</span>
                     <span className="block truncate text-xs text-tinta-2">
-                      {[ROTULO_ORIGEM[ultimo.origem], nomeSetor(ultimo.setor)].filter(Boolean).join(" · ")}: preenche quem pediu, por onde e o setor
+                      {[ROTULO_ORIGEM[ultimo.origem], nomeSetor(ultimo.setor)].filter(Boolean).join(", ")}: preenche quem pediu, por onde e o setor
                     </span>
                   </span>
                 </button>
@@ -200,7 +200,7 @@ export function Registrar() {
                         <li key={u.id}>
                           <button type="button" onClick={() => escolher(u)} className="w-full px-4 py-3 text-left hover:bg-mar-50">
                             <span className="block font-semibold">{u.name}</span>
-                            <span className="block text-sm text-tinta-2">{[u.matricula && `mat. ${u.matricula}`, u.expand?.setor?.nome].filter(Boolean).join(" · ")}</span>
+                            <span className="block text-sm text-tinta-2">{[u.matricula && `mat. ${u.matricula}`, u.expand?.setor?.nome].filter(Boolean).join(", ")}</span>
                           </button>
                         </li>
                       ))}
@@ -344,7 +344,7 @@ function RegistradosHoje({ eu }: { eu: string }) {
                   <SeloStatus status={c.status} />
                   <span className="ml-auto text-xs text-tinta-2">{ROTULO_ORIGEM[c.origem]}</span>
                 </span>
-                <span className="mt-0.5 block truncate text-sm text-tinta-2">{nomeSolicitante(c)} · {resumo(c.descricao, 60)}</span>
+                <span className="mt-0.5 block truncate text-sm text-tinta-2">{nomeSolicitante(c)}: {resumo(c.descricao, 60)}</span>
               </LinkChamado>
             </li>
           ))}

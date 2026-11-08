@@ -134,7 +134,7 @@ export function MenuAcoes({ chamado: c, eu, tecnicos, carga, aoFechar, aoSalvo }
         <>
           <p className="mt-1 line-clamp-2 text-sm">{resumo(c.descricao, 160)}</p>
           <p className="mt-0.5 truncate text-sm text-tinta-2">
-            {nomeSolicitante(c)}{c.expand?.setor?.nome ? ` · ${c.expand.setor.nome}` : ""}{c.expand?.categoria?.nome ? ` · ${c.expand.categoria.nome}` : ""}
+            {[nomeSolicitante(c), c.expand?.setor?.nome, c.expand?.categoria?.nome].filter(Boolean).join(", ")}
           </p>
         </>
       }

@@ -99,7 +99,7 @@ export function AlcaColuna({ col, id, tabela }: { col: Colunas; id: string; tabe
       aria-label={`Largura da coluna ${d.rotulo} (setas para ajustar)`}
       aria-valuenow={col.largura(id)}
       aria-valuemin={d.minimo}
-      title="Arraste para mudar a largura · duplo clique ajusta ao texto"
+      title="Arraste para mudar a largura. Duplo clique ajusta ao texto."
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e: PE) => {
         e.stopPropagation();

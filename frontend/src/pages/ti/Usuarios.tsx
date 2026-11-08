@@ -76,7 +76,7 @@ function JanelaSenha({ r, nova, aoFechar }: { r: RespostaPessoa; nova: boolean; 
     >
       {/* bilhete: é o que sai na impressão (o resto da tela some no print) */}
       <div className="bilhete-senha space-y-3 rounded-xl bg-fundo p-4 ring-1 ring-linha">
-        <p className="text-sm text-tinta-2">Dino Desk · {enderecoDoSistema()}</p>
+        <p className="text-sm text-tinta-2">Dino Desk: {enderecoDoSistema()}</p>
         <div>
           <p className="text-sm text-tinta-2">{r.usuario.matricula ? "Matrícula" : "E-mail"}</p>
           <p className="font-display text-2xl font-extrabold">{login}</p>
@@ -298,7 +298,7 @@ function JanelaPessoaEditar({ pessoa, setorInicial, setores, eu, aoFechar, aoSal
         </span>
       )}
       subtitulo={editando ? (
-        <p className="mt-0.5 text-sm text-tinta-2">Matrícula {pessoa.matricula || "—"}{pessoa.ficticio ? " · conta de teste" : ""}</p>
+        <p className="mt-0.5 text-sm text-tinta-2">Matrícula {pessoa.matricula || "—"}{pessoa.ficticio ? ", conta de teste" : ""}</p>
       ) : undefined}
       aoTentarFechar={() => {
         if (salvando) return;
@@ -492,7 +492,7 @@ function Selos({ p }: { p: PessoaTI }) {
       )}
       {p.papel === "observador" && (
         <span className="inline-flex items-center gap-1 rounded-full bg-sol-50 px-2 py-0.5 text-xs font-bold text-tinta ring-1 ring-sol">
-          <Eye className="size-3.5" aria-hidden="true" /> Equipe do Dino Desk · só leitura
+          <Eye className="size-3.5" aria-hidden="true" /> Equipe do Dino Desk (só leitura)
         </span>
       )}
       {p.bloqueado && (
@@ -670,7 +670,7 @@ function AbaSetores({ setores, admin, aoEditar, aoNovo, aoVerPessoas, aoAdiciona
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <p className="font-display text-lg font-bold">{s.nome}</p>
-                <p className="text-sm text-tinta-2">{s.predio || "Prédio não informado"}{s.ativo ? "" : " · inativo"}</p>
+                <p className="text-sm text-tinta-2">{s.predio || "Prédio não informado"}{s.ativo ? "" : ", inativo"}</p>
               </div>
               {admin && (
                 <button type="button" onClick={() => aoEditar(s)} className="grid size-10 place-items-center rounded-full text-tinta-2 hover:bg-fundo hover:text-tinta" aria-label={`Editar setor ${s.nome}`}>

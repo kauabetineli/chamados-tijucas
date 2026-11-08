@@ -145,8 +145,8 @@ function CartaoPessoa({ t, salvar, proprio }: { t: Tecnico; salvar: (corpo: Part
             <div className="min-w-0">
               <p className="flex items-center gap-2 font-bold">{t.nome} <SeloTeste ficticio={t.ficticio} compacto /></p>
               <p className="text-sm text-tinta-2">
-                {t.carga} em atendimento{t.admin ? " · administrador" : ""}
-                {!ok && <> · <span className="font-semibold text-ambar-tinta">{selo}</span></>}
+                {t.carga} em atendimento{t.admin ? ", administrador" : ""}
+                {!ok && <>. <span className="font-semibold text-ambar-tinta">{selo}</span></>}
               </p>
             </div>
           </div>

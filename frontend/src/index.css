@@ -280,6 +280,15 @@ svg.lucide.size-8 { width: calc(32rem / 17); height: calc(32rem / 17); }
   overflow-wrap: anywhere;
 }
 
+/* Itens de uma linha de detalhes ("Kauã  agora  some em 2h"): separados por espaço, sem o ponto "·".
+   Cada item é um elemento filho; funciona dentro de linha que trunca (é margem, não flex). */
+@utility meta {
+  /* margem em todos e a do primeiro anulada pelo recuo do pai: assim item escondido (hidden em alguma largura)
+     não deixa espaço sobrando no começo da linha */
+  margin-left: -0.85em;
+  & > * { margin-left: 0.85em; }
+}
+
 /* faixas que rolam para o lado (abas, chips): sem barra de rolagem, como num app.
    Uma faixa com overflow-x corta TAMBÉM em cima e embaixo: a folga de 6 px deixa à vista o contorno (ring) dos botões
    e o contorno de foco do teclado (3 px + 2 px de recuo). Sem margem negativa: ela anularia o space-y do pai. */

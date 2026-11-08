@@ -30,7 +30,7 @@ export function resumoResultado(r: Resultado, l: Listas): string {
   else if (r.devolver) p.push("volta para a fila");
   if (r.prioridade !== r.prioridade_antes || r.gatilho === "novo") p.push(`prioridade ${ROTULO_PRIO[r.prioridade] ?? r.prioridade}`);
   for (const e of r.efeitos) p.push(textoAcao({ tipo: e.tipo, valor: e.valor ?? "", pessoas: [], modo: "carga" } as Acao, l).toLowerCase());
-  return p.length ? p.join(" · ") : "nenhuma ação rodou";
+  return p.length ? p.join(", ") : "nenhuma ação rodou";
 }
 
 export function PainelTeste({ gatilho, sim, setSim, listas, res, acender, setAcender, equipe, outroIgual, nomeFluxo }: {
@@ -97,7 +97,7 @@ export function PainelTeste({ gatilho, sim, setSim, listas, res, acender, setAce
                 {res.regra && <p className="text-sm opacity-90">pelo fluxo “{res.regra}”</p>}
                 <p className="mt-1 text-sm">
                   Prioridade {mudouPrio && <>{ROTULO_PRIO[res.prioridade_antes]} → </>}<b className="text-sol">{ROTULO_PRIO[res.prioridade] ?? res.prioridade}</b>
-                  {res.gatilho === "novo" && <> · prazo <b className="text-sol">{textoMinutos(res.prazo_min)}</b></>}
+                  {res.gatilho === "novo" && <>, prazo <b className="text-sol">{textoMinutos(res.prazo_min)}</b></>}
                 </p>
                 {efeitos.map((x, i) => <p key={i} className="mt-1 text-sm opacity-90">+ {x.t}{x.regra ? ` (${x.regra})` : ""}</p>)}
               </>

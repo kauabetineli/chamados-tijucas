@@ -305,7 +305,7 @@ function Historico({ historico }: { historico: Versao[] }) {
         {historico.map((v, i) => (
           <li key={v.id} className="py-2.5">
             <p className="font-semibold">{v.resumo || "Alterou os fluxos"}{i === 0 && <span className="ml-2 rounded-full bg-campo-50 px-2 py-0.5 text-xs font-bold text-ok">em vigor</span>}</p>
-            <p className="text-sm text-tinta-2">{dataHora(v.quando)}{v.autor ? ` · ${v.autor}` : ""}</p>
+            <p className="text-sm text-tinta-2">{dataHora(v.quando)}{v.autor ? `, por ${v.autor}` : ""}</p>
           </li>
         ))}
       </ol>

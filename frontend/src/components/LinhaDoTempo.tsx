@@ -209,12 +209,11 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
           if (g.tipo === "mudancas") {
             // mudanças seguidas (status, responsável, prioridade, abertura) viram UMA linha fina
             return (
-              <li key={g.itens[0].id} className="px-2 text-center text-sm text-tinta-2">
-                {dia}{dia && " · "}
-                {enxugar(g.itens).map((i, n) => (
+              <li key={g.itens[0].id} className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 px-2 text-center text-sm text-tinta-2">
+                {dia}
+                {enxugar(g.itens).map((i) => (
                   <Fragment key={i.id}>
-                    {n > 0 && " · "}
-                    <span className="texto-livre" title={`${i.texto} · ${dataHora(i.created)}${i.expand?.autor ? ` · ${i.expand.autor.name}` : ""}`}>{textoMudanca(i)}</span>
+                    <span className="texto-livre" title={`${i.texto} (${dataHora(i.created)}${i.expand?.autor ? `, ${i.expand.autor.name}` : ""})`}>{textoMudanca(i)}</span>
                   </Fragment>
                 ))}
               </li>
@@ -251,7 +250,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
                 >
                   {i.interno && (
                     <p className="mb-1 flex items-center gap-1.5 text-sm font-bold">
-                      <Lock className="size-4" aria-hidden="true" /> Nota interna · só o TI vê
+                      <Lock className="size-4" aria-hidden="true" /> Nota interna: só o TI vê
                     </p>
                   )}
                   {i.texto && <p className="selecionavel texto-livre whitespace-pre-wrap">{i.texto}</p>}
@@ -277,7 +276,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
                   )}
                   <p className="mt-1 text-xs text-tinta-2" title={dataHora(i.created)}>
                     {/* em sequência da mesma pessoa, o nome só aparece no último balão */}
-                    {continua ? hora(i.created) : <>{nome}{!doSolicitante && !automatica && !i.interno && " (TI)"} · {hora(i.created)}</>}
+                    {continua ? hora(i.created) : <span className="meta"><span>{nome}{!doSolicitante && !automatica && !i.interno && " (TI)"}</span><span>{hora(i.created)}</span></span>}
                   </p>
                 </div>
               </li>
@@ -434,15 +433,15 @@ function humanizar(t: string) {
   let m = RE_STATUS.exec(t);
   if (m) {
     const [, , para, motivo] = m;
-    if (motivo === "o solicitante respondeu") return "Quem pediu respondeu · voltou para atendimento";
+    if (motivo === "o solicitante respondeu") return "Quem pediu respondeu e voltou para atendimento";
     if (motivo?.startsWith("reaberto")) return "Reaberto por quem pediu";
     const destino = para === "Em andamento" ? "Em atendimento" : para === "Aguardando" ? "Em espera" : para;
     return motivo ? `${destino}: ${motivo.replace("do solicitante", "de quem pediu")}` : destino;
   }
   m = /^Prioridade: (.+?) → (.+?)(?: \(fluxo “(.+)”\))?$/.exec(t);
-  if (m) return m[3] ? `Prioridade ${m[2]} · automática` : `Prioridade ${m[2]}`;
+  if (m) return m[3] ? `Prioridade ${m[2]} (automática)` : `Prioridade ${m[2]}`;
   m = /^Prioridade definida pelo fluxo “(.+)”: (.+)$/.exec(t);
-  if (m) return `Prioridade ${m[2]} · automática`;
+  if (m) return `Prioridade ${m[2]} (automática)`;
   m = /^Responsável: (.+?)(?: \(fluxo “.+”\))?$/.exec(t);
   if (m) return `Com ${primeiroNome(m[1])}`;
   if (t.startsWith("Devolvido para a fila")) return "Voltou para a fila";

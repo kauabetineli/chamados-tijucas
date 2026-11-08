@@ -428,7 +428,7 @@ export function TodosChamados() {
                     <span className="texto-livre line-clamp-2 leading-snug font-semibold"><EtiquetaPrioridade prioridade={c.prioridade} />{resumo(c.descricao, 120)}</span>
                     <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm whitespace-nowrap text-tinta-2">
                       <SeloStatus status={c.status} />
-                      <span className="min-w-0 truncate">· {c.expand?.setor?.nome ?? "—"} · {nomeSolicitante(c)} · <span className="tabular-nums">{c.protocolo}</span> <MarcaTeste ficticio={c.ficticio} /></span>
+                      <span className="meta min-w-0 truncate"><span>{c.expand?.setor?.nome ?? "—"}</span><span>{nomeSolicitante(c)}</span><span className="tabular-nums">{c.protocolo}</span> <MarcaTeste ficticio={c.ficticio} /></span>
                     </span>
                   </span>
                   <span className="shrink-0 self-start pt-0.5 text-xs text-tinta-2">{c.status === "resolvido" ? <Tempo c={c} /> : <Espera c={c} />}</span>

@@ -222,7 +222,7 @@ function CartaoHistorico({ c, selecionado }: { c: Chamado; selecionado: boolean 
           <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 shrink-0 text-acento" />
           <span className="min-w-0 truncate">
             {nomeSolicitante(c)}{c.expand?.setor ? `, ${c.expand.setor.nome}` : ""}
-            {c.expand?.responsavel ? ` · por ${c.expand.responsavel.name}` : ""}
+            {c.expand?.responsavel ? `, por ${c.expand.responsavel.name}` : ""}
           </span>
         </div>
         {temRegistro ? (

@@ -67,7 +67,7 @@ export function Perfil() {
   const admin = ehAdmin(u);
   // observador: equipe do Dino Desk, vê as telas do TI (inclusive as de admin) sem mudar nada
   const soLeitura = ehObservador(u);
-  const tipo = admin ? "Administrador do TI" : tecnico ? "Técnico do TI" : soLeitura ? "Equipe do Dino Desk · só leitura" : "Servidor";
+  const tipo = admin ? "Administrador do TI" : tecnico ? "Técnico do TI" : soLeitura ? "Equipe do Dino Desk (só leitura)" : "Servidor";
   const TipoIcone = admin ? ShieldCheck : tecnico ? Wrench : soLeitura ? Eye : Building2;
 
   const itens = [

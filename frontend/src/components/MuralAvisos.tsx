@@ -165,9 +165,11 @@ function CartaoAviso({ a, podeEncerrar }: { a: AvisoTI; podeEncerrar: boolean })
       <Icone className={`mt-0.5 size-4 shrink-0 ${icone}`} aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="texto-livre font-semibold">{a.texto}</p>
-        <p className="mt-0.5 text-xs text-tinta-2">
-          {a.expand?.autor?.name?.split(" ")[0] ?? "TI"} · {tempoRelativo(a.created)}{a.ate && someEm(a.ate) ? ` · ${someEm(a.ate)}` : ""}
-          {podeEncerrar && !!a.tambem_total && <> · <b className="text-tinta">{a.tambem_total}</b> também</>}
+        <p className="meta mt-0.5 text-xs text-tinta-2">
+          <span>{a.expand?.autor?.name?.split(" ")[0] ?? "TI"}</span>
+          <span>{tempoRelativo(a.created)}</span>
+          {a.ate && someEm(a.ate) && <span>{someEm(a.ate)}</span>}
+          {podeEncerrar && !!a.tambem_total && <span><b className="text-tinta">{a.tambem_total}</b> também</span>}
         </p>
       </div>
       {podeEncerrar && (
@@ -385,7 +387,7 @@ function LinhaAviso({ a, podeEncerrar }: { a: AvisoTI; podeEncerrar: boolean }) 
         <span className="texto-livre line-clamp-2 min-w-0 flex-1 font-semibold" title={a.texto}>{a.texto}</span>
       </p>
       <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-tinta-2">
-        <span>{a.expand?.autor?.name?.split(" ")[0] ?? "TI"} · {tempoRelativo(a.created)}{fim && ` · ${fim}`}</span>
+        <span className="meta"><span>{a.expand?.autor?.name?.split(" ")[0] ?? "TI"}</span><span>{tempoRelativo(a.created)}</span>{fim && <span>{fim}</span>}</span>
         {!!a.tambem_total && (
           <span className="inline-flex items-center gap-1 font-semibold text-tinta" title={quantasPessoas(a.tambem_total)}>
             <Users className="size-3.5" aria-hidden="true" /> {a.tambem_total} também
@@ -440,7 +442,7 @@ export function AvisoNoNovoChamado({ className = "" }: { className?: string }) {
             className={`btn mt-3 w-full sm:w-auto ${a.tambem_eu ? "bg-superficie text-tinta ring-1 ring-linha" : "bg-mar-700 text-white"}`}
           >
             <Users className="size-5" aria-hidden="true" />
-            {a.tambem_eu ? "Você já avisou · desfazer" : "Também estou com esse problema"}
+            {a.tambem_eu ? "Você já avisou (desfazer)" : "Também estou com esse problema"}
           </button>
           {!!a.tambem_total && !(a.tambem_eu && a.tambem_total === 1) && (
             <p className="mt-2 text-sm text-tinta-2">{quantasPessoas(a.tambem_total)}{a.tambem_eu ? ", com você" : ""}.</p>

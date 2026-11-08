@@ -369,7 +369,7 @@ function Gaveta({ c, etiqueta, tecnico, soLeitura, controles, aoMudar, paraOServ
       <dl className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
         {tecnico && (
           <Ficha Icone={UserRound} termo="Quem pediu">
-            <b>{nomeSolicitante(c)}</b>{ramal && <span className="text-tinta-2"> · ramal {ramal}</span>}
+            <b>{nomeSolicitante(c)}</b>{ramal && <span className="text-tinta-2"> (ramal {ramal})</span>}
           </Ficha>
         )}
         {c.expand?.setor?.nome && <Ficha Icone={Building2} termo="Setor">{c.expand.setor.nome}</Ficha>}
@@ -437,7 +437,7 @@ function HistoricoDaPessoa({ c }: { c: TChamado }) {
     <div className="text-sm">
       <button type="button" aria-expanded={aberto} onClick={() => setAberto(!aberto)} className="inline-flex min-h-9 items-center gap-1.5 text-left font-semibold text-acento hover:underline">
         <IconeHistorico className="size-4 shrink-0" aria-hidden="true" />
-        {nome} abriu mais {lista.length} {lista.length === 1 ? "chamado" : "chamados"} nos últimos 30 dias{n > 1 ? ` · ${n} de ${tipo}${mesmo}` : ""}
+        {nome} abriu mais {lista.length} {lista.length === 1 ? "chamado" : "chamados"} nos últimos 30 dias{n > 1 ? `, ${n} de ${tipo}${mesmo}` : ""}
       </button>
       {aberto && (
         <ul className="mt-1 divide-y divide-linha rounded-xl ring-1 ring-linha">

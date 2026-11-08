@@ -142,13 +142,13 @@ export function Feedback() {
                     )}
                   </>
                 )}
-                <p className="mt-1 text-sm text-tinta-2">
-                  {dataHora(f.created)}{f.tela && <> · tela: {f.tela}</>}{f.imagem && <> · com print</>}{f.nota > 0 && <> · nota <b className="text-tinta">{f.nota}</b></>} <MarcaTeste ficticio={f.ficticio} />
+                <p className="meta mt-1 text-sm text-tinta-2">
+                  <span>{dataHora(f.created)}</span>{f.tela && <span>tela: {f.tela}</span>}{f.imagem && <span>com print</span>}{f.nota > 0 && <span>nota <b className="text-tinta">{f.nota}</b></span>} <MarcaTeste ficticio={f.ficticio} />
                 </p>
               </div>
               <p className="text-sm">
                 <b>{f.autor_nome ?? "—"}</b><br />
-                <span className="text-tinta-2">{PAPEL[f.papel] ?? f.papel}{f.expand?.setor?.nome ? ` · ${f.expand.setor.nome}` : ""}</span>
+                <span className="text-tinta-2">{PAPEL[f.papel] ?? f.papel}{f.expand?.setor?.nome ? `, ${f.expand.setor.nome}` : ""}</span>
               </p>
               <label className={larga ? "hidden" : "block"}>
                 <span className="sr-only">Situação</span>
@@ -176,7 +176,7 @@ export function Feedback() {
           )}
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
             <div><dt className="text-tinta-2">Quem enviou</dt><dd className="font-semibold">{sel.autor_nome ?? "—"}</dd></div>
-            <div><dt className="text-tinta-2">Papel e setor</dt><dd className="font-semibold">{PAPEL[sel.papel] ?? sel.papel}{sel.expand?.setor?.nome ? ` · ${sel.expand.setor.nome}` : ""}</dd></div>
+            <div><dt className="text-tinta-2">Papel e setor</dt><dd className="font-semibold">{PAPEL[sel.papel] ?? sel.papel}{sel.expand?.setor?.nome ? `, ${sel.expand.setor.nome}` : ""}</dd></div>
             <div><dt className="text-tinta-2">Tela</dt><dd className="font-semibold">{sel.tela || "—"}</dd></div>
             <div><dt className="text-tinta-2">Nota</dt><dd className="font-semibold">{sel.nota > 0 ? `${sel.nota} de 5` : "—"}</dd></div>
           </dl>

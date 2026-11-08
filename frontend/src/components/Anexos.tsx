@@ -40,7 +40,7 @@ export function useAnexos(onChange: Dispatch<SetStateAction<File[]>>, aoPreparar
     try {
       const novos: File[] = [];
       for (const original of midias) {
-        console.info(`[anexos] chegou: ${original.name || "(sem nome)"} · ${original.type || "sem tipo"} · ${Math.round(original.size / 1048576)} MB`);
+        console.info(`[anexos] chegou: ${original.name || "(sem nome)"}, ${original.type || "sem tipo"}, ${Math.round(original.size / 1048576)} MB`);
         const f = await prepararArquivo(original);
         if (f.size > TAMANHO_MAX) {
           setAviso(`"${original.name}" passa de 250 MB. Grave um vídeo mais curto (até 1 minuto).`);
@@ -110,7 +110,7 @@ export function SeletorAnexos({
             <Upload className={`size-6 shrink-0 ${sobre ? "text-acento" : "text-tinta-2"}`} aria-hidden="true" />
             <span className="min-w-0 text-sm leading-tight">
               <span className="block font-semibold">{sobre ? "Solte para anexar" : "Arraste a foto ou o vídeo aqui"}</span>
-              <span className="block text-tinta-2">ou <span className="font-semibold text-acento underline underline-offset-4">escolha um arquivo</span> · print: Ctrl+V</span>
+              <span className="block text-tinta-2">ou <span className="font-semibold text-acento underline underline-offset-4">escolha um arquivo</span>. Print: Ctrl+V</span>
             </span>
             <input type="file" accept="image/*,video/*" multiple className="sr-only" onChange={(e) => { adicionar(e.target.files); e.target.value = ""; }} />
           </label>
