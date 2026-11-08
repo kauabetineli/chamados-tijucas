@@ -3,7 +3,7 @@ import { mudancaDaAcao, ROTULO_ACAO, type AcaoPronta } from "../lib/respostasPro
 import { CheckCircle2, Hourglass, ImagePlus, Lock, Send, X } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { useMediaQuery } from "../lib/useMediaQuery";
-import { Fragment, useCallback, useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
 import { avisar } from "../lib/avisos";
@@ -169,6 +169,14 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
 
   const arrastando = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
   const podeEnviar = (texto.trim() || imagens.length) && !enviando && !preparando;
+  // a caixa cresce com o texto (começa com 2 linhas, até ~10; depois rola)
+  const caixaTexto = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = caixaTexto.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 260)}px`;
+  }, [texto]);
 
   return (
     <section aria-labelledby="titulo-conversa">
@@ -308,54 +316,71 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
           </p>
         )}
         <label htmlFor="mensagem" className="sr-only">Mensagem</label>
-        <div className="relative">
+        {/* caixa única, como nos apps de conversa: texto em cima; anexar à esquerda e enviar à direita, dentro dela */}
+        <div
+          className={`relative rounded-2xl ring-1 transition-shadow focus-within:ring-2 focus-within:ring-acento ${
+            interno ? "bg-sol-50 ring-sol/60" : "bg-superficie ring-linha"
+          }`}
+        >
           <textarea
+            ref={caixaTexto}
             id="mensagem"
-            className={`campo min-h-24 ${interno ? "bg-sol-50" : ""}`}
-            placeholder={`${!tecnico ? "Escreva para o TI" : interno ? "Só o TI vai ler" : `Escreva para ${solicitanteNome ? primeiroNome(solicitanteNome) : "quem pediu"}`}${noPc ? " · print: Ctrl+V" : ""}`}
+            rows={2}
+            className="block max-h-[260px] w-full resize-none bg-transparent px-4 pt-3 pb-1 text-base leading-relaxed placeholder:text-tinta-2/80 focus:outline-none"
+            placeholder={!tecnico ? "Escreva para o TI" : interno ? "Nota interna: só o TI vai ler" : `Escreva para ${solicitanteNome ? primeiroNome(solicitanteNome) : "quem pediu"}`}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
+            // Ctrl+Enter (ou Cmd+Enter) envia; Enter sozinho pula linha
+            onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && podeEnviar) { e.preventDefault(); enviar(e); } }}
             // print colado (Ctrl+V) vai como imagem da mensagem
             onPaste={(e) => {
               const arquivos = Array.from(e.clipboardData.files).filter(ehImagem);
               if (arquivos.length) { e.preventDefault(); adicionar(arquivos); }
             }}
           />
+          {(imagens.length > 0 || preparando) && (
+            <div className="px-3 pb-1">
+              <PreviasImagens arquivos={imagens} aoRemover={(f) => setImagens((atual) => atual.filter((x) => x !== f))} />
+              {preparando && <p className="text-sm text-tinta-2" role="status">Preparando imagem...</p>}
+            </div>
+          )}
+          <div className="flex items-center gap-2 px-2 pb-2">
+            <label
+              className={`grid size-11 cursor-pointer place-items-center rounded-xl text-tinta-2 hover:bg-fundo hover:text-tinta focus-within:ring-2 focus-within:ring-acento ${imagens.length >= MAX_IMAGENS ? "pointer-events-none opacity-50" : ""}`}
+              title={noPc ? "Anexar imagem (ou cole um print com Ctrl+V)" : "Anexar imagem"}
+            >
+              <ImagePlus className="size-5" aria-hidden="true" />
+              <span className="sr-only">Anexar imagem</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="sr-only"
+                onChange={(e) => { adicionar(e.target.files); e.target.value = ""; }}
+              />
+            </label>
+            <div className="ml-auto flex items-center gap-2">
+              {podeAguardar && (
+                <button
+                  type="button"
+                  className="btn-secundario min-h-11 px-3 text-sm"
+                  disabled={!podeEnviar}
+                  onClick={(e) => enviar(e, true)}
+                  title="Envia a mensagem e põe o chamado em espera. Quando a pessoa responder, volta sozinho para atendimento."
+                >
+                  <Hourglass className="size-4" aria-hidden="true" /> <span className="hidden sm:inline">Enviar e aguardar</span><span className="sm:hidden">Aguardar</span>
+                </button>
+              )}
+              <button className="btn-primario min-h-11 px-4" disabled={!podeEnviar} title={noPc ? "Enviar (Ctrl+Enter)" : undefined}>
+                <Send className="size-4" aria-hidden="true" /> {enviando ? "Enviando..." : "Enviar"}
+              </button>
+            </div>
+          </div>
           {sobre && (
-            <div className="pointer-events-none absolute inset-0 grid place-items-center rounded-xl border-2 border-dashed border-acento bg-mar-50/90 font-semibold text-acento">
+            <div className="pointer-events-none absolute inset-0 grid place-items-center rounded-2xl border-2 border-dashed border-acento bg-mar-50/90 font-semibold text-acento">
               Solte a imagem aqui
             </div>
           )}
-        </div>
-        <PreviasImagens arquivos={imagens} aoRemover={(f) => setImagens((atual) => atual.filter((x) => x !== f))} />
-        {preparando && <p className="text-sm text-tinta-2" role="status">Preparando imagem...</p>}
-        <div className="flex flex-wrap items-center gap-3">
-          <label className={`btn-secundario min-h-11 cursor-pointer px-3 ${imagens.length >= MAX_IMAGENS ? "pointer-events-none opacity-50" : ""}`}>
-            <ImagePlus className="size-5" aria-hidden="true" /> Imagem
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="sr-only"
-              onChange={(e) => { adicionar(e.target.files); e.target.value = ""; }}
-            />
-          </label>
-          <div className="ml-auto flex flex-wrap justify-end gap-2">
-            {podeAguardar && (
-              <button
-                type="button"
-                className="btn-secundario"
-                disabled={!podeEnviar}
-                onClick={(e) => enviar(e, true)}
-                title="Envia a mensagem e põe o chamado em espera. Quando a pessoa responder, volta sozinho para atendimento."
-              >
-                <Hourglass className="size-5" aria-hidden="true" /> Enviar e aguardar resposta
-              </button>
-            )}
-            <button className="btn-primario" disabled={!podeEnviar}>
-              <Send className="size-5" aria-hidden="true" /> {enviando ? "Enviando..." : "Enviar"}
-            </button>
-          </div>
         </div>
         {erro && <p className="text-sm font-semibold text-alerta">{erro}</p>}
       </form>

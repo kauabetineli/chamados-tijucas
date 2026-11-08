@@ -154,25 +154,27 @@ export function DetalheChamado({ id, embutido, gaveta, controles, etiqueta }: {
           </header>
 
           {/* andamento em etapas: é de fato uma sequência */}
-          <ol className="flex items-center gap-2" aria-label="Andamento do chamado">
-            {ETAPAS.map((s, i) => (
-              <li key={s} className="flex min-w-0 flex-1 items-center gap-2" aria-current={i === etapa ? "step" : undefined}>
-                <span
-                  className={`grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold ${
-                    i < etapa || c.status === "resolvido"
-                      ? "bg-campo-700 text-white"
-                      : i === etapa
-                        ? "bg-mar-700 text-white"
-                        : "bg-superficie text-tinta-2 ring-2 ring-linha"
-                  }`}
-                >
-                  {i < etapa || c.status === "resolvido" ? <Check className="size-4" aria-hidden="true" /> : i + 1}
-                </span>
-                {/* celular bem estreito (< 360 px): só a etapa atual mostra o nome; as outras ficam só com o número */}
-                <span className={`text-sm font-semibold ${i <= etapa ? "text-tinta" : "text-tinta-2"} ${i === etapa ? "" : "max-[359px]:sr-only"}`}>{rotuloEtapa(s)}</span>
-                {i < ETAPAS.length - 1 && <span className={`h-0.5 flex-1 ${i < etapa ? "bg-campo-700" : "bg-linha"}`} aria-hidden="true" />}
-              </li>
-            ))}
+          {/* três colunas iguais: bolinha centralizada e o nome embaixo (cabe em qualquer largura, até 320 px);
+              a linha que liga as etapas vai do centro de uma bolinha ao centro da próxima */}
+          <ol className="grid grid-cols-3" aria-label="Andamento do chamado">
+            {ETAPAS.map((s, i) => {
+              const feita = i < etapa || c.status === "resolvido";
+              return (
+                <li key={s} className="relative flex flex-col items-center gap-1.5 text-center" aria-current={i === etapa ? "step" : undefined}>
+                  {i < ETAPAS.length - 1 && (
+                    <span className={`absolute top-4 left-1/2 h-0.5 w-full -translate-y-1/2 ${i < etapa ? "bg-campo-700" : "bg-linha"}`} aria-hidden="true" />
+                  )}
+                  <span
+                    className={`relative grid size-8 place-items-center rounded-full text-sm font-bold ${
+                      feita ? "bg-campo-700 text-white" : i === etapa ? "bg-mar-700 text-white" : "bg-superficie text-tinta-2 ring-2 ring-linha"
+                    }`}
+                  >
+                    {feita ? <Check className="size-4" aria-hidden="true" /> : i + 1}
+                  </span>
+                  <span className={`px-1 text-sm leading-tight font-semibold ${i <= etapa ? "text-tinta" : "text-tinta-2"}`}>{rotuloEtapa(s)}</span>
+                </li>
+              );
+            })}
           </ol>
 
           {paraOServidor}
