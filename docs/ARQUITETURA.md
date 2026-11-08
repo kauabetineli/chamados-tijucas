@@ -252,14 +252,16 @@ navegador até abrir com `?diagnostico=0` (`lib/diagnostico.ts`).
 
 ## Raias da Fila
 
-Sem visão nem filtro, a Fila responde "o que eu faço agora?" e mostra pouco de uma vez (como o "Agora / Depois" do
-Front e o botão Play do Zendesk), nesta ordem:
-**Comigo** (em atendimento e reservados para você; "N em espera" vira uma linha recolhida no fim da mesma caixa),
-**Seu próximo** (cartão com Começar e Passar à vista) e **Depois dele** (só os 3 primeiros livres, com "Pegar" ao
-passar o mouse; "Ver os N livres" abre a visão Livres). "Com a equipe N" abre o que está com colegas.
-As linhas não são tabela: ícone, problema e embaixo "quem pediu, setor" + protocolo pequeno; a espera à direita.
-Sem coluna de dono onde ele é óbvio (Comigo = você, Livres = ninguém); o "⋮" aparece ao passar o mouse (no celular,
-segurar o dedo na linha). A faixa da Equipe fica atrás do botão "Equipe" e aparece sozinha ao arrastar um chamado.
+Sem visão nem filtro, a Fila responde "o que eu faço agora?" em dois blocos: **Comigo** (em atendimento e
+reservados para você; "N em espera" é uma linha recolhida no fim da mesma caixa) e **Na fila para você** (a 1ª
+linha é o **Seu próximo**, com faixa e marca; depois os livres, só os 4 primeiros; "Ver os N livres" abre a visão
+Livres e "Com a equipe N" abre o que está com colegas).
+
+**A lista escolhe, o painel age** (como no e-mail): na tela larga o painel ao lado já abre no seu próximo e é o
+ÚNICO lugar de Começar, Passar e prioridade; as linhas não têm botões. Sem painel ao lado (celular, tela média), a
+linha do próximo mostra o Começar, e segurar o dedo numa linha abre as ações. Nunca a mesma ação duas vezes na tela.
+As linhas não são tabela: ícone, problema e embaixo "quem pediu, setor" + protocolo pequeno; a espera à direita;
+sem coluna de dono onde ele é óbvio. A faixa da Equipe fica atrás do botão "Equipe" e aparece sozinha ao arrastar.
 
 ## Visões rápidas da Fila
 
