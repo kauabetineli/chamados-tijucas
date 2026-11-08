@@ -1,7 +1,7 @@
 import { LinkChamado } from "../lib/verChamado";
 import { Bloco } from "../components/Esqueleto";
 import { LigarAoAviso } from "../components/MuralAvisos";
-import { ArrowLeft, History as IconeHistorico, Check, Hourglass, MessageCircleQuestion, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ArrowLeft, Building2, Check, Clock, History as IconeHistorico, Hourglass, MessageCircle, MessageCircleQuestion, ThumbsDown, ThumbsUp, UserRound, Users, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { GaleriaAnexos } from "../components/Anexos";
@@ -105,7 +105,8 @@ export function DetalheChamado({ id, embutido, gaveta, controles, etiqueta }: {
     </>
   );
   const oQueOTIFez = c.status === "resolvido" && (c.diagnostico || c.solucao) ? <OQueOTIFez c={c} doSolicitante={doSolicitante} /> : null;
-  const conversa = <LinhaDoTempo chamadoId={c.id} solicitanteId={c.solicitante} solicitanteNome={nomeSolicitante(c)} status={c.status} aoMudarChamado={carregar} semTitulo={gaveta} />;
+  const conversaCom = (semTitulo: boolean) => <LinhaDoTempo chamadoId={c.id} solicitanteId={c.solicitante} solicitanteNome={nomeSolicitante(c)} status={c.status} aoMudarChamado={carregar} semTitulo={semTitulo} />;
+  const conversa = conversaCom(false);
 
   // logo depois de abrir: a tela "Chamado enviado!" (some no "Acompanhar meu chamado")
   if (novo && !viuEnviado) {
@@ -121,7 +122,7 @@ export function DetalheChamado({ id, embutido, gaveta, controles, etiqueta }: {
   }
 
   if (gaveta) {
-    return <Gaveta c={c} etiqueta={etiqueta} tecnico={tecnico} soLeitura={soLeitura} controles={controles} aoMudar={carregar} paraOServidor={paraOServidor} oQueOTIFez={oQueOTIFez} conversa={conversa} />;
+    return <Gaveta c={c} etiqueta={etiqueta} tecnico={tecnico} soLeitura={soLeitura} controles={controles} aoMudar={carregar} paraOServidor={paraOServidor} oQueOTIFez={oQueOTIFez} conversa={conversaCom} />;
   }
 
   return (
@@ -308,7 +309,9 @@ type Aba = "conversa" | "fotos" | "parecidas";
  */
 function Gaveta({ c, etiqueta, tecnico, soLeitura, controles, aoMudar, paraOServidor, oQueOTIFez, conversa }: {
   c: TChamado; etiqueta?: string; tecnico: boolean; soLeitura: boolean; controles?: ReactNode; aoMudar: () => void;
-  paraOServidor: ReactNode; oQueOTIFez: ReactNode; conversa: ReactNode;
+  paraOServidor: ReactNode; oQueOTIFez: ReactNode;
+  /** a conversa; `semTitulo` quando há abas (Fotos, Soluções): aí o título é a aba */
+  conversa: (semTitulo: boolean) => ReactNode;
 }) {
   const [aba, setAba] = useState<Aba>("conversa");
   const comParecidas = tecnico && c.status !== "resolvido" && !!c.categoria;
@@ -362,30 +365,41 @@ function Gaveta({ c, etiqueta, tecnico, soLeitura, controles, aoMudar, paraOServ
         </ul>
       )}
 
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-        {tecnico && <Dado termo="Quem pediu" valor={`${nomeSolicitante(c)}${ramal ? ` (ramal ${ramal})` : ""}`} />}
-        <Dado termo="Setor" valor={c.expand?.setor?.nome} />
-        {tecnico && <Dado termo="Como chegou" valor={ROTULO_ORIGEM[c.origem]} />}
-        <Dado termo="Quem é afetado" valor={ROTULO_IMPACTO[c.impacto]} />
-        <div>
-          <dt className="text-tinta-2">{({ resolvido: "Aberto em", aberto: "Esperando", em_andamento: "Em atendimento", aguardando: "Em espera" } as const)[c.status]}</dt>
-          <dd className="font-semibold">{c.status === "resolvido" ? dataHora(c.created) : <Espera c={c} />}</dd>
-        </div>
-        {!tecnico && <Dado termo="Responsável no TI" valor={c.expand?.responsavel?.name} />}
+      {/* ficha compacta: ícone + valor em linha (antes, 5 pares rótulo/valor em 3 linhas) */}
+      <dl className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+        {tecnico && (
+          <Ficha Icone={UserRound} termo="Quem pediu">
+            <b>{nomeSolicitante(c)}</b>{ramal && <span className="text-tinta-2"> · ramal {ramal}</span>}
+          </Ficha>
+        )}
+        {c.expand?.setor?.nome && <Ficha Icone={Building2} termo="Setor">{c.expand.setor.nome}</Ficha>}
+        <Ficha Icone={Users} termo="Quem é afetado">{ROTULO_IMPACTO[c.impacto]}</Ficha>
+        {tecnico && <Ficha Icone={MessageCircle} termo="Como chegou">{ROTULO_ORIGEM[c.origem]}</Ficha>}
+        <Ficha Icone={Clock} termo={({ resolvido: "Aberto em", aberto: "Esperando", em_andamento: "Em atendimento", aguardando: "Em espera" } as const)[c.status]}>
+          {c.status === "resolvido" ? dataHora(c.created) : <Espera c={c} />}
+        </Ficha>
+        {!tecnico && c.expand?.responsavel?.name && <Ficha Icone={Wrench} termo="Responsável no TI">{c.expand.responsavel.name}</Ficha>}
       </dl>
 
       {tecnico && c.solicitante && <HistoricoDaPessoa c={c} />}
       {paraOServidor}
       {tecnico && !soLeitura && c.status !== "resolvido" && <LigarAoAviso chamadoId={c.id} aviso={c.aviso} aoMudar={aoMudar} />}
-      {tecnico && <fieldset disabled={soLeitura} className="min-w-0"><PainelTecnico chamado={c} aoMudar={aoMudar} linha /></fieldset>}
+      {tecnico && (
+        <fieldset disabled={soLeitura} className="min-w-0 rounded-2xl p-3 ring-1 ring-linha">
+          <legend className="sr-only">Atendimento</legend>
+          <PainelTecnico chamado={c} aoMudar={aoMudar} linha />
+        </fieldset>
+      )}
       {oQueOTIFez}
 
       <div>
-        {/* uma aba só (sem fotos nem soluções parecidas) ainda serve de título da conversa */}
-        <div className="mb-4">
-          <AbasPagina rotulo="O que ver do chamado" itens={abas.map((a) => ({ rotulo: a.rotulo, numero: a.n, ativo: abaAtual === a.id, aoClicar: () => setAba(a.id) }))} />
-        </div>
-        {abaAtual === "conversa" && conversa}
+        {/* com fotos ou soluções parecidas: abas; só a conversa: ela mesma mostra o título e o "Tudo / Só mensagens" */}
+        {abas.length > 1 && (
+          <div className="mb-4">
+            <AbasPagina rotulo="O que ver do chamado" itens={abas.map((a) => ({ rotulo: a.rotulo, numero: a.n, ativo: abaAtual === a.id, aoClicar: () => setAba(a.id) }))} />
+          </div>
+        )}
+        {abaAtual === "conversa" && conversa(abas.length > 1)}
         {abaAtual === "fotos" && <GaleriaAnexos chamado={c} />}
         {abaAtual === "parecidas" && parecidas && (
           <>
@@ -414,7 +428,7 @@ function HistoricoDaPessoa({ c }: { c: TChamado }) {
   }, [c.id, c.solicitante]);
   if (lista === null) return <Bloco className="h-6 w-72" />;
   const nome = nomeSolicitante(c).split(" ")[0];
-  if (!lista.length) return <p className="text-sm text-tinta-2">Primeiro chamado de {nome} nos últimos 30 dias.</p>;
+  if (!lista.length) return null; // primeiro chamado da pessoa: nada a avisar
   const porTipo = new Map<string, number>();
   lista.forEach((x) => { const t = x.expand?.categoria?.nome ?? "Outro"; porTipo.set(t, (porTipo.get(t) ?? 0) + 1); });
   const [tipo, n] = [...porTipo.entries()].sort((a, b) => b[1] - a[1])[0];
@@ -438,6 +452,15 @@ function HistoricoDaPessoa({ c }: { c: TChamado }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function Ficha({ Icone, termo, children }: { Icone: typeof Clock; termo: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 items-center gap-1.5" title={termo}>
+      <dt className="shrink-0 text-tinta-2"><Icone className="size-4" aria-hidden="true" /><span className="sr-only">{termo}</span></dt>
+      <dd className="min-w-0">{children}</dd>
     </div>
   );
 }

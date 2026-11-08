@@ -115,7 +115,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
               <span className="sr-only">Com quem está</span>
               <UserRound className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
               <select
-                className="min-h-10 cursor-pointer appearance-none rounded-full bg-fundo py-1.5 pr-7 pl-7.5 text-sm font-semibold ring-1 ring-linha hover:ring-acento focus:ring-2 focus:ring-acento focus:outline-none"
+                className="min-h-10 cursor-pointer appearance-none rounded-full bg-superficie py-1.5 pr-7 pl-7.5 text-sm font-semibold ring-1 ring-linha hover:ring-acento focus:ring-2 focus:ring-acento focus:outline-none"
                 value={c.responsavel}
                 onChange={(e) => salvar({ responsavel: e.target.value }, e.target.value ? `${c.protocolo} agora está com ${nomeDe(e.target.value)}.` : `${c.protocolo} ficou sem responsável.`)}
               >
@@ -128,7 +128,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
               <span className="sr-only">Prioridade</span>
               <span className={`pointer-events-none absolute top-1/2 left-3 size-2.5 -translate-y-1/2 rounded-full ${COR_PRIORIDADE[c.prioridade]}`} aria-hidden="true" />
               <select
-                className="min-h-10 cursor-pointer appearance-none rounded-full bg-fundo py-1.5 pr-7 pl-7.5 text-sm font-semibold ring-1 ring-linha hover:ring-acento focus:ring-2 focus:ring-acento focus:outline-none"
+                className="min-h-10 cursor-pointer appearance-none rounded-full bg-superficie py-1.5 pr-7 pl-7.5 text-sm font-semibold ring-1 ring-linha hover:ring-acento focus:ring-2 focus:ring-acento focus:outline-none"
                 value={c.prioridade}
                 onChange={(e) => { const p = e.target.value as Prioridade; salvar({ prioridade: p }, `Prioridade do ${c.protocolo}: ${ROTULO_PRIORIDADE[p]}. O lugar na fila foi atualizado.`); }}
               >

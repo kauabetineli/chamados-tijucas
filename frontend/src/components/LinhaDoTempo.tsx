@@ -1,6 +1,6 @@
 import { EsqueletoConversa } from "./Esqueleto";
 import { mudancaDaAcao, ROTULO_ACAO, type AcaoPronta } from "../lib/respostasProntas";
-import { ArrowUp, CheckCircle2, Hourglass, Loader2, Lock, Paperclip, X } from "lucide-react";
+import { ArrowUp, CheckCircle2, Eye, EyeOff, Hourglass, Loader2, Lock, Paperclip, X } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from "react";
@@ -183,7 +183,15 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
       <div className={`mb-3 flex flex-wrap items-center gap-2 ${semTitulo ? "justify-end" : "justify-between"}`}>
         <h2 id="titulo-conversa" className={semTitulo ? "sr-only" : "text-xl font-bold"}>Conversa</h2>
         {/* o técnico pode esconder o registro de mudanças; o servidor vê tudo (lá o registro é curto) */}
-        {tecnico && (
+        {/* com abas em cima (gaveta): um botão discreto em vez do seletor de duas partes, que ficava solto */}
+        {tecnico && semTitulo && (
+          <button type="button" aria-pressed={soMensagens} onClick={() => setSoMensagens(!soMensagens)}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-tinta-2 hover:bg-fundo hover:text-tinta">
+            {soMensagens ? <Eye className="size-4" aria-hidden="true" /> : <EyeOff className="size-4" aria-hidden="true" />}
+            {soMensagens ? "Mostrar mudanças" : "Esconder mudanças"}
+          </button>
+        )}
+        {tecnico && !semTitulo && (
           <div role="group" aria-label="O que mostrar" className="flex rounded-lg bg-fundo p-0.5 text-sm ring-1 ring-linha">
             {([[false, "Tudo"], [true, "Só mensagens"]] as const).map(([v, rot]) => (
               <button key={rot} type="button" aria-pressed={soMensagens === v} onClick={() => setSoMensagens(v)}
@@ -258,9 +266,9 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
                             aria-label={`Ver imagem ${n + 1} em tela cheia`}
                           >
                             <img
-                              src={pb.files.getURL(i, arquivo, { thumb: "400x400" })}
+                              src={pb.files.getURL(i, arquivo, { thumb: i.anexos!.length > 1 ? "400x400" : "600x0" })}
                               alt=""
-                              className={`w-full object-cover ${i.anexos!.length > 1 ? "aspect-square" : "max-h-64"}`}
+                              className={`w-full ${i.anexos!.length > 1 ? "aspect-square object-cover" : "max-h-72 bg-fundo object-contain"}`}
                             />
                           </button>
                         </li>
