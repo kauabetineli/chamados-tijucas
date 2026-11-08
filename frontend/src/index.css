@@ -24,6 +24,11 @@
   --breakpoint-larga: 100rem; /* = 1600 px (em media query, rem vale 16 px) */
   --font-sans: "Source Sans 3 Variable", system-ui, sans-serif;
   --font-display: "Bricolage Grotesque Variable", "Source Sans 3 Variable", sans-serif;
+  /* pesos mais leves que o padrão (a fonte é variável, aceita qualquer número): semibold estava em toda parte
+     e a tela parecia "toda em negrito". No escuro baixa mais um pouco (letra clara no fundo escuro parece mais grossa). */
+  --font-weight-medium: 480;
+  --font-weight-semibold: 560;
+  --font-weight-bold: 670;
 
   --color-mar: #0093c9;       /* azul da rede de pesca: marca, faixas */
   --color-mar-700: #00658c;   /* botões e links (texto branco legível) */
@@ -92,6 +97,9 @@
   /* escuro = PRETO neutro (o mesmo do app nativo): as cores de Tijucas ficam só nos destaques.
      Fundo preto puro (economiza bateria em tela AMOLED); cartões um pouco mais claros para separar bem no monitor. */
   color-scheme: dark;
+  --font-weight-medium: 450;
+  --font-weight-semibold: 520;
+  --font-weight-bold: 630;
   /* grafite (não preto puro): os cartões se separam do fundo pelo tom, quase sem borda */
   --color-fundo: #101113;
   --color-superficie: #1b1c1f;

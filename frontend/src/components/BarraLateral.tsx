@@ -190,8 +190,8 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
                     to={i.para}
                     title={recolhida ? i.rotulo : undefined}
                     aria-current={i.ativo ? "page" : undefined}
-                    className={`relative flex min-h-11 items-center gap-3 rounded-xl font-semibold ${recolhida ? "justify-center" : "px-3"} ${
-                      i.ativo ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"
+                    className={`relative flex min-h-11 items-center gap-3 rounded-xl ${recolhida ? "justify-center" : "px-3"} ${
+                      i.ativo ? "bg-mar-50 font-semibold text-acento" : "font-medium text-tinta-2 hover:bg-fundo hover:text-tinta"
                     }`}
                   >
                     <i.Icone className="size-5 shrink-0" aria-hidden="true" />
@@ -220,7 +220,7 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
                           <Link
                             to={v.para}
                             aria-current={v.ativa ? "page" : undefined}
-                            className={`flex min-h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm font-semibold ${v.ativa ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
+                            className={`flex min-h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm ${v.ativa ? "bg-mar-50 font-semibold text-acento" : "font-medium text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
                           >
                             <v.Icone className="size-4 shrink-0" aria-hidden="true" />
                             <span className="min-w-0 flex-1 truncate">{v.rotulo}</span>
