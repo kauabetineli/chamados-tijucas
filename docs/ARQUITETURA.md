@@ -252,11 +252,14 @@ navegador até abrir com `?diagnostico=0` (`lib/diagnostico.ts`).
 
 ## Raias da Fila
 
-Sem visão nem filtro, a Fila responde "o que é meu, o que pego agora, o que está livre" em três raias, nesta ordem:
-**Comigo** (em atendimento e reservados para você; "Em espera" recolhível dentro da mesma caixa; faixa na cor de
-destaque à esquerda), **Seu próximo** (o cartão com Começar) e **Livres** (sem responsável, na ordem da fila, em
-páginas: "10 de 21"). O que está com colegas fica recolhido no fim, em "Com a equipe". Em Comigo e Livres a coluna
-"Com" mostra só o ícone (o dono é óbvio); tocar nele continua atribuindo.
+Sem visão nem filtro, a Fila responde "o que eu faço agora?" e mostra pouco de uma vez (como o "Agora / Depois" do
+Front e o botão Play do Zendesk), nesta ordem:
+**Comigo** (em atendimento e reservados para você; "N em espera" vira uma linha recolhida no fim da mesma caixa),
+**Seu próximo** (cartão com Começar e Passar à vista) e **Depois dele** (só os 3 primeiros livres, com "Pegar" ao
+passar o mouse; "Ver os N livres" abre a visão Livres). "Com a equipe N" abre o que está com colegas.
+As linhas não são tabela: ícone, problema e embaixo "quem pediu, setor" + protocolo pequeno; a espera à direita.
+Sem coluna de dono onde ele é óbvio (Comigo = você, Livres = ninguém); o "⋮" aparece ao passar o mouse (no celular,
+segurar o dedo na linha). A faixa da Equipe fica atrás do botão "Equipe" e aparece sozinha ao arrastar um chamado.
 
 ## Visões rápidas da Fila
 

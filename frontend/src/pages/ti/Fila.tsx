@@ -1,6 +1,6 @@
 import { CabecalhoPagina } from "../../components/CabecalhoPagina";
 import { definirPadraoDoPainel } from "../../lib/moldes";
-import { ChevronDown, ChevronRight, GripVertical, Hourglass, MessageCircle, MoreVertical, Table2, Users, Wrench } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, Hourglass, MessageCircle, MoreVertical, Play, Table2, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Avatar } from "../../components/Avatar";
@@ -37,7 +37,7 @@ function useEscolhida() {
 /** Tipo do problema: ícone da categoria num quadrado, sempre à esquerda (reconhece antes de ler). */
 function TipoCategoria({ c, grande }: { c: Chamado; grande?: boolean }) {
   return (
-    <IconeCategoria nome={c.expand?.categoria?.icone} titulo={c.expand?.categoria?.nome} className={grande ? "size-11" : "size-10"} />
+    <IconeCategoria nome={c.expand?.categoria?.icone} titulo={c.expand?.categoria?.nome} className={grande ? "size-12" : "size-9"} />
   );
 }
 
@@ -53,20 +53,15 @@ function NovaMensagem() {
 
 function LinhaApoio({ c, posicao, novaMensagem }: { c: Chamado; posicao?: number; novaMensagem?: boolean }) {
   const setor = c.expand?.setor?.nome;
-  const partes = [
-    posicao ? `${posicao}º` : "",
-    c.status === "aguardando" ? `Aguardando ${c.aguardando_motivo ? ROTULO_AGUARDANDO[c.aguardando_motivo] : "algo"}` : "",
-  ].filter(Boolean);
+  const aguardando = c.status === "aguardando" ? `Aguardando ${c.aguardando_motivo ? ROTULO_AGUARDANDO[c.aguardando_motivo].toLowerCase() : "algo"}` : "";
   return (
     <p className="meta mt-0.5 truncate text-sm text-tinta-2">
       {novaMensagem && <NovaMensagem />}
-      {partes.map((t) => <span key={t}>{t}</span>)}
-      {/* o que ganhou coluna própria some daqui; a largura que conta é a da LISTA (@container), não a da tela,
-          porque com o chamado aberto ao lado a lista fica estreita */}
-      {setor && <span className="@3xl:hidden">{setor}</span>}
-      <span className="hidden @3xl:inline">{c.expand?.categoria?.nome ?? "Sem categoria"}</span>
-      <span className="@5xl:hidden">{nomeSolicitante(c)}</span>
-      <span className="tabular-nums @4xl:hidden">{c.protocolo}</span> <MarcaTeste ficticio={c.ficticio} />
+      {aguardando && <span>{aguardando}</span>}
+      <span>{nomeSolicitante(c)}{setor ? `, ${setor}` : ""}</span>
+      <span className="text-xs tabular-nums">{c.protocolo}</span>
+      {posicao ? <span className="text-xs" title="Posição na fila geral">{posicao}º da fila</span> : null}
+      <MarcaTeste ficticio={c.ficticio} />
     </p>
   );
 }
@@ -215,8 +210,11 @@ function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastand
  * tipo (ícone) · problema (título, com a etiqueta só se for Urgente/Alta) e onde/quem embaixo · espera · com quem.
  * No PC as três últimas viram colunas alinhadas e dá para arrastar a linha (alça à esquerda) até alguém da Equipe.
  */
-function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir, aoAcoes, arrastavel, aoArrastar, semDono, soLeitura }: {
+function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir, aoAcoes, arrastavel, aoArrastar, semDono, soLeitura, aoPegar, ocupado }: {
   c: Chamado;
+  /** Livres: botão "Pegar" ao passar o mouse */
+  aoPegar?: () => void;
+  ocupado?: boolean;
   /** conta só de leitura (observador): o dono aparece, mas não abre o menu; sem o "⋮" */
   soLeitura?: boolean;
   /** bloco onde o dono é óbvio (Comigo = você, Livres = ninguém): só o ícone, sem o nome, para sobrar espaço */
@@ -242,7 +240,7 @@ function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir
       draggable={arrastavel}
       onDragStart={(e) => { e.dataTransfer.setData(TIPO_ARRASTE, c.id); e.dataTransfer.effectAllowed = "move"; aoArrastar(c.id); }}
       onDragEnd={() => aoArrastar("")}
-      className={`group flex items-center gap-3 py-2 pr-1.5 pl-3 md:pl-2 ${selecionado ? "bg-mar-50" : "hover:bg-fundo"} ${realcado ? "animar-realce" : ""}`}
+      className={`group flex items-center gap-3 py-2.5 pr-1.5 pl-3 md:pl-4 ${selecionado ? "bg-mar-50" : "hover:bg-fundo"} ${realcado ? "animar-realce" : ""}`}
     >
       {arrastavel && (
         <span className="hidden w-4 shrink-0 cursor-grab justify-center text-tinta-2/0 group-hover:text-tinta-2 md:flex" aria-hidden="true">
@@ -250,62 +248,60 @@ function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir
         </span>
       )}
       <TipoCategoria c={c} />
-      <span className="hidden w-24 shrink-0 font-display text-sm font-bold tabular-nums @4xl:block">{c.protocolo}</span>
       <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} draggable={false} className="min-w-0 flex-1 py-1">
         <p className="line-clamp-2 leading-snug font-semibold md:line-clamp-1">
           <EtiquetaPrioridade prioridade={c.prioridade} escolhida={escolhida(c)} />{resumo(c.descricao, 140)}
         </p>
         <LinhaApoio c={c} posicao={posicao} novaMensagem={novaMensagem} />
       </LinkChamado>
-      {/* lista larga: colunas (aparecem conforme cabem) */}
-      <span className="hidden w-32 shrink-0 truncate text-sm @5xl:block" title={nomeSolicitante(c)}>{nomeSolicitante(c)}</span>
-      <span className="hidden w-32 shrink-0 truncate text-sm text-tinta-2 @3xl:block">{c.expand?.setor?.nome ?? "—"}</span>
-      <span className="hidden w-24 shrink-0 text-sm text-tinta-2 @2xl:block"><Espera c={c} /></span>
-      <span className="hidden @2xl:block" inert={soLeitura}><BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} comNome={!semDono} /></span>
-      <span className={soLeitura ? "hidden w-11 @2xl:block" : "hidden @2xl:block"}>{!soLeitura && <BotaoMais c={c} aoAbrir={aoAcoes} />}</span>
-      {/* lista estreita (celular ou com o chamado aberto ao lado): espera em cima, com quem embaixo */}
-      <span className="flex shrink-0 flex-col items-end text-xs text-tinta-2 @2xl:hidden">
-        <Espera c={c} />
-        <span inert={soLeitura}><BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} /></span>
-      </span>
+      {aoPegar && (
+        <button type="button" onClick={aoPegar} disabled={ocupado}
+          className="hidden min-h-10 shrink-0 rounded-full px-3 text-sm font-bold text-acento ring-1 ring-linha hover:bg-mar-50 group-hover:inline-flex group-focus-within:inline-flex items-center">
+          {ocupado ? "Pegando..." : "Pegar"}
+        </button>
+      )}
+      <span className="shrink-0 self-start pt-1 text-right text-xs text-tinta-2 md:w-20 md:self-auto md:pt-0 md:text-sm"><Espera c={c} /></span>
+      {!semDono && <span inert={soLeitura}><BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} /></span>}
+      {/* celular: segurar o dedo na linha abre as ações (sem o ⋮ para sobrar espaço ao texto) */}
+      {!soLeitura && <span className="max-md:hidden pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100"><BotaoMais c={c} aoAbrir={aoAcoes} /></span>}
     </li>
   );
 }
 
-/** O próximo chamado livre (ou passado para mim), em destaque, com começar e passar. */
+/** O próximo chamado livre (ou passado para mim), em destaque, com Começar e Passar à vista. */
 function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, realcado, novaMensagem }: { c: Chamado; eu: string; posicao: number; aoComecar: () => void; aoAtribuir: () => void; aoAcoes: () => void; ocupado: boolean; realcado?: boolean; novaMensagem?: boolean }) {
   const escolhida = useEscolhida();
   const meu = c.responsavel === eu;
   return (
-    <section id={`chamado-${c.id}`} aria-labelledby="titulo-proximo" className={`rounded-2xl bg-superficie p-4 ring-1 ring-acento/50 md:p-5 ${realcado ? "animar-realce" : ""}`}>
-      <div className="flex items-start gap-3">
-        {/* celular: sem o ícone, o texto do próximo usa a largura toda */}
-        <span className="hidden sm:block"><TipoCategoria c={c} grande /></span>
-        <div className="min-w-0 flex-1">
-          <p id="titulo-proximo" className="flex flex-wrap items-center gap-x-2 text-xs font-bold tracking-wider text-acento uppercase">
-            Seu próximo
-            {posicao > 1 && <span className="font-semibold tracking-normal text-tinta-2 normal-case" title="Os de cima estão com colegas">{posicao}º da fila</span>}
-            {meu && <span className="font-semibold tracking-normal text-tinta normal-case">passado para você</span>}
-          </p>
-          <p className="mt-1 text-lg leading-snug font-semibold"><EtiquetaPrioridade prioridade={c.prioridade} escolhida={escolhida(c)} />{resumo(c.descricao, 220)}</p>
-          <p className="meta mt-1 text-sm text-tinta-2">
-            {novaMensagem && <NovaMensagem />}
-            {[c.expand?.categoria?.nome, c.expand?.setor?.nome, `${nomeSolicitante(c)}${c.origem !== "sistema" ? `, ${ROTULO_ORIGEM[c.origem].toLowerCase()}` : ""}`, c.protocolo].filter(Boolean).map((t) => <span key={t}>{t}</span>)}
-            <Espera c={c} /> <MarcaTeste ficticio={c.ficticio} />
-          </p>
+    <section id={`chamado-${c.id}`} aria-labelledby="titulo-proximo" className="space-y-2">
+      <h2 id="titulo-proximo" className="flex items-baseline gap-2 px-1 text-xs font-bold tracking-wider text-tinta-2 uppercase">
+        Seu próximo
+        {meu && <span className="font-semibold tracking-normal normal-case">passado para você</span>}
+        {!meu && posicao > 1 && <span className="font-semibold tracking-normal normal-case" title="Os de cima estão com colegas">{posicao}º da fila</span>}
+      </h2>
+      <div className={`flex flex-col gap-4 rounded-2xl bg-superficie p-4 shadow-sm ring-1 ring-linha md:flex-row md:items-center md:p-5 ${realcado ? "animar-realce" : ""}`}>
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <span className="hidden sm:block"><TipoCategoria c={c} grande /></span>
+          <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className="min-w-0 flex-1">
+            <p className="text-lg leading-snug font-bold"><EtiquetaPrioridade prioridade={c.prioridade} escolhida={escolhida(c)} />{resumo(c.descricao, 160)}</p>
+            <p className="meta mt-1 text-sm text-tinta-2">
+              {novaMensagem && <NovaMensagem />}
+              <span>{nomeSolicitante(c)}{c.expand?.setor?.nome ? `, ${c.expand.setor.nome}` : ""}{c.origem !== "sistema" ? `, ${ROTULO_ORIGEM[c.origem].toLowerCase()}` : ""}</span>
+              <span className="text-xs tabular-nums">{c.protocolo}</span>
+              <Espera c={c} /> <MarcaTeste ficticio={c.ficticio} />
+            </p>
+          </LinkChamado>
         </div>
-        <div className="-mt-1.5 -mr-2"><BotaoMais c={c} aoAbrir={aoAcoes} /></div>
-      </div>
-      {/* tela larga: o "seu próximo" já está aberto no painel ao lado, com as ações; aqui fica só o destaque */}
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:pl-14 larga:hidden">
-        <button type="button" className="btn-primario flex-1 sm:flex-none" onClick={aoComecar} disabled={ocupado}>
-          <Wrench className="size-5" aria-hidden="true" />
-          {ocupado ? "Pegando..." : "Começar atendimento"}
-        </button>
-        <button type="button" className="btn-secundario" onClick={aoAtribuir}>
-          Passar para alguém <ChevronDown className="size-4" aria-hidden="true" />
-        </button>
-        <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className="btn px-3 text-tinta-2 hover:text-tinta">Ver detalhes</LinkChamado>
+        <div className="flex shrink-0 items-center gap-2">
+          <button type="button" className="btn-secundario flex-1 md:flex-none" onClick={aoAtribuir}>
+            Passar <ChevronDown className="size-4" aria-hidden="true" />
+          </button>
+          <button type="button" className="btn-primario flex-1 md:flex-none" onClick={aoComecar} disabled={ocupado}>
+            <Play className="size-5" aria-hidden="true" />
+            {ocupado ? "Pegando..." : "Começar"}
+          </button>
+          <BotaoMais c={c} aoAbrir={aoAcoes} />
+        </div>
       </div>
     </section>
   );
@@ -315,7 +311,9 @@ function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, real
  * Seção da fila: título + uma superfície com as linhas separadas por divisórias.
  * Com a lista larga, um cabeçalho de colunas (Protocolo, Problema, Quem pediu, Setor, Esperando, Com) alinhado com as linhas.
  */
-function Secao({ titulo, total, nota, vazio, arrastavel, children, tom, semDono, depois, contagem, id, semTitulo }: {
+function Secao({ titulo, total, nota, vazio, children, depois, contagem, id, semTitulo, fim }: {
+  /** embaixo da caixa (ex.: "Ver os 6") */
+  fim?: ReactNode;
   titulo: string; total: number; nota?: string; vazio?: string; arrastavel: boolean; children: ReactNode;
   /** "meu": faixa na cor de destaque à esquerda e cabeçalho tingido (o que é seu salta aos olhos) */
   tom?: "meu";
@@ -330,29 +328,19 @@ function Secao({ titulo, total, nota, vazio, arrastavel, children, tom, semDono,
 }) {
   return (
     <section className="space-y-2" id={id}>
-      <h2 className={semTitulo ? "sr-only" : `flex items-baseline gap-2 text-lg font-bold ${tom === "meu" ? "text-acento" : ""}`}>
-        {titulo} <span className="font-display text-base text-tinta-2">{contagem ?? total}</span>
+      <h2 className={semTitulo ? "sr-only" : "flex items-baseline gap-2 px-1 text-xs font-bold tracking-wider text-tinta-2 uppercase"}>
+        {titulo} <span className="font-display text-sm tracking-normal text-tinta">{contagem ?? total}</span>
+        {nota && <span className="font-normal tracking-normal normal-case">{nota}</span>}
       </h2>
-      {nota && <p className="-mt-1 text-sm text-tinta-2">{nota}</p>}
       {total === 0 && vazio ? (
         <p className="rounded-2xl bg-superficie p-6 text-center text-tinta-2 ring-1 ring-linha">{vazio}</p>
-      ) : (
-        <div className={`@container overflow-hidden rounded-2xl bg-superficie ring-1 ${tom === "meu" ? "border-l-4 border-l-acento ring-linha" : "ring-linha"}`}>
-          <div className={`hidden items-center gap-3 border-b border-linha py-2 pr-1.5 pl-2 text-xs font-bold tracking-wider text-tinta-2 uppercase @2xl:flex`} aria-hidden="true">
-            {arrastavel && <span className="hidden w-4 md:block" />}
-            <span className="w-10" />
-            <span className="hidden w-24 @4xl:block">Protocolo</span>
-            <span className="flex-1">Problema</span>
-            <span className="hidden w-32 @5xl:block">Quem pediu</span>
-            <span className="hidden w-32 @3xl:block">Setor</span>
-            <span className="w-24" title="Na fila: há quanto tempo espera. Em atendimento: desde que começou. Em espera: desde que parou.">Esperando</span>
-            <span className={semDono ? "w-11" : "w-[7.75rem]"}>{semDono ? "" : "Com"}</span>
-            <span className="w-11" />
-          </div>
+      ) : (total > 0 || depois) && (
+        <div className="overflow-hidden rounded-2xl bg-superficie ring-1 ring-linha">
           {total > 0 && <ul className="divide-y divide-linha">{children}</ul>}
           {depois}
         </div>
       )}
+      {fim}
     </section>
   );
 }
@@ -510,8 +498,10 @@ export function Fila() {
     }
   }
 
-  const cartao = (c: Chamado, semDono?: boolean) => (
+  const cartao = (c: Chamado, semDono?: boolean, pegar?: boolean) => (
     <Linha
+      aoPegar={pegar && !soLeitura ? () => comecar(c) : undefined}
+      ocupado={pegando === c.id}
       semDono={semDono}
       soLeitura={soLeitura}
       key={c.id}
@@ -555,16 +545,6 @@ export function Fila() {
   const listaVisao = visao === "atendendo" ? atendendo : visao === "livres" ? livresFila : visao === "espera" ? esperaOrdenada : [];
   const totalVisao: Record<Visao, number> = { atendendo: atendendo.length, livres: livresFila.length, espera: esperando.length };
   const listaPaginada = visao ? listaVisao : filtro ? filtrados : depois;
-  const rodapeDe = (l: unknown[]) => (
-    <Paginacao
-      pagina={Math.min(pag.pagina, Math.max(1, Math.ceil(l.length / (pag.porPagina || 1))))}
-      porPagina={pag.porPagina}
-      total={l.length}
-      aoMudarPagina={pag.setPagina}
-      aoMudarPorPagina={pag.setPorPagina}
-      rotulo="chamados"
-    />
-  );
   const rodape = listaPaginada.length > 10 && (
     <Paginacao
       pagina={Math.min(pag.pagina, Math.max(1, Math.ceil(listaPaginada.length / (pag.porPagina || 1))))}
@@ -579,10 +559,10 @@ export function Fila() {
 
   const metas = (["urgente", "alta", "normal", "baixa"] as const).map((p) => `${ROTULO_PRIORIDADE[p]} ${textoMinutos(config.prazos[p])}`).join(", ");
   const filtroTecnico = !!filtro && filtro !== "livres" && filtro !== "prazo";
-  const secao = (titulo: string, itens: Chamado[], extra?: { nota?: string; vazio?: string; paginar?: boolean; tom?: "meu"; semDono?: boolean; depois?: ReactNode; contagem?: string; id?: string; semTitulo?: boolean }) => (
+  const secao = (titulo: string, itens: Chamado[], extra?: { nota?: string; vazio?: string; paginar?: boolean; tom?: "meu"; semDono?: boolean; depois?: ReactNode; contagem?: string; id?: string; semTitulo?: boolean; ate?: number; pegar?: boolean; fim?: ReactNode }) => (
     <Secao titulo={titulo} total={itens.length} nota={extra?.nota} vazio={extra?.vazio} arrastavel={podeArrastar}
-      tom={extra?.tom} semDono={extra?.semDono} depois={extra?.depois} contagem={extra?.contagem} id={extra?.id} semTitulo={extra?.semTitulo}>
-      {(extra?.paginar ? fatia(itens) : itens).map((c) => cartao(c, extra?.semDono))}
+      tom={extra?.tom} semDono={extra?.semDono} depois={extra?.depois} contagem={extra?.contagem} id={extra?.id} semTitulo={extra?.semTitulo} fim={extra?.fim}>
+      {(extra?.paginar ? fatia(itens) : extra?.ate ? itens.slice(0, extra.ate) : itens).map((c) => cartao(c, extra?.semDono, extra?.pegar))}
     </Secao>
   );
   // visão padrão em três raias: COMIGO (atendendo + reservados para mim + em espera), SEU PRÓXIMO, LIVRES;
@@ -595,22 +575,26 @@ export function Fila() {
     ...depoisTodos.filter((c) => c.responsavel && c.responsavel !== eu),
     ...lista.filter((c) => c.status === "aguardando" && c.responsavel && c.responsavel !== eu),
   ];
-  const [verEspera, setVerEspera] = useState(true);
+  const [verEspera, setVerEspera] = useState(false);
+  const [verEquipeLista, setVerEquipeLista] = useState(false);
   const blocoEspera = esperando.length > 0 && (
     <div className="border-t border-linha">
       <button type="button" aria-expanded={verEspera} onClick={() => setVerEspera(!verEspera)}
-        className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm font-semibold text-tinta-2 hover:text-tinta">
+        className="flex min-h-11 w-full items-center gap-2 px-4 text-left text-sm font-semibold text-tinta-2 hover:text-tinta">
         <ChevronRight className={`size-4 transition-transform ${verEspera ? "rotate-90" : ""}`} aria-hidden="true" />
         <Hourglass className="size-4" aria-hidden="true" />
-        Em espera <span className="font-display">{esperando.length}</span>
-        <span className="ml-1 font-normal">fora da fila e da sua carga</span>
+        <span className="whitespace-nowrap"><span className="font-display">{esperando.length}</span> em espera</span>
+        <span className="truncate font-normal max-sm:hidden">
+          {[...new Set(esperando.map((c) => c.aguardando_motivo ? ROTULO_AGUARDANDO[c.aguardando_motivo].toLowerCase() : "algo"))].join(", ")}
+        </span>
+        <span className="ml-auto shrink-0 font-semibold text-acento">{verEspera ? "Esconder" : "Ver"}</span>
       </button>
       {verEspera && <ul className="divide-y divide-linha border-t border-linha">{esperaOrdenada.map((c) => cartao(c, true))}</ul>}
     </div>
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* cabeçalho curto: os números numa linha só; "fora do prazo" é um filtro, não um alarme em cada chamado */}
       <CabecalhoPagina
         titulo="Fila"
@@ -619,7 +603,6 @@ export function Fila() {
               <span className="meta">
                 <span><b className="font-display text-tinta">{fila.length}</b> na fila</span>
                 <span><b className="font-display text-tinta">{atendendo.length + comOutros.length}</b> em atendimento</span>
-                {esperando.length > 0 && <span><b className="font-display text-tinta">{esperando.length}</b> seus em espera</span>}
               </span>
             </p>
           )}
@@ -636,6 +619,14 @@ export function Fila() {
             >
               <span className="size-2 rounded-full bg-brasa-700" aria-hidden="true" />
               {atrasados} fora do prazo
+            </button>
+          )}
+          {tecnicos.length > 0 && (
+            <button type="button" aria-expanded={verEquipe || filtroTecnico} onClick={() => setVerEquipe((v) => !v)}
+              title="Quantos chamados cada um tem. No PC, arraste um chamado até a pessoa para passar."
+              className={`hidden min-h-10 items-center gap-2 rounded-full px-3.5 text-sm font-semibold ring-1 md:inline-flex ${
+                verEquipe || filtroTecnico ? "bg-mar-50 text-acento ring-acento" : "bg-superficie text-tinta ring-linha hover:ring-acento"}`}>
+              <Users className="size-4" aria-hidden="true" /> Equipe
             </button>
           )}
           <span className="hidden md:block"><VisaoTI /></span>
@@ -687,7 +678,7 @@ export function Fila() {
 
       {tecnicos.length > 0 && chamados !== null && (
         <FaixaEquipe
-          className={verEquipe || filtroTecnico || arrastando ? "" : "max-md:hidden"}
+          className={verEquipe || filtroTecnico || arrastando ? "" : "hidden"}
           tecnicos={tecnicos}
           eu={eu}
           carga={carga}
@@ -729,7 +720,7 @@ export function Fila() {
         <>
           {!soLeitura && (comigo.length > 0 || esperando.length > 0) && secao("Comigo", comigo, {
             // o número é o mesmo de "Comigo" na barra lateral (sem os em espera, que têm o deles)
-            tom: "meu", semDono: true, depois: blocoEspera, id: "raia-comigo",
+            semDono: true, depois: blocoEspera, id: "raia-comigo",
           })}
 
           {soLeitura ? null : proximo ? (
@@ -744,25 +735,28 @@ export function Fila() {
             </div>
           )}
 
-          {livresDepois.length > 0 && secao("Livres", livresDepois, {
-            paginar: true, semDono: true, id: "raia-livres",
-            contagem: livresDepois.length > (pag.porPagina || Infinity) ? `${Math.min(pag.porPagina, livresDepois.length)} de ${livresDepois.length}` : undefined,
-            nota: "Sem responsável, na ordem da fila. Qualquer um pode pegar.",
-          })}
-          {livresDepois.length > 10 && rodapeDe(livresDepois)}
-
-          {daEquipe.length > 0 && (
-            <details className="group/equipe" open={soLeitura || undefined}>
-              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-1 text-lg font-bold text-tinta-2 hover:text-tinta [&::-webkit-details-marker]:hidden">
-                <ChevronRight className="size-5 transition-transform group-open/equipe:rotate-90" aria-hidden="true" />
-                Com a equipe <span className="font-display text-base">{daEquipe.length}</span>
-                <span className="ml-1 text-sm font-normal">na fila, em atendimento ou em espera com colegas</span>
-              </summary>
-              <div className="mt-2 opacity-90">
-                {secao("Com a equipe", daEquipe, { semTitulo: true })}
+          {/* depois do próximo: só os primeiros livres; o resto fica a um clique */}
+          {(livresDepois.length > 0 || daEquipe.length > 0) && secao("Depois dele", livresDepois, {
+            semDono: true, id: "raia-livres", ate: soLeitura ? undefined : 3, pegar: true,
+            nota: livresDepois.length ? `${livresDepois.length} ${livresDepois.length === 1 ? "livre" : "livres"}, na ordem da fila` : undefined,
+            contagem: "",
+            fim: (
+              <div className="flex flex-wrap items-center gap-x-5 px-1 text-sm font-semibold">
+                {livresDepois.length > 3 && !soLeitura && (
+                  <button type="button" onClick={() => irParaVisao("livres")} className="inline-flex min-h-10 items-center gap-1 text-acento hover:underline">
+                    Ver os {livresDepois.length} livres <ChevronRight className="size-4" aria-hidden="true" />
+                  </button>
+                )}
+                {daEquipe.length > 0 && (
+                  <button type="button" aria-expanded={verEquipeLista} onClick={() => setVerEquipeLista((v) => !v)} className="inline-flex min-h-10 items-center gap-1 text-tinta-2 hover:text-tinta">
+                    Com a equipe <span className="font-display">{daEquipe.length}</span>
+                    <ChevronRight className={`size-4 transition-transform ${verEquipeLista ? "rotate-90" : ""}`} aria-hidden="true" />
+                  </button>
+                )}
               </div>
-            </details>
-          )}
+            ),
+          })}
+          {(verEquipeLista || soLeitura) && daEquipe.length > 0 && secao("Com a equipe", daEquipe, { nota: "na fila, em atendimento ou em espera com colegas" })}
         </>
       )}
 
