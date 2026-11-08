@@ -1,5 +1,5 @@
-import { CheckCircle2, Hourglass, Play, RotateCcw, Undo2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, ChevronDown, Hourglass, MoreHorizontal, Play, RotateCcw, Undo2, UserRound } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
 import { avisar } from "../lib/avisos";
@@ -78,7 +78,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
   );
 
   if (linha) {
-    const b = "min-h-11 px-4";
+    const b = "min-h-10 px-3.5 text-sm";
     return (
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -108,29 +108,43 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
               <RotateCcw className="size-5" aria-hidden="true" /> Reabrir
             </button>
           )}
-          <select
-            aria-label="Com quem está"
-            className="campo min-h-11 w-auto py-2 pr-9 text-sm font-semibold"
-            value={c.responsavel}
-            onChange={(e) => salvar({ responsavel: e.target.value }, e.target.value ? `${c.protocolo} agora está com ${nomeDe(e.target.value)}.` : `${c.protocolo} ficou sem responsável.`)}
-          >
-            <option value="">Com: ninguém (livre)</option>
-            {tecnicos.map((t) => <option key={t.id} value={t.id}>Com: {t.id === usuario?.id ? "você" : t.name}</option>)}
-          </select>
-          <select
-            aria-label="Prioridade"
-            className="campo min-h-11 w-auto py-2 pr-9 text-sm font-semibold"
-            value={c.prioridade}
-            onChange={(e) => { const p = e.target.value as Prioridade; salvar({ prioridade: p }, `Prioridade do ${c.protocolo}: ${ROTULO_PRIORIDADE[p]}. O lugar na fila foi atualizado.`); }}
-          >
-            {(Object.keys(ROTULO_PRIORIDADE) as Prioridade[]).reverse().map((p) => <option key={p} value={p}>Prioridade: {ROTULO_PRIORIDADE[p]}</option>)}
-          </select>
-          {emAtendimento && !resolvendo && (
-            <button type="button" className="btn min-h-11 px-3 text-sm text-tinta-2 hover:text-tinta" disabled={salvando}
-              onClick={() => salvar({ status: "aberto", responsavel: "" }, `${c.protocolo} voltou para a fila, sem responsável.`)}>
-              <Undo2 className="size-4" aria-hidden="true" /> Devolver para a fila
-            </button>
-          )}
+          {/* primeira linha: com quem está e prioridade como chips (seletores nativos, acessíveis) e o "⋯" com o resto;
+              embaixo, os botões de ação. Numa linha só não cabia na gaveta. */}
+          <div className="order-first flex w-full flex-wrap items-center gap-1.5">
+            <label className="relative inline-flex">
+              <span className="sr-only">Com quem está</span>
+              <UserRound className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
+              <select
+                className="min-h-10 cursor-pointer appearance-none rounded-full bg-fundo py-1.5 pr-7 pl-7.5 text-sm font-semibold ring-1 ring-linha hover:ring-acento focus:ring-2 focus:ring-acento focus:outline-none"
+                value={c.responsavel}
+                onChange={(e) => salvar({ responsavel: e.target.value }, e.target.value ? `${c.protocolo} agora está com ${nomeDe(e.target.value)}.` : `${c.protocolo} ficou sem responsável.`)}
+              >
+                <option value="">Livre</option>
+                {tecnicos.map((t) => <option key={t.id} value={t.id}>{t.id === usuario?.id ? "Você" : t.name.split(" ")[0]}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
+            </label>
+            <label className="relative inline-flex">
+              <span className="sr-only">Prioridade</span>
+              <span className={`pointer-events-none absolute top-1/2 left-3 size-2.5 -translate-y-1/2 rounded-full ${COR_PRIORIDADE[c.prioridade]}`} aria-hidden="true" />
+              <select
+                className="min-h-10 cursor-pointer appearance-none rounded-full bg-fundo py-1.5 pr-7 pl-7.5 text-sm font-semibold ring-1 ring-linha hover:ring-acento focus:ring-2 focus:ring-acento focus:outline-none"
+                value={c.prioridade}
+                onChange={(e) => { const p = e.target.value as Prioridade; salvar({ prioridade: p }, `Prioridade do ${c.protocolo}: ${ROTULO_PRIORIDADE[p]}. O lugar na fila foi atualizado.`); }}
+              >
+                {(Object.keys(ROTULO_PRIORIDADE) as Prioridade[]).reverse().map((p) => <option key={p} value={p}>{ROTULO_PRIORIDADE[p]}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
+            </label>
+            {emAtendimento && !resolvendo && (
+              <span className="ml-auto"><MenuMais>
+                <button type="button" role="menuitem" className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold hover:bg-fundo" disabled={salvando}
+                  onClick={() => salvar({ status: "aberto", responsavel: "" }, `${c.protocolo} voltou para a fila, sem responsável.`)}>
+                  <Undo2 className="size-4" aria-hidden="true" /> Devolver para a fila
+                </button>
+              </MenuMais></span>
+            )}
+          </div>
         </div>
         {c.status === "aguardando" && c.aguardando_motivo && (
           <div className="space-y-2 rounded-xl bg-fundo p-3 ring-1 ring-linha">
@@ -244,6 +258,33 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
       </div>
 
       {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
+    </div>
+  );
+}
+
+/** "⋯": ações que se usam pouco, para a linha de ações não crescer. Fecha ao clicar fora, com Esc ou ao escolher. */
+function MenuMais({ children }: { children: ReactNode }) {
+  const [aberto, setAberto] = useState(false);
+  const caixa = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: PointerEvent) => { if (!caixa.current?.contains(e.target as Node)) setAberto(false); };
+    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") setAberto(false); };
+    document.addEventListener("pointerdown", fora);
+    document.addEventListener("keydown", tecla);
+    return () => { document.removeEventListener("pointerdown", fora); document.removeEventListener("keydown", tecla); };
+  }, [aberto]);
+  return (
+    <div ref={caixa} className="relative">
+      <button type="button" aria-label="Mais ações" aria-haspopup="menu" aria-expanded={aberto} onClick={() => setAberto(!aberto)}
+        className="grid size-10 place-items-center rounded-full text-tinta-2 hover:bg-fundo hover:text-tinta">
+        <MoreHorizontal className="size-5" aria-hidden="true" />
+      </button>
+      {aberto && (
+        <div role="menu" className="absolute right-0 z-30 mt-1 w-56 rounded-xl bg-superficie p-1 shadow-xl ring-1 ring-linha" onClick={() => setAberto(false)}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
