@@ -1,9 +1,13 @@
 import { AvisoNoNovoChamado } from "../../components/MuralAvisos";
+import { SeloStatus } from "../../components/Selos";
+import { useAuth } from "../../lib/auth";
+import { resumo } from "../../lib/formato";
+import { mensagemErro, pb, type Chamado } from "../../lib/pb";
+import { LinkChamado } from "../../lib/verChamado";
 import { ArrowLeft, Send, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { ProgressoEnvio } from "../../components/ProgressoEnvio";
-import { mensagemErro } from "../../lib/pb";
 import { BarraAcao } from "./BarraAcao";
 import { ETAPAS } from "./etapas";
 import type { FormularioChamado } from "./useNovoChamado";
@@ -87,6 +91,7 @@ export function Assistente({ f }: { f: FormularioChamado }) {
       <div ref={titulo} tabIndex={-1} className="outline-none">
         <etapa.Componente f={f} modo="passo" avancar={avancar} irPara={(id) => irPara(ETAPAS.findIndex((e) => e.id === id))} />
       </div>
+      {atual === 0 && <JaAbertos />}
 
       {ultima && (
         <BarraAcao>
@@ -99,5 +104,37 @@ export function Assistente({ f }: { f: FormularioChamado }) {
         </BarraAcao>
       )}
     </div>
+  );
+}
+
+/**
+ * No primeiro passo (sobra espaço embaixo das categorias): os chamados que a pessoa já tem em aberto.
+ * Evita abrir de novo o mesmo problema; tocar leva ao chamado.
+ */
+function JaAbertos() {
+  const { usuario } = useAuth();
+  const [lista, setLista] = useState<Chamado[]>([]);
+  useEffect(() => {
+    if (!usuario) return;
+    pb.collection("chamados").getList<Chamado>(1, 3, {
+      filter: pb.filter("solicitante = {:u} && status != 'resolvido'", { u: usuario.id }),
+      sort: "-created", fields: "id,protocolo,descricao,status", requestKey: null,
+    }).then((r) => setLista(r.items)).catch(() => {});
+  }, [usuario]);
+  if (!lista.length) return null;
+  return (
+    <section className="mt-8" aria-labelledby="ja-abertos">
+      <h2 id="ja-abertos" className="mb-2 text-sm font-bold tracking-wider text-tinta-2 uppercase">Já pediu? Seus chamados em aberto</h2>
+      <ul className="divide-y divide-linha rounded-2xl bg-superficie ring-1 ring-linha">
+        {lista.map((c) => (
+          <li key={c.id}>
+            <LinkChamado id={c.id} para={`/chamado/${c.id}`} className="flex min-h-14 items-center gap-3 px-4 py-2">
+              <span className="texto-livre min-w-0 flex-1 truncate">{resumo(c.descricao, 80)}</span>
+              <SeloStatus status={c.status} />
+            </LinkChamado>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

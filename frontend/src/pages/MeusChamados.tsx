@@ -175,10 +175,11 @@ export function MeusChamados() {
       <CabecalhoPagina
         titulo={`${saudacao()}, ${usuario?.name.split(" ")[0] ?? ""}!`}
         subtitulo={aba === "abertos" ? resumoDoDia : undefined}
-        abas={<AbasPagina rotulo="Quais chamados" itens={[
+        // no PC a barra do topo já tem "Meus chamados" e "Histórico": as abas aqui são só do celular
+        abas={<div className="md:hidden"><AbasPagina rotulo="Quais chamados" itens={[
           { rotulo: "Em aberto", ativo: aba === "abertos", aoClicar: () => irPara("abertos"), numero: emAberto },
           { rotulo: "Histórico", ativo: aba === "historico", aoClicar: () => irPara("historico"), numero: totalHistorico },
-        ]} />}
+        ]} /></div>}
       />
 
       {/* celular: avisos aqui no topo; PC: na coluna da direita */}
@@ -233,9 +234,9 @@ export function MeusChamados() {
                   </LinkChamado>
                   <div className="mt-3 flex flex-wrap gap-2 sm:pl-9">
                     <button type="button" className="btn-sucesso min-h-11 flex-1 sm:flex-none" disabled={confirmando === c.id} onClick={() => deuCerto(c)}>
-                      {confirmando === c.id ? "Confirmando..." : "Sim, deu certo"}
+                      {confirmando === c.id ? "Confirmando..." : "Sim, resolveu"}
                     </button>
-                    <button type="button" className="btn-secundario min-h-11 flex-1 sm:flex-none" onClick={(e) => abrir(c.id, e.currentTarget)}>Ainda não</button>
+                    <button type="button" className="btn-secundario min-h-11 flex-1 sm:flex-none" onClick={(e) => abrir(c.id, e.currentTarget)}>Não resolveu</button>
                   </div>
                 </div>
               ))}
