@@ -17,7 +17,7 @@ import { useAuth } from "../../lib/auth";
 import { atribuir, useTecnicos } from "../../lib/equipe";
 import { textoMinutos, useConfigTI } from "../../lib/configTI";
 import { atrasado, cargaDaEquipe, organizarFila } from "../../lib/fila";
-import { resumo, ROTULO_AGUARDANDO, ROTULO_ORIGEM, ROTULO_PRIORIDADE } from "../../lib/formato";
+import { resumo, ROTULO_AGUARDANDO, ROTULO_PRIORIDADE } from "../../lib/formato";
 import { EXPAND_CHAMADO, ehObservador, mensagemErro, nomeSolicitante, pb, type Chamado, type Usuario } from "../../lib/pb";
 import { useRealtime } from "../../lib/useRealtime";
 import { ultimaVisita } from "../../lib/visto";
@@ -286,7 +286,7 @@ function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, real
             <p className="text-lg leading-snug font-bold"><EtiquetaPrioridade prioridade={c.prioridade} escolhida={escolhida(c)} />{resumo(c.descricao, 160)}</p>
             <p className="meta mt-1 text-sm text-tinta-2">
               {novaMensagem && <NovaMensagem />}
-              <span>{nomeSolicitante(c)}{c.expand?.setor?.nome ? `, ${c.expand.setor.nome}` : ""}{c.origem !== "sistema" ? `, ${ROTULO_ORIGEM[c.origem].toLowerCase()}` : ""}</span>
+              <span>{nomeSolicitante(c)}{c.expand?.setor?.nome ? `, ${c.expand.setor.nome}` : ""}</span>
               <span className="text-xs tabular-nums">{c.protocolo}</span>
               <Espera c={c} /> <MarcaTeste ficticio={c.ficticio} />
             </p>
