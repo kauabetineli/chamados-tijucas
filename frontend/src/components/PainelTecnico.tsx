@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronDown, Hourglass, MoreHorizontal, ArrowRight, RotateCcw, Undo2, UserRound } from "lucide-react";
+import { CheckCircle2, Hourglass, MoreHorizontal, ArrowRight, RotateCcw, Undo2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
@@ -7,7 +7,9 @@ import { paraData, ROTULO_AGUARDANDO, ROTULO_PRIORIDADE, tempoRelativo } from ".
 import { mensagemErro, pb, type Chamado, type MotivoAguardando, type Prioridade, type Usuario } from "../lib/pb";
 import { EscolhaEspera } from "./EscolhaEspera";
 import { RegistroSolucao } from "./RegistroSolucao";
-import { COR_PRIORIDADE, SinalPrioridade } from "./Selos";
+import { SinalPrioridade } from "./Selos";
+import { Escolha } from "./Escolha";
+import { Avatar } from "./Avatar";
 
 /**
  * Ações do técnico sobre um chamado: atender, priorizar, atribuir e resolver.
@@ -161,31 +163,30 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
           )}
           {/* na mesma linha da ação: com quem está e prioridade (seletores nativos, acessíveis) e o "⋯" com o resto */}
           <div className="contents">
-            <label className="relative inline-flex">
-              <span className="sr-only">Com quem está</span>
-              <UserRound className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
-              <select
-                className="min-h-10 cursor-pointer appearance-none rounded-full bg-superficie py-1.5 pr-7 pl-7.5 text-sm font-semibold ring-1 ring-linha hover:ring-acento focus:ring-2 focus:ring-acento focus:outline-none"
-                value={c.responsavel}
-                onChange={(e) => mudarResponsavel(e.target.value)}
-              >
-                <option value="">Livre</option>
-                {tecnicos.map((t) => <option key={t.id} value={t.id}>{t.id === usuario?.id ? "Você" : t.name.split(" ")[0]}</option>)}
-              </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
-            </label>
-            <label className="relative inline-flex">
-              <span className="sr-only">Prioridade</span>
-              <SinalPrioridade prioridade={c.prioridade} className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
-              <select
-                className="min-h-10 cursor-pointer appearance-none rounded-full bg-superficie py-1.5 pr-7 pl-7.5 text-sm font-semibold ring-1 ring-linha hover:ring-acento focus:ring-2 focus:ring-acento focus:outline-none"
-                value={c.prioridade}
-                onChange={(e) => mudarPrioridade(e.target.value as Prioridade)}
-              >
-                {(Object.keys(ROTULO_PRIORIDADE) as Prioridade[]).reverse().map((p) => <option key={p} value={p}>{ROTULO_PRIORIDADE[p]}</option>)}
-              </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
-            </label>
+            <Escolha
+              rotulo="Com quem está"
+              valor={c.responsavel || ""}
+              aoEscolher={mudarResponsavel}
+              opcoes={[
+                { valor: "", rotulo: "Livre", icone: <span className="size-7 shrink-0 rounded-full border-2 border-dashed border-tinta-2/50" aria-hidden="true" /> },
+                // você primeiro, depois os colegas
+                ...[...tecnicos].sort((a, b) => (a.id === usuario?.id ? -1 : b.id === usuario?.id ? 1 : 0)).map((t) => ({
+                  valor: t.id,
+                  rotulo: t.id === usuario?.id ? "Você" : t.name.split(" ")[0],
+                  icone: <Avatar id={t.id} nome={t.name} tamanho="sm" destaque={t.id === usuario?.id} />,
+                })),
+              ]}
+            />
+            <Escolha
+              rotulo="Prioridade"
+              valor={c.prioridade}
+              aoEscolher={(p) => mudarPrioridade(p as Prioridade)}
+              opcoes={(Object.keys(ROTULO_PRIORIDADE) as Prioridade[]).reverse().map((p) => ({
+                valor: p,
+                rotulo: ROTULO_PRIORIDADE[p],
+                icone: <SinalPrioridade prioridade={p} className="size-4 shrink-0" />,
+              }))}
+            />
             {emAtendimento && !resolvendo && (
               <span className="ml-auto"><MenuMais>
                 <button type="button" role="menuitem" className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold hover:bg-fundo" disabled={salvando}
@@ -291,7 +292,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
           {(Object.keys(ROTULO_PRIORIDADE) as Prioridade[]).reverse().map((p) => (
             <label key={p} className="opcao min-h-12 py-2">
               <input type="radio" name="prioridade" checked={c.prioridade === p} onChange={() => mudarPrioridade(p)} className="sr-only" />
-              <span className={`size-3 rounded-full ${COR_PRIORIDADE[p]}`} aria-hidden="true" />
+              <SinalPrioridade prioridade={p} className="size-4 shrink-0" />
               {ROTULO_PRIORIDADE[p]}
             </label>
           ))}
@@ -333,7 +334,7 @@ function MenuMais({ children }: { children: ReactNode }) {
         <MoreHorizontal className="size-5" aria-hidden="true" />
       </button>
       {aberto && (
-        <div role="menu" className="absolute right-0 z-30 mt-1 w-56 rounded-xl bg-superficie p-1 shadow-xl ring-1 ring-linha" onClick={() => setAberto(false)}>
+        <div role="menu" className="animar-menu absolute right-0 z-30 mt-1 w-56 origin-top-right rounded-xl bg-superficie p-1 shadow-xl ring-1 ring-linha" onClick={() => setAberto(false)}>
           {children}
         </div>
       )}
