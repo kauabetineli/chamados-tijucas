@@ -90,33 +90,40 @@ export function EtiquetaPrioridade({ prioridade, sempre, escolhida }: {
     </>
   ) : null;
   const titulo = escolhida ? `Escolhida por quem pediu${escolhida.motivo ? `: “${escolhida.motivo}”` : ""}` : undefined;
-  // sem caixinha: um sinal desenhado + a palavra na cor (como o ícone de prioridade do Linear).
-  // Urgente = quadrado cheio com "!"; Alta = três barras de sinal.
-  if (prioridade === "urgente") {
+  // sem caixinha: o sinal desenhado + a palavra na cor (como o ícone de prioridade do Linear)
+  if (prioridade === "urgente" || prioridade === "alta") {
     return (
-      <span title={titulo} className="mr-2 inline-flex shrink-0 items-baseline gap-1 text-[13px] leading-5 font-bold whitespace-nowrap text-alerta">
-        <svg viewBox="0 0 16 16" className="size-3.5 self-center" aria-hidden="true">
-          <rect width="16" height="16" rx="4" fill="currentColor" />
-          <rect x="7" y="3.5" width="2" height="6" rx="1" className="fill-superficie" />
-          <circle cx="8" cy="12" r="1.2" className="fill-superficie" />
-        </svg>
-        Urgente{quem}
-      </span>
-    );
-  }
-  if (prioridade === "alta") {
-    return (
-      <span title={titulo} className="mr-2 inline-flex shrink-0 items-baseline gap-1 text-[13px] leading-5 font-bold whitespace-nowrap text-ambar-tinta">
-        <svg viewBox="0 0 16 16" className="size-3.5 self-center text-ambar" aria-hidden="true">
-          <rect x="1" y="9" width="3.5" height="6" rx="1" fill="currentColor" />
-          <rect x="6.25" y="5" width="3.5" height="10" rx="1" fill="currentColor" />
-          <rect x="11.5" y="1" width="3.5" height="14" rx="1" fill="currentColor" />
-        </svg>
-        Alta{quem}
+      <span title={titulo} className={`mr-2 inline-flex shrink-0 items-baseline gap-1 text-[13px] leading-5 font-bold whitespace-nowrap ${prioridade === "urgente" ? "text-alerta" : "text-ambar-tinta"}`}>
+        <SinalPrioridade prioridade={prioridade} className="size-3.5 self-center" />
+        {ROTULO_PRIORIDADE[prioridade]}{quem}
       </span>
     );
   }
   return sempre ? <span className="text-sm text-tinta-2">{ROTULO_PRIORIDADE[prioridade]}</span> : null;
+}
+
+/**
+ * O sinal da prioridade, sozinho: Urgente = quadrado com "!"; Alta = três barras cheias (âmbar);
+ * Normal = duas de três (cinza); Baixa = uma de três (cinza). Usado na etiqueta e no seletor de prioridade.
+ */
+export function SinalPrioridade({ prioridade, className = "size-3.5" }: { prioridade: Prioridade; className?: string }) {
+  if (prioridade === "urgente") {
+    return (
+      <svg viewBox="0 0 16 16" className={`text-alerta ${className}`} aria-hidden="true">
+        <rect width="16" height="16" rx="4" fill="currentColor" />
+        <rect x="7" y="3.5" width="2" height="6" rx="1" className="fill-superficie" />
+        <circle cx="8" cy="12" r="1.2" className="fill-superficie" />
+      </svg>
+    );
+  }
+  const cheias = prioridade === "alta" ? 3 : prioridade === "normal" ? 2 : 1;
+  return (
+    <svg viewBox="0 0 16 16" className={`${prioridade === "alta" ? "text-ambar" : "text-tinta-2"} ${className}`} aria-hidden="true">
+      {[[1, 9, 6], [6.25, 5, 10], [11.5, 1, 14]].map(([x, y, h], n) => (
+        <rect key={n} x={x} y={y} width="3.5" height={h} rx="1" fill="currentColor" opacity={n < cheias ? 1 : 0.25} />
+      ))}
+    </svg>
+  );
 }
 
 /** Nome antigo: hoje é a mesma etiqueta, sempre visível (menus e colunas). */

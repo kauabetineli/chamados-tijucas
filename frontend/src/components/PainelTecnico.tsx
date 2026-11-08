@@ -7,7 +7,7 @@ import { paraData, ROTULO_AGUARDANDO, ROTULO_PRIORIDADE, tempoRelativo } from ".
 import { mensagemErro, pb, type Chamado, type MotivoAguardando, type Prioridade, type Usuario } from "../lib/pb";
 import { EscolhaEspera } from "./EscolhaEspera";
 import { RegistroSolucao } from "./RegistroSolucao";
-import { COR_PRIORIDADE } from "./Selos";
+import { COR_PRIORIDADE, SinalPrioridade } from "./Selos";
 
 /**
  * Ações do técnico sobre um chamado: atender, priorizar, atribuir e resolver.
@@ -159,9 +159,8 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
               <RotateCcw className="size-5" aria-hidden="true" /> Reabrir
             </button>
           )}
-          {/* primeira linha: com quem está e prioridade como chips (seletores nativos, acessíveis) e o "⋯" com o resto;
-              embaixo, os botões de ação. Numa linha só não cabia na gaveta. */}
-          <div className="order-first flex w-full flex-wrap items-center gap-1.5">
+          {/* na mesma linha da ação: com quem está e prioridade (seletores nativos, acessíveis) e o "⋯" com o resto */}
+          <div className="contents">
             <label className="relative inline-flex">
               <span className="sr-only">Com quem está</span>
               <UserRound className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
@@ -177,7 +176,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
             </label>
             <label className="relative inline-flex">
               <span className="sr-only">Prioridade</span>
-              <span className={`pointer-events-none absolute top-1/2 left-3 size-2.5 -translate-y-1/2 rounded-full ${COR_PRIORIDADE[c.prioridade]}`} aria-hidden="true" />
+              <SinalPrioridade prioridade={c.prioridade} className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
               <select
                 className="min-h-10 cursor-pointer appearance-none rounded-full bg-superficie py-1.5 pr-7 pl-7.5 text-sm font-semibold ring-1 ring-linha hover:ring-acento focus:ring-2 focus:ring-acento focus:outline-none"
                 value={c.prioridade}

@@ -334,7 +334,8 @@ function Gaveta({ c, etiqueta, tecnico, soLeitura, controles, aoMudar, paraOServ
           <h2 className="font-display text-2xl leading-tight font-extrabold tracking-tight">{c.protocolo}</h2>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
             <SeloStatus status={c.status} />
-            <EtiquetaPrioridade prioridade={c.prioridade} />
+            {/* o TI vê e muda a prioridade no seletor logo abaixo: aqui em cima ela apareceria duas vezes */}
+            {!tecnico && <EtiquetaPrioridade prioridade={c.prioridade} />}
             <SeloTeste ficticio={c.ficticio} />
             <span className="inline-flex items-center gap-1.5 text-sm text-tinta-2">
               <IconeCategoria nome={c.expand?.categoria?.icone} className="size-5" />
@@ -373,11 +374,13 @@ function Gaveta({ c, etiqueta, tecnico, soLeitura, controles, aoMudar, paraOServ
           </Ficha>
         )}
         {c.expand?.setor?.nome && <Ficha Icone={Building2} termo="Setor">{c.expand.setor.nome}</Ficha>}
-        <Ficha Icone={Users} termo="Quem é afetado">{ROTULO_IMPACTO[c.impacto]}</Ficha>
+        <Ficha Icone={Users} termo="Quem é afetado">{tecnico ? IMPACTO_TI[c.impacto] : ROTULO_IMPACTO[c.impacto]}</Ficha>
         {tecnico && <Ficha Icone={MessageCircle} termo="Como chegou">{ROTULO_ORIGEM[c.origem]}</Ficha>}
-        <Ficha Icone={Clock} termo={({ resolvido: "Aberto em", aberto: "Esperando", em_andamento: "Em atendimento", aguardando: "Em espera" } as const)[c.status]}>
-          {c.status === "resolvido" ? dataHora(c.created) : <Espera c={c} />}
-        </Ficha>
+        {/* tempo com a palavra na frente ("Esperando há 9 dias"): sem ícone aqui, porque o atraso já traz o relógio dele */}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <dt className="text-tinta-2">{({ resolvido: "Aberto em", aberto: "Esperando", em_andamento: "Em atendimento", aguardando: "Em espera" } as const)[c.status]}</dt>
+          <dd>{c.status === "resolvido" ? dataHora(c.created) : <Espera c={c} />}</dd>
+        </div>
         {!tecnico && c.expand?.responsavel?.name && <Ficha Icone={Wrench} termo="Responsável no TI">{c.expand.responsavel.name}</Ficha>}
       </dl>
 
@@ -385,7 +388,7 @@ function Gaveta({ c, etiqueta, tecnico, soLeitura, controles, aoMudar, paraOServ
       {paraOServidor}
       {tecnico && !soLeitura && c.status !== "resolvido" && <LigarAoAviso chamadoId={c.id} aviso={c.aviso} aoMudar={aoMudar} />}
       {tecnico && (
-        <fieldset disabled={soLeitura} className="min-w-0 rounded-2xl p-3 ring-1 ring-linha">
+        <fieldset disabled={soLeitura} className="min-w-0 border-y border-linha py-3">
           <legend className="sr-only">Atendimento</legend>
           <PainelTecnico chamado={c} aoMudar={aoMudar} linha />
         </fieldset>
@@ -435,7 +438,7 @@ function HistoricoDaPessoa({ c }: { c: TChamado }) {
   const mesmo = c.expand?.categoria?.nome === tipo ? " (o mesmo deste)" : "";
   return (
     <div className="text-sm">
-      <button type="button" aria-expanded={aberto} onClick={() => setAberto(!aberto)} className="inline-flex min-h-9 items-center gap-1.5 text-left font-semibold text-acento hover:underline">
+      <button type="button" aria-expanded={aberto} onClick={() => setAberto(!aberto)} className="inline-flex min-h-9 items-center gap-1.5 text-left text-tinta-2 hover:text-acento hover:underline">
         <IconeHistorico className="size-4 shrink-0" aria-hidden="true" />
         {nome} abriu mais {lista.length} {lista.length === 1 ? "chamado" : "chamados"} nos últimos 30 dias{n > 1 ? `, ${n} de ${tipo}${mesmo}` : ""}
       </button>
@@ -455,6 +458,9 @@ function HistoricoDaPessoa({ c }: { c: TChamado }) {
     </div>
   );
 }
+
+/** "Quem é afetado" lido pelo TI (o servidor escolheu "Só eu", "Meu setor inteiro"...). */
+const IMPACTO_TI = { so_eu: "Só a pessoa", setor: "O setor todo", publico: "Atendimento ao público parado" } as const;
 
 function Ficha({ Icone, termo, children }: { Icone: typeof Clock; termo: string; children: ReactNode }) {
   return (
