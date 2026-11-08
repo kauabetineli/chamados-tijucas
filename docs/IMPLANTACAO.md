@@ -38,8 +38,9 @@ Pela CLI: `node ferramentas/dino.mjs usuario:criar --real --nome "..." --matricu
 
 ### Conta da equipe do Dino Desk (só leitura)
 
-Para os estudantes acompanharem o piloto sem mexer em nada: no painel `/_/`, coleção `users`, crie a conta com
-`papel = observador` e marque `equipe_projeto` (ou, pelas ferramentas:
+Para os estudantes acompanharem o piloto sem mexer em nada. Quem é admin do TI **e** tem `equipe_projeto` marcado
+(a conta do grupo, não as do TI da Prefeitura) vê em **Pessoas e setores > Nova pessoa** o tipo "Equipe do Dino Desk".
+Sem isso: no painel `/_/`, coleção `users`, crie a conta com `papel = observador` e marque `equipe_projeto` (ou, pelas ferramentas:
 `node ferramentas/dino.mjs usuario:criar --real --papel observador --nome "..." --matricula 12345`).
 Ela vê tudo o que o TI vê (fila, chamados com conversa e notas internas, painel, pessoas, configurações),
 não abre, não responde, não atribui e não salva nada. Aparece para o TI em **Pessoas e setores** com o selo

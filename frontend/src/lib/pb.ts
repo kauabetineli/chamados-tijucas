@@ -164,6 +164,11 @@ export function veComoTI(u: Usuario | null) {
   return ehTecnico(u) || ehObservador(u);
 }
 
+/** admin do TI que é da equipe do Dino Desk: pode criar e editar contas só de leitura (o servidor confere igual) */
+export function geraObservador(u: Usuario | null) {
+  return ehAdmin(u) && !!u?.equipe_projeto;
+}
+
 export function ehAdmin(u: Usuario | null) {
   return ehTecnico(u) && !!u?.admin;
 }

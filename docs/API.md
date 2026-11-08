@@ -70,7 +70,7 @@ Qualquer outro status limpa o motivo. De `aguardando` dá para retomar (`em_anda
 
 | Método | Rota | Quem | Faz |
 |---|---|---|---|
-| — | (conta observador) | — | `users.papel = "observador"`: equipe do Dino Desk. Lê o que o TI lê (rotas marcadas "técnico ou observador" e as coleções `chamados`, `interacoes`, `users`, `respostas_prontas`, `automacao_versoes`); toda escrita é recusada. `POST /api/ti/usuarios` com `papel: "observador"` só pelo superusuário; o admin do TI só muda `bloqueado` dessas contas |
+| — | (conta observador) | — | `users.papel = "observador"`: equipe do Dino Desk. Lê o que o TI lê (rotas marcadas "técnico ou observador" e as coleções `chamados`, `interacoes`, `users`, `respostas_prontas`, `automacao_versoes`); toda escrita é recusada. `POST /api/ti/usuarios` com `papel: "observador"` só pelo superusuário ou por admin do TI com `equipe_projeto` (a conta já nasce com `equipe_projeto`); o admin do TI só muda `bloqueado` dessas contas |
 | GET | `/api/fila/minhas-posicoes` | usuário | posição na fila de cada chamado aberto do usuário (pela `ordem_fila`) |
 | POST | `/api/chamados/{id}/confirmar` | solicitante do chamado | confirma que o problema foi resolvido; opcional `{ avaliacao: "bom"\|"ruim", comentario }` (avaliação do atendimento, vai para a linha do tempo) |
 | POST | `/api/chamados/{id}/reabrir` | solicitante do chamado | `{ motivo }` volta o chamado para a fila e roda os fluxos "Chamado reaberto" da automação |

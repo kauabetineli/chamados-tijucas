@@ -14,7 +14,7 @@ import { SeloTeste } from "../../components/Selos";
 import { useAuth } from "../../lib/auth";
 import { avisar } from "../../lib/avisos";
 import { limparCache } from "../../lib/cache";
-import { ehAdmin, mensagemErro, pb } from "../../lib/pb";
+import { ehAdmin, geraObservador, mensagemErro, pb } from "../../lib/pb";
 
 /** Pessoa como as rotas /api/ti/usuarios devolvem (ver docs/API.md). */
 interface PessoaTI {
@@ -97,7 +97,7 @@ function JanelaSenha({ r, nova, aoFechar }: { r: RespostaPessoa; nova: boolean; 
 
 type DadosPessoa = {
   nome: string; matricula: string; email: string; setor: string; ramal: string;
-  papel: "solicitante" | "tecnico"; admin: boolean; bloqueado: boolean;
+  papel: "solicitante" | "tecnico" | "observador"; admin: boolean; bloqueado: boolean;
 };
 
 /** Campo do formulário: a ajuda vai no "i" ao lado do rótulo (o campo usa aria-describedby={idDaDica(id)}). */
@@ -118,7 +118,9 @@ type PropsJanelaPessoa = Parameters<typeof JanelaPessoaEditar>[0];
 /** Conta da equipe do Dino Desk (observador): o TI vê e pode bloquear; o resto é com o superusuário. */
 function JanelaPessoa(props: PropsJanelaPessoa) {
   const p = props.pessoa;
-  if (p?.papel === "observador") return <JanelaObservador p={p} fixo={props.fixo} aoFechar={props.aoFechar} aoSalvo={props.aoSalvo} />;
+  const { usuario } = useAuth();
+  // a própria equipe do Dino Desk (admin com equipe_projeto) edita a conta normalmente
+  if (p?.papel === "observador" && !geraObservador(usuario)) return <JanelaObservador p={p} fixo={props.fixo} aoFechar={props.aoFechar} aoSalvo={props.aoSalvo} />;
   return <JanelaPessoaEditar {...props} />;
 }
 
@@ -184,7 +186,7 @@ function JanelaPessoaEditar({ pessoa, setorInicial, setores, eu, aoFechar, aoSal
     email: pessoa?.email ?? "",
     setor: pessoa?.setor ?? setorInicial ?? "",
     ramal: pessoa?.ramal ?? "",
-    papel: pessoa?.papel === "tecnico" ? "tecnico" : "solicitante",
+    papel: pessoa?.papel ?? "solicitante",
     admin: pessoa?.admin ?? false,
     bloqueado: pessoa?.bloqueado ?? false,
   };
@@ -195,6 +197,7 @@ function JanelaPessoaEditar({ pessoa, setorInicial, setores, eu, aoFechar, aoSal
   const [erro, setErro] = useState("");
   const editando = !!pessoa;
   const souEu = pessoa?.id === eu;
+  const { usuario } = useAuth();
   const mudados = (Object.keys(inicial) as (keyof DadosPessoa)[]).filter((k) => d[k] !== inicial[k]);
   const muda = <K extends keyof DadosPessoa>(k: K, v: DadosPessoa[K]) => { setSaindo(false); setD((x) => ({ ...x, [k]: v })); };
   const setorEscolhido = setores.find((s) => s.id === d.setor);
@@ -336,6 +339,10 @@ function JanelaPessoaEditar({ pessoa, setorInicial, setores, eu, aoFechar, aoSal
             {([
               ["solicitante", "Servidor", "Abre e acompanha os próprios chamados"],
               ["tecnico", "Técnico do TI", "Atende a fila, registra e resolve"],
+              // só para a equipe do Dino Desk (admin com equipe_projeto); o TI da Prefeitura não vê esta opção
+              ...(geraObservador(usuario) || d.papel === "observador"
+                ? [["observador", "Equipe do Dino Desk", "Vê tudo o que o TI vê, sem mudar nada"] as const]
+                : []),
             ] as const).map(([v, r, ajuda]) => (
               <label key={v} className="opcao">
                 <input type="radio" name="papel" className="sr-only" checked={d.papel === v} disabled={souEu} onChange={() => { muda("papel", v); if (v === "solicitante") muda("admin", false); }} />

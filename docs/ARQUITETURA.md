@@ -231,7 +231,8 @@ Decisão do grupo: vê **tudo** o que o TI vê, inclusive notas internas, e o TI
 
 - **Servidor:** regras de leitura com `(papel = "tecnico" || papel = "observador")` (migration 1760000019);
   criar chamado ou mensagem recusa `papel = "observador"`; rotas GET do TI usam `R.veComoTI`, as de escrita
-  continuam `R.ehTecnico`/`R.ehAdmin`. Só o superusuário cria a conta; o admin do TI só bloqueia ou desbloqueia
+  continuam `R.ehTecnico`/`R.ehAdmin`. Cria a conta o superusuário ou um admin do TI que também tem `equipe_projeto`
+  (`R.geraObservador`; no front, `geraObservador`); o admin do TI da Prefeitura só bloqueia ou desbloqueia
   (não edita nem troca a senha). Não entra na Equipe, na divisão automática, nas cargas nem nos avisos.
 - **Front:** `veComoTI(usuario)` decide o que se VÊ (rotas e menus do TI); `ehTecnico` decide o que se FAZ.
   Na Fila: sem "Comigo", "Seu próximo", "Em espera", atribuir, "⋮" e arrastar; "Com a equipe" já vem aberto.

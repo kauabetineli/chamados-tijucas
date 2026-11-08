@@ -33,6 +33,12 @@ function veComoTI(auth) {
   return ehTecnico(auth) || ehObservador(auth);
 }
 
+// quem pode criar e editar contas de observador: o superusuário (sem auth de users) ou um admin do TI que também
+// é da equipe do projeto (equipe_projeto). O TI da Prefeitura, sem essa marca, não vê nem usa a opção.
+function geraObservador(e) {
+  return e.hasSuperuserAuth() || (ehAdmin(e.auth) && e.auth.getBool("equipe_projeto"));
+}
+
 function ehUsuario(auth) {
   return !!auth && auth.collection().name === "users";
 }
@@ -131,6 +137,7 @@ module.exports = {
   ROTULO_PRIORIDADE,
   ehTecnico,
   ehObservador,
+  geraObservador,
   veComoTI,
   ehAdmin,
   ehUsuario,

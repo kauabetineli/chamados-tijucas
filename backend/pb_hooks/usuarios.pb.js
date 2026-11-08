@@ -126,9 +126,9 @@ routerAdd("POST", "/api/ti/usuarios", (e) => {
   const nome = String(b.nome || "").trim();
   const matricula = String(b.matricula || "").trim();
   const email = String(b.email || "").trim().toLowerCase();
-  // observador (equipe do Dino Desk, só leitura): só o superusuário cria
-  if (b.papel === "observador" && !superuser) throw new ForbiddenError("Só o superusuário cria contas da equipe do Dino Desk.");
-  const papel = b.papel === "tecnico" ? "tecnico" : b.papel === "observador" && superuser ? "observador" : "solicitante";
+  // observador (equipe do Dino Desk, só leitura): só o superusuário ou um admin que é da equipe do projeto
+  if (b.papel === "observador" && !R.geraObservador(e)) throw new ForbiddenError("Só a equipe do Dino Desk cria contas só de leitura.");
+  const papel = b.papel === "tecnico" ? "tecnico" : b.papel === "observador" ? "observador" : "solicitante";
   const ficticio = superuser && b.ficticio === true;
 
   if (!nome) throw new BadRequestError("Informe o nome.");
@@ -153,6 +153,8 @@ routerAdd("POST", "/api/ti/usuarios", (e) => {
   rec.setVerified(true);
   rec.set("setor", String(b.setor || ""));
   rec.set("papel", papel);
+  // a conta só de leitura já nasce com acesso ao Feedback (área da equipe do projeto)
+  if (papel === "observador") rec.set("equipe_projeto", true);
   rec.set("admin", papel === "tecnico" && b.admin === true);
   rec.set("ramal", String(b.ramal || "").trim().slice(0, 20));
   rec.set("trocar_senha", !senhaFixa);
@@ -175,7 +177,7 @@ routerAdd("PATCH", "/api/ti/usuarios/{id}", (e) => {
   const eu = !superuser && e.auth.id === rec.id;
   const b = e.requestInfo().body || {};
   // conta da equipe do Dino Desk (observador): o admin do TI vê e pode bloquear ou desbloquear, nada além
-  if (!superuser && rec.getString("papel") === "observador") {
+  if (!R.geraObservador(e) && rec.getString("papel") === "observador") {
     const outros = Object.keys(b).filter((k) => k !== "bloqueado");
     if (outros.length) throw new ForbiddenError("Esta conta é da equipe do Dino Desk: o TI só pode bloquear ou desbloquear.");
   }
@@ -205,8 +207,9 @@ routerAdd("PATCH", "/api/ti/usuarios/{id}", (e) => {
 
   const eraAdminAtivo = rec.getBool("admin") && !rec.getBool("bloqueado") && rec.getString("papel") === "tecnico";
   if (b.papel !== undefined) {
-    if (b.papel === "observador" && !superuser) throw new ForbiddenError("Só o superusuário cria contas da equipe do Dino Desk.");
+    if (b.papel === "observador" && !R.geraObservador(e)) throw new ForbiddenError("Só a equipe do Dino Desk cria contas só de leitura.");
     rec.set("papel", b.papel === "tecnico" || b.papel === "observador" ? b.papel : "solicitante");
+    if (b.papel === "observador") rec.set("equipe_projeto", true);
   }
   if (b.admin !== undefined) rec.set("admin", b.admin === true);
   if (rec.getString("papel") !== "tecnico") rec.set("admin", false);
@@ -234,8 +237,8 @@ routerAdd("POST", "/api/ti/usuarios/{id}/senha", (e) => {
   if (!e.hasSuperuserAuth() && !R.ehAdmin(e.auth)) throw new ForbiddenError("Somente o administrador do TI troca senhas.");
   let rec;
   try { rec = e.app.findRecordById("users", e.request.pathValue("id")); } catch (_) { throw new NotFoundError("Pessoa não encontrada."); }
-  if (!e.hasSuperuserAuth() && rec.getString("papel") === "observador") {
-    throw new ForbiddenError("A senha das contas da equipe do Dino Desk é trocada pelo superusuário.");
+  if (!R.geraObservador(e) && rec.getString("papel") === "observador") {
+    throw new ForbiddenError("A senha das contas da equipe do Dino Desk é trocada pela própria equipe.");
   }
   const senha = U.senhaProvisoria();
   rec.setPassword(senha);
