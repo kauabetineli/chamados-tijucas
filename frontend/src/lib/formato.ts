@@ -27,6 +27,13 @@ export const ROTULO_IMPACTO: Record<Impacto, string> = {
   publico: "O atendimento ao público parou",
 };
 
+/** O mesmo, lido pelo TI (quem registra ou atende fala da OUTRA pessoa: "Só eu" vira "Só a pessoa"). */
+export const ROTULO_IMPACTO_TI: Record<Impacto, string> = {
+  so_eu: "Só a pessoa",
+  setor: "O setor todo",
+  publico: "Atendimento ao público parado",
+};
+
 export const ROTULO_ORIGEM: Record<Origem, string> = {
   sistema: "Pelo sistema",
   whatsapp: "WhatsApp",

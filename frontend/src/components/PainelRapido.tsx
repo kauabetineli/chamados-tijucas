@@ -79,7 +79,7 @@ export function PainelRapido({ titulo, idTitulo, subtitulo, largura = "max-w-lg"
   // portal no <body> + z-index alto em estilo: fica SEMPRE acima da barra de navegação do celular
   return createPortal(
     <div
-      className="fixed inset-0 flex items-end justify-center bg-noite/50 md:items-center md:p-6"
+      className="animar-fundo fixed inset-0 flex items-end justify-center bg-noite/50 md:items-center md:p-6"
       style={{ zIndex: 100 }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) fechar.current(); }}
     >
@@ -89,7 +89,7 @@ export function PainelRapido({ titulo, idTitulo, subtitulo, largura = "max-w-lg"
         role="dialog"
         aria-modal="true"
         aria-labelledby={idTitulo}
-        className={`flex max-h-[92dvh] w-full ${largura} flex-col overflow-hidden rounded-t-2xl bg-superficie shadow-2xl ring-1 ring-linha focus:outline-none md:max-h-[85dvh] md:rounded-2xl`}
+        className={`animar-folha flex max-h-[92dvh] w-full ${largura} flex-col overflow-hidden rounded-t-2xl bg-superficie shadow-2xl ring-1 ring-linha focus:outline-none md:max-h-[85dvh] md:rounded-2xl`}
       >
         {corpo}
       </div>

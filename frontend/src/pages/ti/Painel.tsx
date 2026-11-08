@@ -108,10 +108,10 @@ function PainelEquipe() {
             ))}
           </div>
           <Link to="/ti/qrcodes" className="btn-secundario min-h-11">
-            <QrCode className="size-5" aria-hidden="true" /> QR code para abrir chamado
+            <QrCode className="size-5" aria-hidden="true" /> QR code<span className="max-sm:hidden"> para abrir chamado</span>
           </Link>
           <button className="btn-secundario min-h-11" onClick={baixarCsv}>
-            <Download className="size-5" aria-hidden="true" /> Baixar planilha
+            <Download className="size-5" aria-hidden="true" /> <span className="max-sm:hidden">Baixar planilha</span><span className="sm:hidden">Planilha</span>
           </button>
         </div>
       </div>

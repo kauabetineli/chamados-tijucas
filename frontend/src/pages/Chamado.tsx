@@ -16,7 +16,7 @@ import { AbasPagina } from "../components/CabecalhoPagina";
 import { Espera } from "../components/Espera";
 import { useAuth } from "../lib/auth";
 import { dentroDoHorario, diasParaConfirmar, mensagemForaDoHorario, useConfigTI } from "../lib/configTI";
-import { dataHora, ROTULO_AGUARDANDO, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS } from "../lib/formato";
+import { dataHora, ROTULO_AGUARDANDO, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS, ROTULO_IMPACTO_TI } from "../lib/formato";
 import { EXPAND_CHAMADO, ehObservador, veComoTI, mensagemErro, nomeSolicitante, pb, type Chamado as TChamado, type Status, ramalDe } from "../lib/pb";
 import { convidarOpiniao } from "../lib/opiniao";
 import { useRealtime } from "../lib/useRealtime";
@@ -448,7 +448,7 @@ function FichaChamado({ c, tecnico }: { c: TChamado; tecnico: boolean }) {
         </Ficha>
       )}
       {c.expand?.setor?.nome && <Ficha Icone={Building2} termo="Setor">{c.expand.setor.nome}</Ficha>}
-      <Ficha Icone={Users} termo="Quem é afetado">{tecnico ? IMPACTO_TI[c.impacto] : ROTULO_IMPACTO[c.impacto]}</Ficha>
+      <Ficha Icone={Users} termo="Quem é afetado">{tecnico ? ROTULO_IMPACTO_TI[c.impacto] : ROTULO_IMPACTO[c.impacto]}</Ficha>
       {tecnico && <Ficha Icone={MessageCircle} termo="Como chegou">{ROTULO_ORIGEM[c.origem]}</Ficha>}
       {/* tempo com a palavra na frente ("Esperando há 9 dias"): sem ícone aqui, porque o atraso já traz o relógio dele */}
       <div className="flex min-w-0 items-center gap-1.5">
@@ -459,9 +459,6 @@ function FichaChamado({ c, tecnico }: { c: TChamado; tecnico: boolean }) {
     </dl>
   );
 }
-
-/** "Quem é afetado" lido pelo TI (o servidor escolheu "Só eu", "Meu setor inteiro"...). */
-const IMPACTO_TI = { so_eu: "Só a pessoa", setor: "O setor todo", publico: "Atendimento ao público parado" } as const;
 
 function Ficha({ Icone, termo, children }: { Icone: typeof Clock; termo: string; children: ReactNode }) {
   return (

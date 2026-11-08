@@ -330,7 +330,7 @@ export function TodosChamados() {
             Filtros{ativos.length ? ` (${ativos.length})` : ""}
           </button>
         </div>
-        <div id="painel-filtros" className={`${verFiltros ? "grid" : "hidden"} grid-cols-2 gap-2 md:grid-cols-5`}>
+        <div id="painel-filtros" className={`${verFiltros ? "grid" : "hidden"} grid-cols-1 gap-2 min-[420px]:grid-cols-2 md:grid-cols-5`}>
           <select aria-label="Prioridade" className={select} value={f.prioridade} onChange={(e) => mudar("prioridade", e.target.value)}>
             <option value="">Toda prioridade</option>
             {(["urgente", "alta", "normal", "baixa"] as Prioridade[]).map((p) => <option key={p} value={p}>{ROTULO_PRIORIDADE[p]}</option>)}
@@ -368,9 +368,10 @@ export function TodosChamados() {
             )}
           </div>
         )}
-        <button type="button" className="btn-secundario min-h-10 w-full px-3 text-sm md:hidden" onClick={baixar} disabled={baixando || !total}>
+        {/* celular: a planilha mora dentro dos filtros (é para quem já filtrou; antes ocupava uma linha sempre) */}
+        {verFiltros && <button type="button" className="btn-secundario min-h-10 w-full px-3 text-sm md:hidden" onClick={baixar} disabled={baixando || !total}>
           <Download className="size-4" aria-hidden="true" /> {baixando ? "Gerando..." : "Baixar planilha (CSV)"}
-        </button>
+        </button>}
       </div>
 
       {itens === null && (

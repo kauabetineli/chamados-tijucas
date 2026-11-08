@@ -12,7 +12,7 @@ import { SeloStatus } from "../../components/Selos";
 import { useAuth } from "../../lib/auth";
 import { avisar } from "../../lib/avisos";
 import { criarComProgresso } from "../../lib/envio";
-import { resumo, ROTULO_IMPACTO, ROTULO_ORIGEM } from "../../lib/formato";
+import { resumo, ROTULO_IMPACTO, ROTULO_IMPACTO_TI, ROTULO_ORIGEM } from "../../lib/formato";
 import { EXPAND_CHAMADO, mensagemErro, nomeSolicitante, pb, type Chamado, type Impacto, type Origem, type Setor, type Usuario } from "../../lib/pb";
 import { useRealtime } from "../../lib/useRealtime";
 import { LinkChamado } from "../../lib/verChamado";
@@ -262,7 +262,7 @@ export function Registrar() {
               {(Object.keys(ROTULO_IMPACTO) as Impacto[]).map((k) => (
                 <label key={k} className={segmento(impacto === k)}>
                   <input type="radio" name="impacto" className="sr-only" checked={impacto === k} onChange={() => setImpacto(k)} />
-                  {ROTULO_IMPACTO[k]}
+                  {ROTULO_IMPACTO_TI[k]}
                 </label>
               ))}
             </div>

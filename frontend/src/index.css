@@ -266,7 +266,13 @@ svg.lucide.size-8 { width: calc(32rem / 17); height: calc(32rem / 17); }
 @keyframes opcao-surgir { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 .animar-menu { animation: surgir 160ms cubic-bezier(0.2, 0.9, 0.3, 1) both; transform-origin: top left; }
 .animar-opcao { animation: opcao-surgir 180ms ease-out both; }
-@media (prefers-reduced-motion: reduce) { .animar-menu, .animar-opcao { animation: none; } }
+/* folha que sobe de baixo no celular (seletores, PainelRapido) e o fundo escurecendo */
+@keyframes folha-subir { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes fundo-surgir { from { opacity: 0; } to { opacity: 1; } }
+.animar-folha { animation: folha-subir 220ms cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@media (min-width: 768px) { .animar-folha { animation: surgir 160ms cubic-bezier(0.2, 0.9, 0.3, 1) both; } }
+.animar-fundo { animation: fundo-surgir 180ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { .animar-menu, .animar-opcao, .animar-folha, .animar-fundo { animation: none; } }
 /* avisos rápidos (components/Avisos.tsx) */
 @keyframes aviso-entra { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes aviso-sai { to { opacity: 0; transform: translateY(-6px) scale(0.98); } }

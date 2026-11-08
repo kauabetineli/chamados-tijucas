@@ -128,6 +128,10 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
     `EtiquetaPrioridade` (aparece para Urgente e Alta), espera com `Espera`, situação com `SeloStatus`, "teste" com
     `MarcaTeste`. Não crie pílula nova nem use cor de prioridade para outra coisa.
 
+15. **Celular**: escolher entre poucas opções com ícone (pessoa, prioridade) = `components/Escolha.tsx`: no PC é uma
+    lista logo abaixo da pílula; no celular vira uma FOLHA que sobe de baixo, acima da barra de navegação. Janelas
+    (`PainelRapido`) também sobem de baixo no celular. Nada de linha inteira para um botão só: junte na faixa que já existe.
+
 ## Modelo de dados (resumo)
 
 - `users` (auth): name, **matricula** (login, até 8 dígitos, única), email (opcional), setor → setores,

@@ -277,9 +277,9 @@ function JanelaPessoaEditar({ pessoa, setorInicial, setores, eu, aoFechar, aoSal
   ) : (
     <>
       {erro && <p role="alert" className="mb-2 font-semibold text-alerta">{erro}</p>}
-      <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+      <div className="flex gap-2 sm:justify-end">
         <button type="button" className="btn-secundario" onClick={aoFechar}>Cancelar</button>
-        <button type="submit" form="form-pessoa" className="btn-primario" disabled={salvando}>
+        <button type="submit" form="form-pessoa" className="btn-primario flex-1 sm:flex-none" disabled={salvando}>
           {salvando ? "Criando..." : "Criar e gerar senha"}
         </button>
       </div>
@@ -571,7 +571,7 @@ function AbaPessoas({ setores, admin, setorFiltro, aoFiltrarSetor, recarregarTud
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div role="group" aria-label="Tipo de conta" className="flex rounded-lg bg-fundo p-0.5 text-sm ring-1 ring-linha">
-          {([["", "Todos"], ["solicitante", "Servidores"], ["tecnico", "TI"], ["observador", "Equipe do Dino Desk"]] as const).map(([v, rot]) => (
+          {([["", "Todos"], ["solicitante", "Servidores"], ["tecnico", "TI"], ["observador", "Dino Desk"]] as const).map(([v, rot]) => (
             <button key={v} type="button" aria-pressed={papel === v} onClick={() => { setPapel(v); pag.voltarAoInicio(); }}
               className={`min-h-9 rounded-md px-3 font-semibold ${papel === v ? "bg-superficie text-tinta shadow-sm ring-1 ring-linha" : "text-tinta-2 hover:text-tinta"}`}>
               {rot}

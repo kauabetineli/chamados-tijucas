@@ -276,9 +276,10 @@ function Secao({ titulo, total, nota, vazio, children, depois, contagem, id, sem
 }) {
   return (
     <section className="space-y-2" id={id}>
-      <h2 className={semTitulo ? "sr-only" : "flex items-baseline gap-2 px-1 text-xs font-bold tracking-wider text-tinta-2 uppercase"}>
+      <h2 className={semTitulo ? "sr-only" : "flex flex-wrap items-baseline gap-x-2 gap-y-0.5 px-1 text-xs font-bold tracking-wider text-tinta-2 uppercase"}>
         {titulo} <span className="font-display text-sm tracking-normal text-tinta">{contagem ?? total}</span>
-        {nota && <span className="font-normal tracking-normal normal-case">{nota}</span>}
+        {/* celular: a nota desce para a linha de baixo (ao lado do título ela espremia tudo) */}
+        {nota && <span className="font-normal tracking-normal normal-case max-md:basis-full">{nota}</span>}
       </h2>
       {total === 0 && vazio ? (
         <p className="rounded-2xl bg-superficie p-6 text-center text-tinta-2 ring-1 ring-linha">{vazio}</p>
@@ -562,7 +563,7 @@ export function Fila() {
               aria-pressed={filtro === "prazo"}
               onClick={() => { if (visao) { const p = new URLSearchParams(params); p.delete("visao"); setParams(p); } setFiltro(filtro === "prazo" ? "" : "prazo"); pag.voltarAoInicio(); }}
               title={`Esperando mais que a meta: ${metas}`}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-full px-3.5 text-sm font-semibold ring-1 ${
+              className={`hidden min-h-10 items-center gap-2 rounded-full px-3.5 text-sm font-semibold ring-1 md:inline-flex ${
                 filtro === "prazo" ? "bg-brasa-50 text-alerta ring-alerta/50" : "bg-superficie text-tinta ring-linha hover:ring-acento"
               }`}
             >
@@ -584,7 +585,7 @@ export function Fila() {
 
       {/* celular: abas das visões (no PC elas ficam na barra lateral), a Equipe e o atalho para Todos os chamados */}
       <div className="sem-barra -mx-4 flex gap-2 overflow-x-auto px-4 md:hidden">
-        <div role="tablist" aria-label="Visões da fila" className="flex gap-2">
+        <div role="tablist" aria-label="Visões da fila" className="flex shrink-0 gap-2">
           {[{ id: null, rotulo: "Tudo", Icone: null }, ...VISOES.filter((v) => !soLeitura || v.id === "livres")].map((v) => {
             const ativa = visao === v.id && !filtro;
             return (
@@ -607,6 +608,19 @@ export function Fila() {
             );
           })}
         </div>
+        {/* celular: "fora do prazo" é mais um filtro da faixa (no PC fica no cabeçalho) */}
+        {atrasados > 0 && (
+          <button
+            type="button"
+            aria-pressed={filtro === "prazo"}
+            onClick={() => { if (visao) { const p = new URLSearchParams(params); p.delete("visao"); setParams(p); } setFiltro(filtro === "prazo" ? "" : "prazo"); pag.voltarAoInicio(); }}
+            className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold ring-1 ${
+              filtro === "prazo" ? "bg-brasa-50 text-alerta ring-alerta/50" : "bg-superficie text-tinta-2 ring-linha"}`}
+          >
+            <span className="size-2 rounded-full bg-brasa-700" aria-hidden="true" />
+            Fora do prazo <span className="font-display text-alerta">{atrasados}</span>
+          </button>
+        )}
         <button
           type="button"
           aria-expanded={verEquipe || filtroTecnico}

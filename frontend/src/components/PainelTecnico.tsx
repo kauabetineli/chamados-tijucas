@@ -123,8 +123,9 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
       }}
     >
       <RegistroSolucao ligado={comRegistro} aoLigar={setComRegistro} diagnostico={diagnostico} aoDiagnostico={setDiagnostico} solucao={solucao} aoSolucao={setSolucao} prefixo="painel" />
-      <div className="flex gap-2">
-        <button className="btn-sucesso flex-1" disabled={salvando}>Marcar como resolvido</button>
+      {/* celular: um embaixo do outro (lado a lado o "Marcar como resolvido" quebrava em duas linhas) */}
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <button className="btn-sucesso flex-1" disabled={salvando}><CheckCircle2 className="size-5" aria-hidden="true" /> Marcar como resolvido</button>
         <button type="button" className="btn-secundario" onClick={() => setResolvendo(false)}>Cancelar</button>
       </div>
     </form>
