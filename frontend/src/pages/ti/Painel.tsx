@@ -22,6 +22,18 @@ interface Resumo {
   por_categoria: { chave: string; total: number }[];
   por_setor: { chave: string; total: number }[];
   por_dia: { dia: string; total: number }[];
+  /** mesmo tamanho de período, logo antes (para comparar) */
+  anterior?: { total: number; resolvidos: number; horas_media_resolucao: number; horas_media_inicio: number };
+  /** começou dentro do prazo × fora (inclui os que ainda não começaram e já passaram) */
+  prazo?: { dentro: number; fora: number };
+}
+
+/** "↑ 12%" sobre o período anterior; `menorMelhor` para tempos. Sem base anterior, nada. */
+function variacao(atual: number, antes: number | undefined, menorMelhor = false) {
+  if (!antes || !atual) return undefined;
+  const pct = Math.round(((atual - antes) / antes) * 100);
+  if (pct === 0) return { texto: "igual ao período anterior", bom: true };
+  return { texto: `${pct > 0 ? "↑" : "↓"} ${Math.abs(pct)}% sobre o período anterior`, bom: menorMelhor ? pct < 0 : pct > 0 };
 }
 
 const PERIODOS = [7, 30, 90];
@@ -118,11 +130,16 @@ function PainelEquipe() {
           {/* tela larga: os 4 números e o piloto lado a lado (molde "painel", lib/moldes.ts) */}
           <div className="space-y-8 larga:grid larga:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] larga:items-start larga:gap-6 larga:space-y-0">
           <div className="space-y-3">
-          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-linha ring-1 ring-linha lg:grid-cols-4">
-            <Numero termo={`Chamados nos últimos ${r.dias} dias`} valor={String(r.total)} />
-            <Numero termo="Resolvidos no período" valor={String(r.resolvidos)} />
-            <Numero termo="Tempo médio até começar" dica="Da abertura até alguém começar a atender. Conta os chamados resolvidos do período." valor={r.resolvidos ? duracaoHoras(r.horas_media_inicio) : "—"} />
-            <Numero termo="Tempo médio até resolver" dica="Da abertura até ficar resolvido, com o tempo em espera junto. Conta os chamados resolvidos do período." valor={r.resolvidos ? duracaoHoras(r.horas_media_resolucao) : "—"} />
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-linha ring-1 ring-linha lg:grid-cols-5">
+            {/* o que mais importa para quem pede: começou no prazo? (primeiro e ocupa a linha toda no celular) */}
+            <Numero termo="Começaram no prazo" className="col-span-2 lg:col-span-1"
+              dica="Chamados do período que alguém começou a atender até o prazo da prioridade. Os que ainda não começaram e já passaram do prazo contam como fora."
+              valor={r.prazo && r.prazo.dentro + r.prazo.fora ? `${Math.round((r.prazo.dentro / (r.prazo.dentro + r.prazo.fora)) * 100)}%` : "—"}
+              nota={r.prazo && r.prazo.dentro + r.prazo.fora ? `${r.prazo.fora} fora do prazo` : undefined} />
+            <Numero termo={`Chegaram (${r.dias} dias)`} valor={String(r.total)} delta={variacao(r.total, r.anterior?.total)} neutro />
+            <Numero termo="Resolvidos" valor={String(r.resolvidos)} delta={variacao(r.resolvidos, r.anterior?.resolvidos)} />
+            <Numero termo="Até começar (média)" dica="Da abertura até alguém começar a atender. Conta os chamados resolvidos do período." valor={r.resolvidos ? duracaoHoras(r.horas_media_inicio) : "—"} delta={variacao(r.horas_media_inicio, r.anterior?.horas_media_inicio, true)} />
+            <Numero termo="Até resolver (média)" dica="Da abertura até ficar resolvido, com o tempo em espera junto. Conta os chamados resolvidos do período." valor={r.resolvidos ? duracaoHoras(r.horas_media_resolucao) : "—"} delta={variacao(r.horas_media_resolucao, r.anterior?.horas_media_resolucao, true)} />
           </dl>
           <p className="text-tinta-2">
             Agora: <strong className="text-tinta">{r.agora.aberto}</strong> na fila,{" "}
@@ -187,11 +204,17 @@ function PainelEquipe() {
   );
 }
 
-function Numero({ termo, valor, dica }: { termo: string; valor: string; dica?: string }) {
+function Numero({ termo, valor, dica, delta, neutro, nota, className = "" }: {
+  termo: string; valor: string; dica?: string;
+  /** comparação com o período anterior; `neutro`: mais ou menos não é bom nem ruim (ex.: quantos chegaram) */
+  delta?: { texto: string; bom: boolean }; neutro?: boolean; nota?: string; className?: string;
+}) {
   return (
-    <div className="bg-superficie p-5">
+    <div className={`bg-superficie p-5 ${className}`}>
       <dt className="flex items-center gap-2 text-sm text-tinta-2">{termo}{dica && <Dica rotulo={`Como é calculado: ${termo.toLowerCase()}`}>{dica}</Dica>}</dt>
       <dd className="mt-1 font-display text-4xl font-extrabold">{valor}</dd>
+      {delta && <dd className={`mt-1 text-sm font-semibold ${neutro ? "text-tinta-2" : delta.bom ? "text-ok" : "text-alerta"}`}>{delta.texto}</dd>}
+      {nota && <dd className="mt-1 text-sm text-tinta-2">{nota}</dd>}
     </div>
   );
 }
@@ -228,28 +251,39 @@ function PorDia({ dados: brutos, dias }: { dados: { dia: string; total: number }
     const dia = d.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
     return { dia, total: porDia.get(dia) ?? 0 };
   });
-  const max = Math.max(1, ...dados.map((d) => d.total));
+  // 30 dias ou mais: por semana (barras de um dia ficavam soltas e não mostravam tendência)
+  const semanal = dias >= 30;
+  const serie = semanal
+    ? dados.reduce<{ dia: string; total: number }[]>((acc, d, i) => {
+        if (i % 7 === (dados.length % 7)) acc.push({ dia: d.dia, total: 0 });
+        if (!acc.length) acc.push({ dia: d.dia, total: 0 });
+        acc[acc.length - 1].total += d.total;
+        return acc;
+      }, [])
+    : dados;
+  const max = Math.max(1, ...serie.map((d) => d.total));
   const rotulo = (dia: string) => new Date(dia + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   return (
     <section className="lg:col-span-2 larga:col-span-4">
-      <h2 className="text-xl font-bold">Chamados por dia</h2>
+      <h2 className="text-xl font-bold">{semanal ? "Chamados por semana" : "Chamados por dia"}</h2>
       {brutos.length === 0 ? (
         <p className="mt-3 text-tinta-2">Sem chamados no período.</p>
       ) : (
         <>
-          <div className="mt-4 flex h-40 items-end gap-0.5 border-b border-linha" role="img" aria-label="Quantidade de chamados por dia">
-            {dados.map((d) => (
-              <div key={d.dia} className="group relative flex h-full flex-1 items-end">
-                <span className="mx-auto w-full max-w-6 rounded-t bg-mar" style={{ height: `${(d.total / max) * 100}%` }} />
+          <div className={`mt-4 flex h-40 items-end border-b border-linha ${semanal ? "gap-2" : "gap-0.5"}`} role="img" aria-label={semanal ? "Quantidade de chamados por semana" : "Quantidade de chamados por dia"}>
+            {serie.map((d) => (
+              <div key={d.dia} className={`group relative flex h-full flex-1 ${semanal ? "flex-col items-center justify-end" : "items-end"}`}>
+                {semanal && <span className="mb-1 text-xs font-semibold text-tinta-2">{d.total}</span>}
+                <span className={`mx-auto w-full rounded-t bg-mar ${semanal ? "max-w-16" : "max-w-6"}`} style={{ height: `${(d.total / max) * 100}%` }} />
                 <span className="pointer-events-none absolute bottom-full left-1/2 mb-1 hidden -translate-x-1/2 rounded bg-noite px-2 py-1 text-xs whitespace-nowrap text-white group-hover:block">
-                  {rotulo(d.dia)}: {d.total}
+                  {semanal ? `semana de ${rotulo(d.dia)}` : rotulo(d.dia)}: {d.total}
                 </span>
               </div>
             ))}
           </div>
           <div className="mt-1 flex justify-between text-xs text-tinta-2">
-            <span>{rotulo(dados[0].dia)}</span>
-            <span>maior dia: {max}</span>
+            <span>{rotulo(serie[0].dia)}</span>
+            <span>{semanal ? "maior semana" : "maior dia"}: {max}</span>
             <span>{rotulo(dados[dados.length - 1].dia)}</span>
           </div>
         </>

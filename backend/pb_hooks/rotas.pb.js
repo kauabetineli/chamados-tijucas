@@ -102,6 +102,26 @@ routerAdd("GET", "/api/painel/resumo", (e) => {
 
   const total = e.app.countRecords("chamados", $dbx.exp("created >= {:desde}", { desde }));
 
+  // período anterior, do mesmo tamanho (para "↑12% sobre os 30 dias anteriores")
+  const antesDe = new Date(Date.now() - 2 * dias * 86400000).toISOString().replace("T", " ");
+  const ant = new DynamicModel({ total: 0, resolvidos: 0, horas_resolucao: -0, horas_inicio: -0 });
+  db.newQuery(
+    `SELECT COUNT(*) AS total,
+       COALESCE(SUM(status = 'resolvido' AND resolvido_em != ''), 0) AS resolvidos,
+       COALESCE(AVG(CASE WHEN status = 'resolvido' AND resolvido_em != '' THEN (julianday(resolvido_em) - julianday(created)) * 24 END), 0) AS horas_resolucao,
+       COALESCE(AVG(CASE WHEN status = 'resolvido' AND resolvido_em != '' THEN (julianday(iniciado_em) - julianday(created)) * 24 END), 0) AS horas_inicio
+     FROM chamados WHERE created >= {:antes} AND created < {:desde}`,
+  ).bind({ antes: antesDe, desde }).one(ant);
+
+  // dentro do prazo de COMEÇAR: começou até o prazo; fora: começou depois, ou ainda não começou e o prazo passou
+  const agoraTxt = new Date().toISOString().replace("T", " ");
+  const prazo = new DynamicModel({ dentro: 0, fora: 0 });
+  db.newQuery(
+    `SELECT COALESCE(SUM(iniciado_em != '' AND iniciado_em <= prazo_em), 0) AS dentro,
+            COALESCE(SUM((iniciado_em != '' AND iniciado_em > prazo_em) OR (iniciado_em = '' AND prazo_em < {:agora})), 0) AS fora
+     FROM chamados WHERE created >= {:desde} AND prazo_em != ''`,
+  ).bind({ desde, agora: agoraTxt }).one(prazo);
+
   // avaliação dos solicitantes (chamados confirmados no período)
   // confirmados = a pessoa respondeu "Deu certo?"; automaticos = considerados resolvidos sem resposta (não são satisfação)
   const aval = new DynamicModel({ bom: 0, ruim: 0, confirmados: 0, automaticos: 0 });
@@ -136,6 +156,12 @@ routerAdd("GET", "/api/painel/resumo", (e) => {
     por_categoria: agrupar("COALESCE(k.nome, 'Sem categoria')", "LEFT JOIN categorias k ON k.id = c.categoria"),
     por_setor: agrupar("COALESCE(s.nome, 'Sem setor')", "LEFT JOIN setores s ON s.id = c.setor"),
     por_dia: porDia.map((r) => ({ dia: r.dia, total: r.total })),
+    anterior: {
+      total: ant.total, resolvidos: ant.resolvidos,
+      horas_media_resolucao: Math.round(ant.horas_resolucao * 1000) / 1000,
+      horas_media_inicio: Math.round(ant.horas_inicio * 1000) / 1000,
+    },
+    prazo: { dentro: prazo.dentro, fora: prazo.fora },
   });
 }, $apis.requireAuth());
 
