@@ -277,7 +277,7 @@ function Proximo({ c, eu, posicao, aoComecar, aoAtribuir, aoAcoes, ocupado, real
   const escolhida = useEscolhida();
   const meu = c.responsavel === eu;
   return (
-    <section id={`chamado-${c.id}`} aria-labelledby="titulo-proximo" className={`rounded-2xl bg-superficie p-4 ring-2 ring-acento md:p-5 ${realcado ? "animar-realce" : ""}`}>
+    <section id={`chamado-${c.id}`} aria-labelledby="titulo-proximo" className={`rounded-2xl bg-superficie p-4 ring-1 ring-acento/50 md:p-5 ${realcado ? "animar-realce" : ""}`}>
       <div className="flex items-start gap-3">
         {/* celular: sem o ícone, o texto do próximo usa a largura toda */}
         <span className="hidden sm:block"><TipoCategoria c={c} grande /></span>
@@ -337,8 +337,8 @@ function Secao({ titulo, total, nota, vazio, arrastavel, children, tom, semDono,
       {total === 0 && vazio ? (
         <p className="rounded-2xl bg-superficie p-6 text-center text-tinta-2 ring-1 ring-linha">{vazio}</p>
       ) : (
-        <div className={`@container overflow-hidden rounded-2xl bg-superficie ring-1 ${tom === "meu" ? "border-l-4 border-l-acento ring-acento/40" : "ring-linha"}`}>
-          <div className={`hidden items-center gap-3 border-b border-linha py-2 pr-1.5 pl-2 text-xs font-bold tracking-wider text-tinta-2 uppercase @2xl:flex ${tom === "meu" ? "bg-mar-50" : ""}`} aria-hidden="true">
+        <div className={`@container overflow-hidden rounded-2xl bg-superficie ring-1 ${tom === "meu" ? "border-l-4 border-l-acento ring-linha" : "ring-linha"}`}>
+          <div className={`hidden items-center gap-3 border-b border-linha py-2 pr-1.5 pl-2 text-xs font-bold tracking-wider text-tinta-2 uppercase @2xl:flex`} aria-hidden="true">
             {arrastavel && <span className="hidden w-4 md:block" />}
             <span className="w-10" />
             <span className="hidden w-24 @4xl:block">Protocolo</span>

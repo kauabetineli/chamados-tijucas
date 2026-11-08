@@ -99,14 +99,15 @@
   --color-tinta: #eef1f4;
   --color-tinta-2: #9a9fa7;
   --color-linha: #2a2c31;
-  --color-acento: #5ec4ee;
+  /* azul mais calmo no grafite (o ciano de antes brilhava demais ao lado do cinza) */
+  --color-acento: #6fb6d9;
   /* botões: o mesmo azul-petróleo, um pouco mais vivo. O de antes (#00658c) sumia no cartão escuro (2,8:1);
      este fica em 3,6:1 com o cartão e 5,1:1 com a letra branca */
   --color-mar-700: #0a76a3;
   --color-campo-700: #0b7a43;
   --color-ok: #62d394;
   --color-alerta: #ff8f85;
-  --color-mar-50: #0b2531;
+  --color-mar-50: #18252d;
   --color-campo-50: #0d2a1a;
   --color-brasa-50: #361311;
   --color-sol-50: #2b2706;
