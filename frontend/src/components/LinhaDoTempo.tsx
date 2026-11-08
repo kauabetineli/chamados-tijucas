@@ -205,18 +205,18 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
       {!carregou && <EsqueletoConversa />}
       <ol className="space-y-3">
         {agrupar(itens, soMensagens).map((g, gi, todos) => {
-          const dia = g.novoDia ? <span className="font-semibold text-tinta">{diaCurto(g.itens[0].created)}</span> : null;
+          // dia novo: um divisor com o dia no meio (vale para mensagens e mudanças)
+          const dia = g.novoDia ? (
+            <li className="flex items-center gap-3 pt-1 text-xs font-bold tracking-wider text-tinta-2 uppercase" aria-label={diaCurto(g.itens[0].created)}>
+              <span className="h-px flex-1 bg-linha" aria-hidden="true" />{diaCurto(g.itens[0].created)}<span className="h-px flex-1 bg-linha" aria-hidden="true" />
+            </li>
+          ) : null;
           if (g.tipo === "mudancas") {
-            // mudanças seguidas (status, responsável, prioridade, abertura) viram UMA linha fina
             return (
-              <li key={g.itens[0].id} className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 px-2 text-center text-sm text-tinta-2">
+              <Fragment key={g.itens[0].id}>
                 {dia}
-                {enxugar(g.itens).map((i) => (
-                  <Fragment key={i.id}>
-                    <span className="texto-livre" title={`${i.texto} (${dataHora(i.created)}${i.expand?.autor ? `, ${i.expand.autor.name}` : ""})`}>{textoMudanca(i)}</span>
-                  </Fragment>
-                ))}
-              </li>
+                <li><Mudancas itens={g.itens} /></li>
+              </Fragment>
             );
           }
           const i = g.itens[0];
@@ -234,7 +234,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
             : <Avatar id={i.autor} nome={i.expand?.autor?.name} tamanho="sm" />;
           return (
             <Fragment key={i.id}>
-              {dia && <li className="pt-1 text-center text-sm text-tinta-2">{dia}</li>}
+              {dia}
               {/* o space-y-3 do Tailwind v4 é margin-bottom: margem negativa aqui fazia um balão cobrir o outro.
                   Mensagens seguidas da mesma pessoa ficam só mais juntas (4 px). */}
               <li className={`flex items-end gap-2 ${doSolicitante ? "" : "flex-row-reverse"} ${continua ? "mb-1!" : ""}`}>
@@ -419,6 +419,66 @@ function diaCurto(iso: string) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", ...(d.getFullYear() !== hoje.getFullYear() ? { year: "numeric" } : {}) });
 }
 
+/**
+ * Mudanças seguidas (situação, responsável, prioridade) do mesmo dia: UMA frase por pessoa, com o resultado final
+ * ("16:09 Kauã: pegou o chamado, em atendimento"). Vai-e-volta (Alta, Urgente, Normal, Urgente) mostra só onde parou;
+ * "+N" abre os passos, um por linha, com a hora.
+ */
+function Mudancas({ itens }: { itens: Interacao[] }) {
+  const [aberto, setAberto] = useState(false);
+  const finais = resultadoFinal(itens);
+  const escondidas = itens.length - finais.length;
+  // uma frase por pessoa (na ordem em que aparecem)
+  const blocos: { autor: string; nomes: string[]; ultimo: string }[] = [];
+  for (const i of finais) {
+    const autor = autorDe(i);
+    const b = blocos.find((x) => x.autor === autor) ?? (blocos.push({ autor, nomes: [], ultimo: i.created }), blocos[blocos.length - 1]);
+    b.nomes.push(fraseMudanca(i, autor));
+    b.ultimo = i.created;
+  }
+  return (
+    <div className="px-2 text-center text-sm text-tinta-2">
+      {blocos.map((b) => (
+        <p key={b.autor} className="texto-livre">
+          <span className="mr-1.5 text-xs tabular-nums">{hora(b.ultimo)}</span>
+          <b className="font-semibold text-tinta">{b.autor}</b>: {b.nomes.join(", ")}
+          {escondidas > 0 && b === blocos[blocos.length - 1] && (
+            <button type="button" aria-expanded={aberto} onClick={() => setAberto(!aberto)}
+              className="ml-1.5 rounded-full px-2 py-0.5 text-xs font-semibold text-acento ring-1 ring-linha hover:bg-mar-50"
+              title={aberto ? "Esconder os passos" : `Ver os ${itens.length} passos`}>
+              {aberto ? "Menos" : `+${escondidas}`}
+            </button>
+          )}
+        </p>
+      ))}
+      {aberto && (
+        <ol className="mx-auto mt-1.5 w-fit space-y-0.5 border-l-2 border-linha pl-3 text-left text-xs">
+          {itens.map((i) => (
+            <li key={i.id}><span className="tabular-nums">{hora(i.created)}</span> {textoMudanca(i)}</li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+const autorDe = (i: Interacao) => (i.expand?.autor?.name ? primeiroNome(i.expand.autor.name) : "Automático");
+
+/** Frase curta, minúscula depois do nome: "com Técnico", "em atendimento"; pegar para si vira "pegou o chamado". */
+function fraseMudanca(i: Interacao, autor: string) {
+  const t = humanizar(i.texto.replace(/\.$/, "")).replace(/ \(automática\)$/, "");
+  if (t === `Com ${autor}`) return "pegou o chamado";
+  return t.charAt(0).toLowerCase() + t.slice(1);
+}
+
+/** Do grupo, fica a ÚLTIMA de cada tipo (situação, prioridade, responsável); o resto aparece no "+N". */
+function resultadoFinal(itens: Interacao[]) {
+  const ultimo = new Map<string, Interacao>();
+  for (const i of itens) ultimo.set(i.tipo === "sistema" ? i.id : i.tipo, i);
+  const ficam = new Set(ultimo.values());
+  return itens.filter((i) => ficam.has(i));
+}
+
 /** Mudança em texto curto: quem fez entra só quando não está no próprio texto. */
 function textoMudanca(i: Interacao) {
   const quem = i.expand?.autor?.name;
@@ -446,15 +506,6 @@ function humanizar(t: string) {
   if (m) return `Com ${primeiroNome(m[1])}`;
   if (t.startsWith("Devolvido para a fila")) return "Voltou para a fila";
   return t;
-}
-
-/**
- * Num grupo de mudanças, várias trocas de situação seguidas viram UMA (vale a última); o resto fica como está.
- * Assim "Aberto → Em andamento · Em andamento → Em espera" vira só "Em espera: …".
- */
-function enxugar(itens: Interacao[]) {
-  const ultimaSituacao = [...itens].reverse().find((i) => i.tipo === "status");
-  return itens.filter((i) => i.tipo !== "status" || i === ultimaSituacao);
 }
 
 type Grupo = { tipo: "mensagem" | "mudancas"; itens: Interacao[]; novoDia: boolean };
