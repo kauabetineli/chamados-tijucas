@@ -8,7 +8,7 @@
   TEMA CLARO E ESCURO: toda cor da interface sai destes tokens. Os semânticos mudam sozinhos
   no modo escuro (bloco .dark abaixo), então um componente novo já nasce com os dois temas
   desde que use só eles. Regras (conferidas por scripts/verificar-tema.mjs no build):
-  - fundo da página: bg-fundo · cartões, painéis, campos: bg-superficie
+  - fundo da página: bg-fundo · cartões, painéis: bg-superficie · campos (.campo): bg-elevado
   - texto: text-tinta (principal), text-tinta-2 (secundário) · bordas: border-linha / ring-linha
   - links, ícones e contornos de destaque: text-acento / ring-acento / border-acento
   - sucesso: text-ok · erro e atraso: text-alerta
@@ -50,7 +50,11 @@
   --color-linha: #dde3e8;     /* divisórias */
   --color-fundo: #f4f6f8;     /* fundo da página */
 
-  --color-superficie: #ffffff; /* cartões, painéis, campos */
+  --color-superficie: #ffffff; /* cartões, painéis */
+  --color-elevado: #f1f4f7;   /* preenchimento de campo e opção (um tom acima do cartão) */
+  /* cantos mais redondos em tudo (cartões 2xl, campos e botões xl) */
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.25rem;
   --color-acento: #00658c;     /* links, ícones e contornos de destaque */
   --color-ok: #006b34;         /* texto de sucesso */
   --color-alerta: #b4201f;     /* texto de erro e atraso */
@@ -88,11 +92,13 @@
   /* escuro = PRETO neutro (o mesmo do app nativo): as cores de Tijucas ficam só nos destaques.
      Fundo preto puro (economiza bateria em tela AMOLED); cartões um pouco mais claros para separar bem no monitor. */
   color-scheme: dark;
-  --color-fundo: #000000;
-  --color-superficie: #15181b;
+  /* grafite (não preto puro): os cartões se separam do fundo pelo tom, quase sem borda */
+  --color-fundo: #101113;
+  --color-superficie: #1b1c1f;
+  --color-elevado: #25272b;
   --color-tinta: #eef1f4;
-  --color-tinta-2: #9aa4ad;
-  --color-linha: #2a2f35;
+  --color-tinta-2: #9a9fa7;
+  --color-linha: #2a2c31;
   --color-acento: #5ec4ee;
   /* botões: o mesmo azul-petróleo, um pouco mais vivo. O de antes (#00658c) sumia no cartão escuro (2,8:1);
      este fica em 3,6:1 com o cartão e 5,1:1 com a letra branca */
@@ -200,17 +206,17 @@ svg.lucide.size-8 { width: calc(32rem / 17); height: calc(32rem / 17); }
   .btn-perigo { @apply btn border-2 border-alerta bg-superficie text-alerta hover:bg-brasa-50; }
 
   .campo {
-    @apply block w-full rounded-xl border-2 border-linha bg-superficie px-4 py-3 text-base text-tinta placeholder:text-tinta-2/70 focus:border-acento focus:outline-none;
+    @apply block w-full rounded-xl border border-linha bg-elevado px-4 py-3 text-base text-tinta placeholder:text-tinta-2/70 focus:border-acento focus:bg-superficie focus:ring-2 focus:ring-acento/25 focus:outline-none;
   }
   .rotulo { @apply mb-2 block font-semibold; }
   .ajuda { @apply mt-1 text-sm text-tinta-2; }
 
   /* opção grande e tocável (categorias, impacto, origem) */
   .opcao {
-    @apply flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border-2 border-linha bg-superficie px-4 py-3 text-left font-semibold hover:border-acento active:scale-[0.98];
+    @apply flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border-2 border-transparent bg-superficie px-4 py-3 text-left font-semibold ring-1 ring-linha hover:ring-acento active:scale-[0.98];
   }
   .opcao:has(input:checked) {
-    @apply border-acento bg-mar-50;
+    @apply border-acento bg-mar-50 ring-0;
   }
   .opcao:has(input:focus-visible) {
     outline: 3px solid var(--color-mar);
@@ -274,7 +280,7 @@ svg.lucide.size-8 { width: calc(32rem / 17); height: calc(32rem / 17); }
   /* impressão sempre no tema claro */
   :root.dark {
     color-scheme: light;
-    --color-fundo: #ffffff; --color-superficie: #ffffff; --color-tinta: #16212b; --color-tinta-2: #55636f;
+    --color-fundo: #ffffff; --color-superficie: #ffffff; --color-elevado: #ffffff; --color-tinta: #16212b; --color-tinta-2: #55636f;
     --color-linha: #dde3e8; --color-acento: #00658c; --color-ok: #006b34; --color-alerta: #b4201f;
     --color-mar-700: #00658c; --color-campo-700: #006b34;
     --color-mar-50: #e5f4fa; --color-campo-50: #e3f5ea; --color-brasa-50: #fdeceb; --color-sol-50: #fffbd6;
