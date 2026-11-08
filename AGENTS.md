@@ -137,7 +137,7 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
   O PocketBase ESCONDE o e-mail de outros usuários; o TI usa `GET /api/ti/usuarios`. O servidor vê as contas de técnicos
   (nome do responsável e de quem respondeu), sem matrícula, ramal e marcas internas (hook `onRecordEnrich` em usuarios.pb.js).
 - `setores`: nome, predio, ramal (do setor), ativo (desativar em vez de apagar). `categorias`: nome, icone (lucide, lista em
-  `components/Icone.tsx`), ordem, ativa, sugestoes, dicas, protegida ("Outro"). Tudo editável pelo admin do TI.
+  `components/Icone.tsx`; aparece em quadrado colorido pelo `IconeApp.tsx`, com desenho próprio nas 8 iniciais), ordem, ativa, sugestoes, dicas, protegida ("Outro"). Tudo editável pelo admin do TI.
 - `config_ti` (registro "geral"): ordem da fila, prazos por prioridade, prioridade escolhida pelo servidor, horário, destino
   das ausências. `automacao_versoes`: fluxos da automação (a versão mais nova vale). **Nada disso fica chumbado no código:**
   leia com `lib/configTI.ts` (front) ou `lib/automacao.js` (hooks).

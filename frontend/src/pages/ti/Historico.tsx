@@ -124,7 +124,7 @@ export function Historico() {
                     onClick={() => escolher(c.id)}
                     className="flex h-full min-h-24 w-full flex-col items-start justify-between gap-2 rounded-xl bg-superficie p-3 text-left ring-1 ring-linha hover:ring-acento"
                   >
-                    <IconeCategoria nome={c.icone} className="size-6 text-acento" />
+                    <IconeCategoria nome={c.icone} className="size-9" />
                     <span>
                       <span className="block font-semibold leading-tight">{c.nome}</span>
                       {/* número que ainda não chegou não aparece como 0 */}
@@ -161,7 +161,7 @@ export function Historico() {
                     ativa ? "bg-mar-700 text-white ring-transparent" : "bg-superficie text-tinta-2 ring-linha hover:ring-acento"
                   }`}
                 >
-                  <IconeCategoria nome={c.icone} className="size-4" />
+                  <IconeCategoria nome={c.icone} className="size-5" />
                   {c.nome}
                 </button>
               );
@@ -219,7 +219,7 @@ function CartaoHistorico({ c, selecionado }: { c: Chamado; selecionado: boolean 
         </div>
         <p className="texto-livre mt-1 line-clamp-2 font-semibold">{c.descricao}</p>
         <div className="mt-1 flex min-w-0 items-center gap-2 text-sm whitespace-nowrap text-tinta-2">
-          <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 shrink-0 text-acento" />
+          <IconeCategoria nome={c.expand?.categoria?.icone} className="size-5" />
           <span className="min-w-0 truncate">
             {nomeSolicitante(c)}{c.expand?.setor ? `, ${c.expand.setor.nome}` : ""}
             {c.expand?.responsavel ? `, por ${c.expand.responsavel.name}` : ""}

@@ -43,7 +43,7 @@ export function EscolhaCategoria({
               onChange={() => onChange(c.id)}
               onClick={() => aoTocar?.(c.id)}
             />
-            <IconeCategoria nome={c.icone} className={`${horizontal ? "size-6" : "size-7"} shrink-0 text-acento`} />
+            <IconeCategoria nome={c.icone} className={horizontal ? "size-8" : "size-10"} />
             <span className="leading-tight">{c.nome}</span>
           </label>
         ))}

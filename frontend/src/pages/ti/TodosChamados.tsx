@@ -245,7 +245,7 @@ export function TodosChamados() {
             {/* o problema primeiro (como na Fila); a categoria embaixo, menor */}
             <span className="texto-livre line-clamp-2 font-semibold">{c.descricao}</span>
             <span className={`mt-0.5 items-center gap-1.5 text-tinta-2 ${col.densa ? "hidden" : "flex"}`}>
-              <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4 shrink-0 text-acento" />
+              <IconeCategoria nome={c.expand?.categoria?.icone} className="size-5" />
               {c.expand?.categoria?.nome}
             </span>
           </>
@@ -421,9 +421,7 @@ export function TodosChamados() {
             {itens.map((c) => (
               <li key={c.id}>
                 <LinkChamado id={c.id} para={`/ti/chamado/${c.id}`} className={`flex items-center gap-3 px-3 py-2.5 ${verId === c.id ? "bg-mar-50" : ""}`}>
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-mar-50 text-acento" title={c.expand?.categoria?.nome}>
-                    <IconeCategoria nome={c.expand?.categoria?.icone} className="size-5" />
-                  </span>
+                  <IconeCategoria nome={c.expand?.categoria?.icone} titulo={c.expand?.categoria?.nome} className="size-10" />
                   <span className="min-w-0 flex-1">
                     <span className="texto-livre line-clamp-2 leading-snug font-semibold"><EtiquetaPrioridade prioridade={c.prioridade} />{resumo(c.descricao, 120)}</span>
                     <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm whitespace-nowrap text-tinta-2">

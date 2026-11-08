@@ -75,7 +75,7 @@ export function Painel({ f }: { f: FormularioChamado }) {
               {categorias.map((c) => (
                 <label key={c.id} className="opcao min-h-12 gap-2.5 py-2 text-[15px]">
                   <input type="radio" name="categoria" className="sr-only" checked={f.categoria === c.id} onChange={() => f.setCategoria(c.id)} />
-                  <IconeCategoria nome={c.icone} className="size-5 shrink-0 text-acento" />
+                  <IconeCategoria nome={c.icone} className="size-7" />
                   <span className="leading-tight">{c.nome}</span>
                 </label>
               ))}

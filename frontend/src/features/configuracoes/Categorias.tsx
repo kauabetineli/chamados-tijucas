@@ -143,7 +143,7 @@ export function Categorias() {
                 <span className="hidden cursor-grab px-1 text-tinta-2 md:block" title="Arraste para mudar a ordem"><GripVertical className="size-4" aria-hidden="true" /></span>
                 <button type="button" onClick={() => setSel(c.id)} aria-current={sel === c.id ? "true" : undefined}
                   className="flex min-h-12 min-w-0 flex-1 items-center gap-2.5 px-2 text-left">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-mar-50 text-acento"><IconeCategoria nome={c.icone} className="size-5" /></span>
+                  <IconeCategoria nome={c.icone} className="size-9" />
                   <span className={`min-w-0 flex-1 truncate font-semibold ${c.ativa ? "" : "text-tinta-2"}`}>{c.nome || <i className="font-normal text-tinta-2">sem nome</i>}</span>
                   {!c.ativa && !c.protegida && <span className="rounded-full bg-fundo px-2 py-0.5 text-xs font-bold text-tinta-2 ring-1 ring-linha">Oculta</span>}
                   {tentou && erros[c.id] && <TriangleAlert className="size-4 shrink-0 text-alerta" aria-label="Com erro" />}
@@ -228,8 +228,8 @@ function EdicaoCategoria({ c, uso, erro, mudar, descartarNova }: {
         <div className="grid grid-cols-[repeat(auto-fill,minmax(3rem,1fr))] gap-1.5">
           {icones.map(([k, v]) => (
             <button key={k} type="button" title={v.rot} aria-label={v.rot} aria-pressed={c.icone === k} onClick={() => mudar((x) => ({ ...x, icone: k }))}
-              className={`grid size-12 place-items-center rounded-xl ${c.icone === k ? "bg-mar-700 text-white" : "text-tinta ring-1 ring-linha hover:ring-acento"}`}>
-              <v.I className="size-6" strokeWidth={1.8} aria-hidden="true" />
+              className={`grid size-12 place-items-center rounded-xl ${c.icone === k ? "ring-3 ring-acento" : "hover:ring-1 hover:ring-linha"}`}>
+              <IconeCategoria nome={k} className="size-9" />
             </button>
           ))}
           {!icones.length && <p className="col-span-full text-sm text-tinta-2">Nenhum ícone com esse nome.</p>}

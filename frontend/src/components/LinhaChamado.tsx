@@ -23,9 +23,7 @@ export function LinhaChamado({ c, para, novidade, historico, selecionado }: {
         para={para}
         className={`-mx-2 flex items-center gap-3 rounded-xl px-2 py-4 hover:bg-superficie ${selecionado ? "bg-mar-50 ring-2 ring-acento" : ""}`}
       >
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-superficie ring-1 ring-linha">
-          <IconeCategoria nome={c.expand?.categoria?.icone} className="size-5 text-acento" />
-        </span>
+        <IconeCategoria nome={c.expand?.categoria?.icone} titulo={c.expand?.categoria?.nome} className="size-11" />
         {/* mesmo desenho da Fila (sistema de sinais): o problema é o título; situação, tempo e protocolo embaixo */}
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">

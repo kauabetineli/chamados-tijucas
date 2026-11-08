@@ -147,7 +147,7 @@ export function DetalheChamado({ id, embutido, gaveta, controles, etiqueta }: {
               <SeloStatus status={c.status} />
               <SeloTeste ficticio={c.ficticio} />
               <span className="inline-flex items-center gap-1.5 font-semibold">
-                <IconeCategoria nome={c.expand?.categoria?.icone} className="size-5 text-acento" />
+                <IconeCategoria nome={c.expand?.categoria?.icone} className="size-6" />
                 {c.expand?.categoria?.nome}
               </span>
               <span className="text-tinta-2">aberto em {dataHora(c.created)}</span>
@@ -337,7 +337,7 @@ function Gaveta({ c, etiqueta, tecnico, soLeitura, controles, aoMudar, paraOServ
             <EtiquetaPrioridade prioridade={c.prioridade} />
             <SeloTeste ficticio={c.ficticio} />
             <span className="inline-flex items-center gap-1.5 text-sm text-tinta-2">
-              <IconeCategoria nome={c.expand?.categoria?.icone} className="size-4" />
+              <IconeCategoria nome={c.expand?.categoria?.icone} className="size-5" />
               {c.expand?.categoria?.nome}
             </span>
           </div>

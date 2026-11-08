@@ -37,9 +37,7 @@ function useEscolhida() {
 /** Tipo do problema: ícone da categoria num quadrado, sempre à esquerda (reconhece antes de ler). */
 function TipoCategoria({ c, grande }: { c: Chamado; grande?: boolean }) {
   return (
-    <span className={`grid shrink-0 place-items-center rounded-xl bg-mar-50 text-acento ${grande ? "size-11" : "size-10"}`} title={c.expand?.categoria?.nome}>
-      <IconeCategoria nome={c.expand?.categoria?.icone} className={grande ? "size-6" : "size-5"} />
-    </span>
+    <IconeCategoria nome={c.expand?.categoria?.icone} titulo={c.expand?.categoria?.nome} className={grande ? "size-11" : "size-10"} />
   );
 }
 

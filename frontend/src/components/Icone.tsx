@@ -4,6 +4,7 @@ import {
   Phone, Plug, Printer, Projector, Router, ScanBarcode, ScanLine, Server, Settings, ShieldAlert, Signal, Smartphone, Speaker,
   Tablet, Tv, Usb, UserRound, Users, Video, Webcam, Wifi, Wrench, Zap, type LucideIcon,
 } from "lucide-react";
+import { IconeApp } from "./IconeApp";
 
 /**
  * Ícones que o administrador do TI pode escolher para as categorias (Configurações do TI > Categorias).
@@ -63,7 +64,8 @@ export const ICONES: Record<string, { I: LucideIcon; rot: string }> = {
   "circle-help": { I: CircleHelp, rot: "Outro" },
 };
 
-export function IconeCategoria({ nome, className }: { nome?: string; className?: string }) {
+/** Ícone da categoria em quadrado colorido (IconeApp). O tamanho vem do className; o quadrado já é o fundo. */
+export function IconeCategoria({ nome, className, titulo }: { nome?: string; className?: string; titulo?: string }) {
   const I = (nome && ICONES[nome]?.I) || CircleHelp;
-  return <I className={className} aria-hidden="true" strokeWidth={1.8} />;
+  return <IconeApp nome={nome && ICONES[nome] ? nome : "circle-help"} I={I} className={className} titulo={titulo} />;
 }

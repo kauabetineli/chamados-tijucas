@@ -67,6 +67,19 @@
 }
 
 /* dark: utilitários "dark:" seguem a classe .dark no <html> (definida em index.html / lib/tema.ts) */
+/* Ícones das categorias (components/IconeApp.tsx): quadrado com degradê, desenho branco.
+   a = topo, b = base, c = detalhe escuro dentro do desenho. Iguais nos dois temas (o quadrado é a cor). */
+:root {
+  --app-azul-a: #2bb3e6; --app-azul-b: #0079a8; --app-azul-c: #0079a8;
+  --app-teal-a: #2fc6b8; --app-teal-b: #0b8a80; --app-teal-c: #0b8a80;
+  --app-marinho-a: #2f7fa8; --app-marinho-b: #114766; --app-marinho-c: #114766;
+  --app-verde-a: #2cc46f; --app-verde-b: #00873f; --app-verde-c: #00873f;
+  --app-amarelo-a: #ffd84a; --app-amarelo-b: #e9a900; --app-amarelo-c: #8a6100;
+  --app-laranja-a: #ffb03b; --app-laranja-b: #e07a00; --app-laranja-c: #b45f00;
+  --app-vermelho-a: #ff5a52; --app-vermelho-b: #c8231f; --app-vermelho-c: #b4201f;
+  --app-cinza-a: #8d9aa6; --app-cinza-b: #55636f; --app-cinza-c: #3d4852;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Modo escuro: só os tokens mudam; os componentes continuam iguais.
