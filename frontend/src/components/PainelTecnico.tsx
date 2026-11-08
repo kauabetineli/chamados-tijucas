@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronDown, Hourglass, MoreHorizontal, Play, RotateCcw, Undo2, UserRound } from "lucide-react";
+import { CheckCircle2, ChevronDown, Hourglass, MoreHorizontal, ArrowRight, RotateCcw, Undo2, UserRound } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
@@ -136,12 +136,12 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
           {c.status === "aberto" && (
             <button className={`btn-primario ${b}`} disabled={salvando}
               onClick={comecar}>
-              <Play className="size-5" aria-hidden="true" /> {deColega ? "Assumir e começar" : "Começar"}
+              {deColega ? "Assumir e começar" : "Começar"} <ArrowRight className="size-5" aria-hidden="true" />
             </button>
           )}
           {c.status === "aguardando" && (
             <button className={`btn-primario ${b}`} disabled={salvando} onClick={() => salvar({ status: "em_andamento" }, `Atendimento do ${c.protocolo} retomado.`)}>
-              <Play className="size-5" aria-hidden="true" /> Retomar
+              Retomar <ArrowRight className="size-5" aria-hidden="true" />
             </button>
           )}
           {emAtendimento && !resolvendo && (
@@ -231,7 +231,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
             disabled={salvando}
             onClick={comecar}
           >
-            <Play className="size-5" aria-hidden="true" /> {deColega ? "Assumir e começar" : "Começar atendimento"}
+            {deColega ? "Assumir e começar" : "Começar atendimento"} <ArrowRight className="size-5" aria-hidden="true" />
           </button>
           {deColega && <p className="text-center text-sm text-tinta-2">Hoje está com {nomeDe(c.responsavel)}.</p>}
         </div>
@@ -249,7 +249,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
           </p>
           <EscolhaEspera nome="motivo-painel" valor={c.aguardando_motivo} desabilitado={salvando} aoEscolher={(m) => salvar({ aguardando_motivo: m }, `Agora aguardando ${ROTULO_AGUARDANDO[m]}.`)} />
           <button className="btn-primario w-full" disabled={salvando} onClick={() => salvar({ status: "em_andamento" }, `Atendimento do ${c.protocolo} retomado.`)}>
-            <Play className="size-5" aria-hidden="true" /> Retomar atendimento
+            Retomar atendimento <ArrowRight className="size-5" aria-hidden="true" />
           </button>
         </div>
       )}

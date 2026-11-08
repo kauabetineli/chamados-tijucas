@@ -1,6 +1,6 @@
 import { CabecalhoPagina } from "../../components/CabecalhoPagina";
 import { definirPadraoDoPainel } from "../../lib/moldes";
-import { ChevronRight, GripVertical, Hourglass, MessageCircle, Play, Table2, Users } from "lucide-react";
+import { ArrowRight, ChevronRight, GripVertical, Hourglass, MessageCircle, Table2, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent as ME, type PointerEvent as PE, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Avatar } from "../../components/Avatar";
@@ -246,7 +246,7 @@ function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir
       {proximo && !soLeitura && (
         <button type="button" onClick={proximo.aoComecar} disabled={proximo.ocupado}
           className="btn-primario order-last min-h-11 basis-full md:order-none md:basis-auto larga:hidden">
-          <Play className="size-5" aria-hidden="true" /> {proximo.ocupado ? "Pegando..." : "Começar"}
+          {proximo.ocupado ? "Pegando..." : "Começar"} <ArrowRight className="size-5" aria-hidden="true" />
         </button>
       )}
       <span className="shrink-0 self-start pt-1 text-right text-xs text-tinta-2 md:w-20 md:self-auto md:pt-0 md:text-sm"><Espera c={c} /></span>

@@ -209,8 +209,9 @@ svg.lucide.size-8 { width: calc(32rem / 17); height: calc(32rem / 17); }
 }
 
 @layer components {
-  .btn-primario { @apply btn bg-mar-700 text-white hover:bg-noite; }
-  .btn-sucesso { @apply btn bg-campo-700 text-white hover:bg-noite; }
+  /* hover clareia (antes ia para bg-noite, que no escuro é quase preto e o botão sumia) */
+  .btn-primario { @apply btn bg-mar-700 text-white hover:brightness-115 active:brightness-95; }
+  .btn-sucesso { @apply btn bg-campo-700 text-white hover:brightness-115 active:brightness-95; }
   .btn-secundario { @apply btn border-2 border-linha bg-superficie text-tinta hover:border-acento; }
   .btn-perigo { @apply btn border-2 border-alerta bg-superficie text-alerta hover:bg-brasa-50; }
 
