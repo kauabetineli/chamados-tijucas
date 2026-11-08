@@ -18,6 +18,8 @@ export interface ConfigTI {
   destino_ausencia: "fica" | "fila";
   /** resolvido sem resposta do servidor: considerado resolvido depois de N dias úteis (0 = nunca) */
   dias_confirmar: number;
+  /** até onde os fluxos de tempo sobem a prioridade sozinhos */
+  teto_tempo: "alta" | "urgente";
 }
 
 export const CONFIG_PADRAO: ConfigTI = {
@@ -30,6 +32,7 @@ export const CONFIG_PADRAO: ConfigTI = {
   horario: { ativo: false, dias: [1, 2, 3, 4, 5], inicio: "08:00", fim: "17:00" },
   destino_ausencia: "fica",
   dias_confirmar: 3,
+  teto_tempo: "alta",
 };
 
 /** Dias úteis que faltam para um chamado resolvido ser considerado resolvido sozinho (null = desligado). */

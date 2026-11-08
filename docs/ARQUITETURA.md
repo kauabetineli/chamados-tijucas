@@ -337,6 +337,9 @@ Ideias tiradas dos sistemas de chamados de mercado (fechamento automático, inci
   `dias_confirmar` dias úteis (padrão 3; 0 = nunca; Configurações > Fila e atendimento), o cron dos fluxos de tempo
   (`lib/ciclo.js`, `confirmarSozinho`) marca `confirmado` e `confirmado_auto` e deixa uma mensagem automática.
   A tela de quem pediu mostra quantos dias faltam. Na satisfação do Painel, esses não contam como "confirmados por quem pediu".
+- **Chamado parado não vira urgente sozinho.** Os fluxos de tempo (sem início, vencido) sobem a prioridade no
+  máximo até `teto_tempo` (padrão Alta; Configurações > Fila e atendimento). Urgente fica para o impacto informado
+  e para o TI: senão, com o tempo, quase tudo ficava vermelho e o sinal perdia o sentido.
 - **Aviso que resolve os ligados.** No chamado, o técnico liga o pedido a um aviso de problema em vigor
   ("É este problema"). Ao encerrar o aviso ("Resolvido, encerrar"), pode resolver de uma vez todos os chamados ligados
   e publicar um aviso "resolvido" (verde, some em 4 h). Rota `POST /api/avisos/{id}/encerrar`.

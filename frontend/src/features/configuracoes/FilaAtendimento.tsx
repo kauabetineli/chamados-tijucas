@@ -164,6 +164,18 @@ export function FilaAtendimento() {
             )}
           </section>
 
+          <Secao titulo="Chamado parado sobe até"
+            ajuda="Os fluxos de tempo (por exemplo, ninguém começou em 30 minutos) podem subir a prioridade sozinhos. Com Alta, Urgente fica só para o que quem pediu marcou e para o TI; senão, com o tempo, tudo vira urgente.">
+            <div role="radiogroup" aria-label="Chamado parado sobe até" className="flex gap-2">
+              {(["alta", "urgente"] as const).map((t) => (
+                <button key={t} type="button" role="radio" aria-checked={cfg.teto_tempo === t} onClick={() => set({ teto_tempo: t })}
+                  className={`min-h-11 rounded-xl px-4 font-bold ${cfg.teto_tempo === t ? "bg-mar-50 ring-2 ring-acento" : "text-tinta-2 ring-1 ring-linha"}`}>
+                  {ROT_PRIO[t]}{t === "alta" ? " (recomendado)" : ""}
+                </button>
+              ))}
+            </div>
+          </Secao>
+
           <Secao titulo="Resolvido sem resposta"
             ajuda="Se quem pediu não responder “Deu certo?”, o chamado é considerado resolvido depois desse prazo. A pessoa vê quantos dias faltam. Não conta como satisfação no Painel, e ela ainda pode reabrir.">
             <label className="flex flex-wrap items-center gap-3 font-semibold">

@@ -40,6 +40,9 @@ const CONFIG_PADRAO = {
   destino_ausencia: "fica",
   // resolvido sem resposta do servidor: considerado resolvido depois de N dias úteis (0 = nunca)
   dias_confirmar: 3,
+  // até onde os fluxos de TEMPO (parado, vencido) podem subir a prioridade sozinhos. Urgente fica para quem
+  // pediu (impacto) e para o TI: senão, com o tempo, tudo vira urgente e o vermelho perde o sentido.
+  teto_tempo: "alta",
 };
 const AUTOMACAO_VAZIA = { fluxos: [], senao: { tipo: "livre", pessoa: "" } };
 
@@ -86,6 +89,7 @@ function normalizarConfig(bruto) {
     if (/^\d\d:\d\d$/.test(d.horario.fim || "")) c.horario.fim = d.horario.fim;
   }
   if (d.destino_ausencia === "fila") c.destino_ausencia = "fila";
+  if (d.teto_tempo === "alta" || d.teto_tempo === "urgente") c.teto_tempo = d.teto_tempo;
   if (d.dias_confirmar !== undefined) { const n = parseInt(d.dias_confirmar, 10); if (n >= 0 && n <= 30) c.dias_confirmar = n; }
   return c;
 }
@@ -598,6 +602,11 @@ function rodarRegrasDeTempo(app) {
       if (!agiu) continue;
       feitas.push(f.id);
       c.set("regras_tempo", feitas);
+      // teto dos fluxos de tempo: sobe no máximo até cfg.teto_tempo (nunca baixa o que já estava)
+      const antes = c.getString("prioridade") || "normal";
+      if (NIVEL[r.prioridade] > NIVEL[cfg.teto_tempo] && NIVEL[r.prioridade] > NIVEL[antes]) {
+        r.prioridade = NIVEL[antes] >= NIVEL[cfg.teto_tempo] ? antes : cfg.teto_tempo;
+      }
       aplicarNoChamado(app, c, r, cfg, ctx);
       feitos++;
     }
