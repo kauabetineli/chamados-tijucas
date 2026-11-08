@@ -112,6 +112,9 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 12. **Confirmação de ação = aviso rápido**: `avisar("2026-00012 agora está com Hugo.")` (`frontend/src/lib/avisos.ts`).
     Some sozinho no canto da tela, sem botão para fechar obrigatório. Não crie faixas de aviso fixas na página.
     Erro de formulário continua perto do campo (`role="alert"`); erro de ação rápida: `avisar(msg, { tipo: "erro" })`.
+    Mudança simples e reversível (prioridade, começar, pôr em espera): aviso com **Desfazer** (`acao`). O que tira o chamado
+    de alguém ou passa para outra pessoa (passar, devolver, deixar livre, reabrir): **confirmação** numa faixa dentro do painel
+    (ver `PainelTecnico.tsx`), sem janela por cima.
 13. **Página nova começa com `CabecalhoPagina`** (abas sublinhadas com `AbasPagina`) e **escolhe um dos 3 moldes**
     em `lib/moldes.ts`: *lista* (lista + detalhe fixo ao lado em tela larga), *painel* (largura toda, grade que ganha
     colunas) ou *formulário* (largura de leitura, centralizado). A largura vem do Layout: não ponha `max-w`/`mx-auto`

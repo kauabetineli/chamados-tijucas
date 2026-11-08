@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
 import { avisar } from "../lib/avisos";
 import { paraData, ROTULO_AGUARDANDO, ROTULO_PRIORIDADE, tempoRelativo } from "../lib/formato";
-import { mensagemErro, pb, type Chamado, type Prioridade, type Usuario } from "../lib/pb";
+import { mensagemErro, pb, type Chamado, type MotivoAguardando, type Prioridade, type Usuario } from "../lib/pb";
 import { EscolhaEspera } from "./EscolhaEspera";
 import { RegistroSolucao } from "./RegistroSolucao";
 import { COR_PRIORIDADE } from "./Selos";
@@ -39,15 +39,30 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
     pb.collection("users").getFullList<Usuario>({ filter: 'papel = "tecnico"', sort: "name" }).then(setTecnicos).catch(() => {});
   }, []);
 
-  // toda ação confirma com um aviso rápido (regra 12): antes, prioridade e responsável mudavam sem nenhum retorno
-  async function salvar(dados: Partial<Chamado>, mensagem: string) {
+  // Toda ação confirma com um aviso rápido (regra 12). Mudança simples (prioridade, começar, pôr em espera) vem com
+  // "Desfazer" no aviso; o que mexe com outra pessoa ou tira o chamado de alguém (passar, devolver, reabrir) pede
+  // confirmação antes, numa faixa dentro do próprio painel (sem janela por cima).
+  const [pedido, setPedido] = useState<{ pergunta: string; detalhe?: string; botao: string; fazer: () => void } | null>(null);
+  const confirmar = (pergunta: string, botao: string, fazer: () => void, detalhe?: string) => setPedido({ pergunta, botao, fazer, detalhe });
+
+  async function salvar(dados: Partial<Chamado>, mensagem: string, desfazer?: Partial<Chamado>) {
     setErro("");
     setSalvando(true);
+    setPedido(null);
     try {
       await pb.collection("chamados").update(c.id, dados);
       setResolvendo(false);
       setEsperar(false);
-      avisar(mensagem);
+      avisar(mensagem, desfazer ? {
+        acao: {
+          rotulo: "Desfazer",
+          fazer: () => {
+            pb.collection("chamados").update(c.id, desfazer)
+              .then(() => { avisar("Desfeito."); aoMudar(); })
+              .catch((err) => avisar(mensagemErro(err), { tipo: "erro" }));
+          },
+        },
+      } : {});
       aoMudar();
     } catch (err) {
       setErro(mensagemErro(err));
@@ -55,6 +70,42 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
       setSalvando(false);
     }
   }
+
+  const antes = { status: c.status, responsavel: c.responsavel, prioridade: c.prioridade, aguardando_motivo: c.aguardando_motivo ?? "" };
+  const mudarPrioridade = (p: Prioridade) =>
+    salvar({ prioridade: p }, `Prioridade do ${c.protocolo}: ${ROTULO_PRIORIDADE[p]}. O lugar na fila foi atualizado.`, { prioridade: antes.prioridade });
+  function mudarResponsavel(novo: string) {
+    if (novo === c.responsavel) return;
+    if (novo === usuario?.id) {
+      salvar({ responsavel: novo }, `${c.protocolo} agora está com você.`, { responsavel: antes.responsavel });
+    } else if (!novo) {
+      confirmar(`Deixar ${c.protocolo} sem responsável?`, "Deixar livre", () => salvar({ responsavel: "" }, `${c.protocolo} ficou sem responsável.`, { responsavel: antes.responsavel }),
+        "Ele continua na fila e qualquer um pode pegar.");
+    } else {
+      const nome = nomeDe(novo);
+      confirmar(`Passar ${c.protocolo} para ${nome}?`, `Passar para ${nome}`, () => salvar({ responsavel: novo }, `${c.protocolo} agora está com ${nome}.`, { responsavel: antes.responsavel }),
+        `O chamado vai para a lista de ${nome}${c.responsavel === usuario?.id ? " e sai da sua" : ""}.`);
+    }
+  }
+  const devolver = () => confirmar(`Devolver ${c.protocolo} para a fila?`, "Devolver", () => salvar({ status: "aberto", responsavel: "" }, `${c.protocolo} voltou para a fila, sem responsável.`, { status: antes.status, responsavel: antes.responsavel }),
+    "Ele fica sem responsável e volta para o lugar dele na fila.");
+  const reabrir = () => confirmar(`Reabrir ${c.protocolo}?`, "Reabrir", () => salvar({ status: "aberto" }, `${c.protocolo} reaberto.`),
+    "Ele volta para a fila e quem pediu vê que foi reaberto.");
+  const comecar = () => salvar({ status: "em_andamento", responsavel: usuario!.id }, deColega ? `${c.protocolo} agora está com você, em atendimento.` : `Atendimento do ${c.protocolo} começado.`,
+    { status: antes.status, responsavel: antes.responsavel });
+  const porEmEspera = (m: MotivoAguardando) => salvar({ status: "aguardando", aguardando_motivo: m }, `${c.protocolo} em espera: aguardando ${ROTULO_AGUARDANDO[m]}.`,
+    { status: "em_andamento", aguardando_motivo: "" });
+
+  const perguntaEl = pedido && (
+    <div role="alertdialog" aria-labelledby="pergunta-atendimento" className="space-y-2 rounded-xl bg-sol-50 p-3 ring-1 ring-ambar">
+      <p id="pergunta-atendimento" className="font-bold">{pedido.pergunta}</p>
+      {pedido.detalhe && <p className="text-sm text-tinta-2">{pedido.detalhe}</p>}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" autoFocus className="btn-primario min-h-10 px-4 text-sm" disabled={salvando} onClick={pedido.fazer}>{pedido.botao}</button>
+        <button type="button" className="btn-secundario min-h-10 px-4 text-sm" onClick={() => setPedido(null)}>Cancelar</button>
+      </div>
+    </div>
+  );
 
   const formResolverEl = resolvendo && (
     <form
@@ -84,7 +135,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
         <div className="flex flex-wrap items-center gap-2">
           {c.status === "aberto" && (
             <button className={`btn-primario ${b}`} disabled={salvando}
-              onClick={() => salvar({ status: "em_andamento", responsavel: usuario!.id }, deColega ? `${c.protocolo} agora está com você, em atendimento.` : `Atendimento do ${c.protocolo} começado.`)}>
+              onClick={comecar}>
               <Play className="size-5" aria-hidden="true" /> {deColega ? "Assumir e começar" : "Começar"}
             </button>
           )}
@@ -104,7 +155,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
             </button>
           )}
           {c.status === "resolvido" && (
-            <button className={`btn-secundario ${b}`} disabled={salvando} onClick={() => salvar({ status: "aberto" }, `${c.protocolo} reaberto.`)}>
+            <button className={`btn-secundario ${b}`} disabled={salvando} onClick={reabrir}>
               <RotateCcw className="size-5" aria-hidden="true" /> Reabrir
             </button>
           )}
@@ -117,7 +168,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
               <select
                 className="min-h-10 cursor-pointer appearance-none rounded-full bg-superficie py-1.5 pr-7 pl-7.5 text-sm font-semibold ring-1 ring-linha hover:ring-acento focus:ring-2 focus:ring-acento focus:outline-none"
                 value={c.responsavel}
-                onChange={(e) => salvar({ responsavel: e.target.value }, e.target.value ? `${c.protocolo} agora está com ${nomeDe(e.target.value)}.` : `${c.protocolo} ficou sem responsável.`)}
+                onChange={(e) => mudarResponsavel(e.target.value)}
               >
                 <option value="">Livre</option>
                 {tecnicos.map((t) => <option key={t.id} value={t.id}>{t.id === usuario?.id ? "Você" : t.name.split(" ")[0]}</option>)}
@@ -130,7 +181,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
               <select
                 className="min-h-10 cursor-pointer appearance-none rounded-full bg-superficie py-1.5 pr-7 pl-7.5 text-sm font-semibold ring-1 ring-linha hover:ring-acento focus:ring-2 focus:ring-acento focus:outline-none"
                 value={c.prioridade}
-                onChange={(e) => { const p = e.target.value as Prioridade; salvar({ prioridade: p }, `Prioridade do ${c.protocolo}: ${ROTULO_PRIORIDADE[p]}. O lugar na fila foi atualizado.`); }}
+                onChange={(e) => mudarPrioridade(e.target.value as Prioridade)}
               >
                 {(Object.keys(ROTULO_PRIORIDADE) as Prioridade[]).reverse().map((p) => <option key={p} value={p}>{ROTULO_PRIORIDADE[p]}</option>)}
               </select>
@@ -139,7 +190,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
             {emAtendimento && !resolvendo && (
               <span className="ml-auto"><MenuMais>
                 <button type="button" role="menuitem" className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold hover:bg-fundo" disabled={salvando}
-                  onClick={() => salvar({ status: "aberto", responsavel: "" }, `${c.protocolo} voltou para a fila, sem responsável.`)}>
+                  onClick={devolver}>
                   <Undo2 className="size-4" aria-hidden="true" /> Devolver para a fila
                 </button>
               </MenuMais></span>
@@ -159,9 +210,10 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
         {esperar && c.status === "em_andamento" && (
           <div className="space-y-2 rounded-xl p-3 ring-1 ring-linha">
             <p className="text-sm font-semibold">Está aguardando o quê?</p>
-            <EscolhaEspera nome="motivo-novo-gaveta" valor="" desabilitado={salvando} aoEscolher={(m) => salvar({ status: "aguardando", aguardando_motivo: m }, `${c.protocolo} em espera: aguardando ${ROTULO_AGUARDANDO[m]}.`)} />
+            <EscolhaEspera nome="motivo-novo-gaveta" valor="" desabilitado={salvando} aoEscolher={porEmEspera} />
           </div>
         )}
+        {perguntaEl}
         {formResolverEl}
         {erro && <p role="alert" className="font-semibold text-alerta">{erro}</p>}
       </div>
@@ -178,7 +230,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
           <button
             className="btn-primario w-full"
             disabled={salvando}
-            onClick={() => salvar({ status: "em_andamento", responsavel: usuario!.id }, deColega ? `${c.protocolo} agora está com você, em atendimento.` : `Atendimento do ${c.protocolo} começado.`)}
+            onClick={comecar}
           >
             <Play className="size-5" aria-hidden="true" /> {deColega ? "Assumir e começar" : "Começar atendimento"}
           </button>
@@ -211,7 +263,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
           {c.status === "em_andamento" && (esperar ? (
             <div className="space-y-2 rounded-xl p-3 ring-1 ring-linha">
               <p className="text-sm font-semibold">Está aguardando o quê?</p>
-              <EscolhaEspera nome="motivo-novo" valor="" desabilitado={salvando} aoEscolher={(m) => salvar({ status: "aguardando", aguardando_motivo: m }, `${c.protocolo} em espera: aguardando ${ROTULO_AGUARDANDO[m]}.`)} />
+              <EscolhaEspera nome="motivo-novo" valor="" desabilitado={salvando} aoEscolher={porEmEspera} />
               <button type="button" className="btn w-full min-h-10 text-sm text-tinta-2" onClick={() => setEsperar(false)}>Cancelar</button>
             </div>
           ) : (
@@ -219,18 +271,19 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
               <Hourglass className="size-5" aria-hidden="true" /> Pôr em espera
             </button>
           ))}
-          <button className="btn-secundario w-full" disabled={salvando} onClick={() => salvar({ status: "aberto", responsavel: "" }, `${c.protocolo} voltou para a fila, sem responsável.`)}>
+          <button className="btn-secundario w-full" disabled={salvando} onClick={devolver}>
             <Undo2 className="size-5" aria-hidden="true" /> Devolver para a fila
           </button>
         </div>
       )}
 
       {c.status === "resolvido" && (
-        <button className="btn-secundario w-full" disabled={salvando} onClick={() => salvar({ status: "aberto" }, `${c.protocolo} reaberto.`)}>
+        <button className="btn-secundario w-full" disabled={salvando} onClick={reabrir}>
           <RotateCcw className="size-5" aria-hidden="true" /> Reabrir
         </button>
       )}
 
+      {perguntaEl}
       {formResolverEl}
 
       <fieldset>
@@ -238,7 +291,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
         <div className="grid grid-cols-2 gap-2">
           {(Object.keys(ROTULO_PRIORIDADE) as Prioridade[]).reverse().map((p) => (
             <label key={p} className="opcao min-h-12 py-2">
-              <input type="radio" name="prioridade" checked={c.prioridade === p} onChange={() => salvar({ prioridade: p }, `Prioridade do ${c.protocolo}: ${ROTULO_PRIORIDADE[p]}. O lugar na fila foi atualizado.`)} className="sr-only" />
+              <input type="radio" name="prioridade" checked={c.prioridade === p} onChange={() => mudarPrioridade(p)} className="sr-only" />
               <span className={`size-3 rounded-full ${COR_PRIORIDADE[p]}`} aria-hidden="true" />
               {ROTULO_PRIORIDADE[p]}
             </label>
@@ -249,7 +302,7 @@ export function PainelTecnico({ chamado: c, aoMudar, linha }: { chamado: Chamado
 
       <div>
         <label htmlFor="resp" className="rotulo">Responsável</label>
-        <select id="resp" className="campo" value={c.responsavel} onChange={(e) => salvar({ responsavel: e.target.value }, e.target.value ? `${c.protocolo} agora está com ${nomeDe(e.target.value)}.` : `${c.protocolo} ficou sem responsável.`)}>
+        <select id="resp" className="campo" value={c.responsavel} onChange={(e) => mudarResponsavel(e.target.value)}>
           <option value="">Ninguém ainda</option>
           {tecnicos.map((t) => (
             <option key={t.id} value={t.id}>{t.id === usuario?.id ? `${t.name} (você)` : t.name}</option>
