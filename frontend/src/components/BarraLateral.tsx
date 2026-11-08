@@ -118,6 +118,10 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
           { para: "/ti/usuarios", rotulo: "Pessoas e setores", Icone: Users, ativo: caminho === "/ti/usuarios" },
           { para: "/ti/configuracoes", rotulo: "Configurações", Icone: SlidersHorizontal, ativo: caminho === "/ti/configuracoes", so: "admin" as const },
         ] }] : []),
+        // equipe do projeto (extensão): no mesmo menu, para rolar junto (antes ficava fora e cortava "Configurações")
+        ...(usuario?.equipe_projeto ? [{ titulo: "Equipe do projeto", itens: [
+          { para: "/projeto/feedback", rotulo: "Feedback", Icone: MessageSquare, ativo: caminho === "/projeto/feedback" },
+        ] }] : []),
       ]
     : [{ itens: [
         { para: "/", rotulo: "Meus chamados", Icone: ClipboardList, ativo: caminho === "/" && aba !== "historico", numero: numeros?.meus, destaque: numeros?.precisaDeVoce },
@@ -239,21 +243,6 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
           </div>
         ))}
       </nav>
-
-      {/* equipe do projeto (extensão): o feedback do sistema */}
-      {usuario?.equipe_projeto && (
-        <nav aria-label="Equipe do projeto" className={`shrink-0 pb-3 space-y-0.5 ${recolhida ? "px-2" : "px-3"}`}>
-          {!recolhida && <p className="px-3 pb-1 text-xs font-bold tracking-wider text-tinta-2 uppercase">Equipe do projeto</p>}
-          <NavLink
-            to="/projeto/feedback"
-            title={recolhida ? "Feedback do sistema" : undefined}
-            className={({ isActive }) => `flex min-h-11 items-center gap-3 rounded-xl font-semibold ${recolhida ? "justify-center" : "px-3"} ${isActive ? "bg-mar-50 text-acento" : "text-tinta-2 hover:bg-fundo hover:text-tinta"}`}
-          >
-            <MessageSquare className="size-5 shrink-0" aria-hidden="true" />
-            {!recolhida && <span className="min-w-0 flex-1 truncate">Feedback</span>}
-          </NavLink>
-        </nav>
-      )}
 
       {/* avisos do TI: no máximo 40% da altura; com muitos avisos, a rolagem fica NELES e o menu continua inteiro */}
       <div className={`flex max-h-[40%] min-h-0 shrink-0 flex-col border-t border-linha py-2 ${recolhida ? "px-2" : "px-3"}`}>
