@@ -54,7 +54,7 @@ ferramenta("listar_usuarios", {
   somenteLeitura: true,
   entrada: {
     ficticios: z.boolean().optional().describe("true = só fictícios; false = só reais; vazio = todos"),
-    papel: z.enum(["solicitante", "tecnico"]).optional(),
+    papel: z.enum(["solicitante", "tecnico", "observador"]).optional(),
     busca: z.string().optional().describe("trecho do nome ou e-mail"),
     limite: z.number().int().min(1).max(200).optional(),
   },
@@ -91,7 +91,7 @@ ferramenta("criar_usuario", {
     email: z.string().optional().describe("opcional"),
     admin: z.boolean().optional().describe("administrador do TI (só para papel tecnico)"),
     setor: z.string().optional().describe("nome ou id do setor"),
-    papel: z.enum(["solicitante", "tecnico"]).optional(),
+    papel: z.enum(["solicitante", "tecnico", "observador"]).optional(),
     ramal: z.string().max(20).optional().describe("ramal próprio, só se diferente do ramal do setor (nunca celular pessoal)"),
     senha: z.string().min(8).optional(),
     ficticio: z.boolean().optional().describe("padrão true"),

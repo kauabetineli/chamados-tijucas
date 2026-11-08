@@ -2,7 +2,7 @@ import { AbasPagina, CabecalhoPagina } from "../../components/CabecalhoPagina";
 import { useTelaLarga } from "../../lib/moldes";
 import { Dica, idDaDica, RotuloComDica } from "../../components/Dica";
 import {
-  Ban, Building2, Check, Copy, KeyRound, Lock, Pencil, Phone, Plus, Printer, Search, ShieldCheck, UserPlus, Users,
+  Ban, Building2, Check, Copy, Eye, KeyRound, Lock, Pencil, Phone, Plus, Printer, Search, ShieldCheck, UserPlus, Users,
 } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
@@ -19,7 +19,8 @@ import { ehAdmin, mensagemErro, pb } from "../../lib/pb";
 /** Pessoa como as rotas /api/ti/usuarios devolvem (ver docs/API.md). */
 interface PessoaTI {
   id: string; nome: string; matricula: string; email: string;
-  papel: "solicitante" | "tecnico"; admin: boolean;
+  /** observador: equipe do Dino Desk (só leitura); criada só pelo superusuário */
+  papel: "solicitante" | "tecnico" | "observador"; admin: boolean;
   setor: string; setor_nome: string; setor_ramal: string; ramal: string;
   trocar_senha: boolean; bloqueado: boolean; ficticio: boolean;
 }
@@ -112,7 +113,60 @@ function Campo({ id, rotulo, opcional, ajuda, children }: { id: string; rotulo: 
   );
 }
 
-function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, aoSenha, fixo }: {
+type PropsJanelaPessoa = Parameters<typeof JanelaPessoaEditar>[0];
+
+/** Conta da equipe do Dino Desk (observador): o TI vê e pode bloquear; o resto é com o superusuário. */
+function JanelaPessoa(props: PropsJanelaPessoa) {
+  const p = props.pessoa;
+  if (p?.papel === "observador") return <JanelaObservador p={p} fixo={props.fixo} aoFechar={props.aoFechar} aoSalvo={props.aoSalvo} />;
+  return <JanelaPessoaEditar {...props} />;
+}
+
+function JanelaObservador({ p, fixo, aoFechar, aoSalvo }: { p: PessoaTI; fixo?: boolean; aoFechar: () => void; aoSalvo: (msg: string) => void }) {
+  const [erro, setErro] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  async function alternar() {
+    setErro("");
+    setSalvando(true);
+    try {
+      await pb.send(`/api/ti/usuarios/${p.id}`, { method: "PATCH", body: { bloqueado: !p.bloqueado } });
+      aoSalvo(p.bloqueado ? `${p.nome} pode entrar de novo.` : `${p.nome} foi bloqueado.`);
+      aoFechar();
+    } catch (err) {
+      setErro(mensagemErro(err));
+    } finally {
+      setSalvando(false);
+    }
+  }
+  return (
+    <PainelRapido
+      idTitulo="titulo-observador"
+      fixo={fixo}
+      titulo={p.nome}
+      subtitulo={<p className="mt-0.5 text-sm text-tinta-2">Matrícula {p.matricula || "—"}</p>}
+      aoTentarFechar={aoFechar}
+      rodape={
+        <>
+          {erro && <p role="alert" className="mb-2 font-semibold text-alerta">{erro}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" className="btn-secundario" onClick={aoFechar}>Fechar</button>
+            <button type="button" className={p.bloqueado ? "btn-primario" : "btn-perigo"} disabled={salvando} onClick={alternar}>
+              {p.bloqueado ? "Desbloquear" : "Bloquear"}
+            </button>
+          </div>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <Selos p={p} />
+        <p>Conta da <b>equipe do Dino Desk</b> (projeto de extensão da UNIVALI). Ela vê tudo o que o TI vê, mas não muda nada: não abre, não responde, não atribui e não salva configurações.</p>
+        <p className="text-sm text-tinta-2">Quem cria, edita e troca a senha desta conta é a equipe do projeto. O TI pode bloquear a qualquer momento.</p>
+      </div>
+    </PainelRapido>
+  );
+}
+
+function JanelaPessoaEditar({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, aoSenha, fixo }: {
   /** tela larga: coluna ao lado da lista, em vez de janela */
   fixo?: boolean;
   /** sem pessoa = criar */
@@ -130,7 +184,7 @@ function JanelaPessoa({ pessoa, setorInicial, setores, eu, aoFechar, aoSalvo, ao
     email: pessoa?.email ?? "",
     setor: pessoa?.setor ?? setorInicial ?? "",
     ramal: pessoa?.ramal ?? "",
-    papel: pessoa?.papel ?? "solicitante",
+    papel: pessoa?.papel === "tecnico" ? "tecnico" : "solicitante",
     admin: pessoa?.admin ?? false,
     bloqueado: pessoa?.bloqueado ?? false,
   };
@@ -427,6 +481,11 @@ function Selos({ p }: { p: PessoaTI }) {
       {p.papel === "tecnico" && (
         <span className="inline-flex items-center gap-1 rounded-full bg-mar-50 px-2 py-0.5 text-xs font-bold text-acento">
           {p.admin && <ShieldCheck className="size-3.5" aria-hidden="true" />}{p.admin ? "Admin do TI" : "Técnico"}
+        </span>
+      )}
+      {p.papel === "observador" && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-sol-50 px-2 py-0.5 text-xs font-bold text-tinta ring-1 ring-sol">
+          <Eye className="size-3.5" aria-hidden="true" /> Equipe do Dino Desk · só leitura
         </span>
       )}
       {p.bloqueado && (

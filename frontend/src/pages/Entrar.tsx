@@ -29,7 +29,7 @@ export function Entrar() {
       // matrícula é só número; com @ é e-mail (em minúsculas, como o TI cadastra)
       const { record } = await pb.collection("users").authWithPassword(id.includes("@") ? id.toLowerCase() : id, senha, { expand: "setor" });
       if (record.trocar_senha) lembrarSenhaDoLogin(senha);
-      navegar(destinoSeguro(voltar) ?? (record.papel === "tecnico" ? "/ti" : "/"), { replace: true });
+      navegar(destinoSeguro(voltar) ?? (record.papel === "tecnico" || record.papel === "observador" ? "/ti" : "/"), { replace: true });
     } catch (err) {
       setErro(mensagemErro(err));
     } finally {

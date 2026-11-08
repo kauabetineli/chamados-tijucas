@@ -29,6 +29,6 @@ onRecordEnrich((e) => {
   e.record.withCustomData(true);
   e.record.set("tambem_total", lista.length);
   e.record.set("tambem_eu", !!quem && lista.indexOf(quem.id) >= 0);
-  if (!quem || quem.collection().name !== "users" || quem.getString("papel") !== "tecnico") e.record.hide("tambem");
+  if (!quem || quem.collection().name !== "users" || ["tecnico", "observador"].indexOf(quem.getString("papel")) < 0) e.record.hide("tambem");
   e.next();
 }, "avisos");

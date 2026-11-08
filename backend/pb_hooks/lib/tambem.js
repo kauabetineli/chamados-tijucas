@@ -3,6 +3,7 @@
 function marcar(e, entrar) {
   const R = require(`${__hooks}/lib/regras.js`);
   if (!R.ehUsuario(e.auth)) throw new ForbiddenError("Entre no sistema.");
+  if (R.ehObservador(e.auth)) throw new ForbiddenError("Conta só de leitura.");
   let aviso;
   try { aviso = e.app.findRecordById("avisos", e.request.pathValue("id")); } catch (_) { throw new NotFoundError("Aviso não encontrado."); }
   const ate = aviso.getString("ate");

@@ -8,7 +8,7 @@ import { useEquipe, useListas } from "../../features/configuracoes/dados";
 import { Equipe } from "../../features/configuracoes/Equipe";
 import { FilaAtendimento } from "../../features/configuracoes/FilaAtendimento";
 import { useAuth } from "../../lib/auth";
-import { ehAdmin } from "../../lib/pb";
+import { ehAdmin, ehObservador } from "../../lib/pb";
 
 const ABAS = [
   { id: "automacao", rotulo: "Automação dos chamados", curto: "Automação", I: Workflow },
@@ -31,7 +31,9 @@ export function ConfiguracoesTI() {
   const { equipe, recarregar } = useEquipe();
   const { listas, respostas, pronto } = useListas(equipe);
 
-  if (!ehAdmin(usuario)) return <Navigate to="/ti" replace />;
+  // observador (equipe do Dino Desk): vê as configurações, com tudo travado
+  const soLeitura = ehObservador(usuario);
+  if (!ehAdmin(usuario) && !soLeitura) return <Navigate to="/ti" replace />;
 
   const ir = (id: Aba) => {
     setAbertas((s) => new Set(s).add(id));
@@ -42,6 +44,7 @@ export function ConfiguracoesTI() {
     <div className="space-y-5">
       <CabecalhoPagina
         titulo="Configurações"
+        subtitulo={soLeitura ? "Só leitura: você vê como está configurado, sem mudar." : undefined}
         abas={<AbasPagina rotulo="Configurações" itens={ABAS.map((a) => ({
           rotulo: <><a.I className="size-4" aria-hidden="true" /><span className="md:hidden">{a.curto}</span><span className="hidden md:inline">{a.rotulo}</span></>,
           ativo: aba === a.id,
@@ -50,10 +53,12 @@ export function ConfiguracoesTI() {
       />
       {ABAS.map((a) => (abertas.has(a.id) || aba === a.id) && (
         <div key={a.id} id={`painel-${a.id}`} hidden={aba !== a.id} aria-label={a.rotulo} className={a.id === "automacao" ? "" : "max-w-[76rem]"}>
+          <fieldset disabled={soLeitura} className="min-w-0">
           {a.id === "automacao" && <Automacao equipe={equipe} listas={listas} respostas={respostas} pronto={pronto} />}
           {a.id === "equipe" && <Equipe equipe={equipe} recarregar={recarregar} />}
           {a.id === "categorias" && <Categorias />}
           {a.id === "fila" && <FilaAtendimento />}
+          </fieldset>
         </div>
       ))}
     </div>

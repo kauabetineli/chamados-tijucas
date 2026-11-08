@@ -4,7 +4,7 @@ import { Bloco } from "../../components/Esqueleto";
 import { useAuth } from "../../lib/auth";
 import { useTecnicos } from "../../lib/equipe";
 import { duracaoHoras } from "../../lib/formato";
-import { ehAdmin, pb } from "../../lib/pb";
+import { ehAdmin, ehObservador, pb } from "../../lib/pb";
 
 interface Periodo { resolvidos: number; horas_media: number; iniciados: number; bom: number; ruim: number }
 interface Mes extends Periodo { mes: number }
@@ -29,7 +29,8 @@ const MESES_LONGOS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho"
  */
 export function MeusNumeros() {
   const { usuario } = useAuth();
-  const admin = ehAdmin(usuario);
+  // admin e observador (equipe do Dino Desk) podem ver os números de qualquer técnico
+  const admin = ehAdmin(usuario) || ehObservador(usuario);
   const tecnicos = useTecnicos();
   const [tecnico, setTecnico] = useState(usuario?.id ?? "");
   const anoAtual = new Date().getFullYear();

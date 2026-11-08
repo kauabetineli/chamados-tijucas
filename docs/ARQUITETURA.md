@@ -224,6 +224,20 @@ título muda a largura (cada coluna tem um mínimo), duplo clique ajusta ao text
 - Segurar botão/link/foto não abre o menu do navegador (só no toque). No PC, arrastar link/foto para outra aba continua
   (o TI usa para ver anexos maiores).
 
+## Conta só de leitura (observador)
+
+`users.papel = "observador"` é a conta da equipe do Dino Desk (estudantes da extensão) para acompanhar o piloto.
+Decisão do grupo: vê **tudo** o que o TI vê, inclusive notas internas, e o TI da Prefeitura enxerga essas contas.
+
+- **Servidor:** regras de leitura com `(papel = "tecnico" || papel = "observador")` (migration 1760000019);
+  criar chamado ou mensagem recusa `papel = "observador"`; rotas GET do TI usam `R.veComoTI`, as de escrita
+  continuam `R.ehTecnico`/`R.ehAdmin`. Só o superusuário cria a conta; o admin do TI só bloqueia ou desbloqueia
+  (não edita nem troca a senha). Não entra na Equipe, na divisão automática, nas cargas nem nos avisos.
+- **Front:** `veComoTI(usuario)` decide o que se VÊ (rotas e menus do TI); `ehTecnico` decide o que se FAZ.
+  Na Fila: sem "Comigo", "Seu próximo", "Em espera", atribuir, "⋮" e arrastar; "Com a equipe" já vem aberto.
+  No chamado: painel do técnico travado (`<fieldset disabled>`) e, no lugar da caixa de mensagem, "Conta só de
+  leitura". Configurações: tudo travado. Barra lateral: selo "Só leitura" no lugar de "Registrar pedido".
+
 ## Vídeo pelo celular e modo de diagnóstico
 
 No Android, gravar vídeo abre o app da câmera e o navegador pode descartar a aba para liberar memória; ao voltar,

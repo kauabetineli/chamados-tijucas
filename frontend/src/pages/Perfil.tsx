@@ -1,11 +1,11 @@
-import { BarChart3, Building2, ChevronRight, MessageSquare, Settings, ShieldCheck, SlidersHorizontal, Users, Wrench } from "lucide-react";
+import { BarChart3, Building2, ChevronRight, Eye, MessageSquare, Settings, ShieldCheck, SlidersHorizontal, Users, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { MinhaAusencia } from "../features/configuracoes/Equipe";
 import { Avatar } from "../components/Avatar";
 import { useAuth } from "../lib/auth";
 import { abrirOpiniao } from "../lib/opiniao";
-import { ehAdmin, ehTecnico, pb, type Usuario } from "../lib/pb";
+import { ehAdmin, ehObservador, ehTecnico, pb, type Usuario } from "../lib/pb";
 
 /** Números rápidos: do servidor (chamados que abriu) ou do técnico (que atendeu). */
 function Numeros({ u }: { u: Usuario }) {
@@ -65,15 +65,17 @@ export function Perfil() {
   if (!u) return null;
   const tecnico = ehTecnico(u);
   const admin = ehAdmin(u);
-  const tipo = admin ? "Administrador do TI" : tecnico ? "Técnico do TI" : "Servidor";
-  const TipoIcone = admin ? ShieldCheck : tecnico ? Wrench : Building2;
+  // observador: equipe do Dino Desk, vê as telas do TI (inclusive as de admin) sem mudar nada
+  const soLeitura = ehObservador(u);
+  const tipo = admin ? "Administrador do TI" : tecnico ? "Técnico do TI" : soLeitura ? "Equipe do Dino Desk · só leitura" : "Servidor";
+  const TipoIcone = admin ? ShieldCheck : tecnico ? Wrench : soLeitura ? Eye : Building2;
 
   const itens = [
-    ...(tecnico ? [
+    ...(tecnico || soLeitura ? [
       { para: "/ti/painel", Icone: BarChart3, titulo: "Painel da equipe" },
       { para: "/ti/usuarios", Icone: Users, titulo: admin ? "Pessoas e setores" : "Pessoas" },
     ] : []),
-    ...(admin ? [
+    ...(admin || soLeitura ? [
       { para: "/ti/configuracoes", Icone: SlidersHorizontal, titulo: "Configurações do TI" },
     ] : []),
     ...(u.equipe_projeto ? [{ para: "/projeto/feedback", Icone: MessageSquare, titulo: "Feedback do sistema" }] : []),
@@ -90,7 +92,7 @@ export function Perfil() {
         </p>
       </section>
 
-      <Numeros u={u} />
+      {!soLeitura && <Numeros u={u} />}
 
       {tecnico && <MinhaAusencia eu={u.id} />}
 

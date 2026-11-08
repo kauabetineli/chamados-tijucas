@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router";
 import { Layout } from "./components/Layout";
 import { AuthProvider, useAuth } from "./lib/auth";
-import { destinoSeguro, ehTecnico } from "./lib/pb";
+import { destinoSeguro, ehObservador, veComoTI } from "./lib/pb";
 import { Chamado } from "./pages/Chamado";
 import { Entrar } from "./pages/Entrar";
 import { MeusChamados } from "./pages/MeusChamados";
@@ -32,9 +32,17 @@ function Protegida({ children }: { children: ReactNode }) {
   return children;
 }
 
-function SoTecnico({ children }: { children: ReactNode }) {
+/** Telas do TI: técnico e observador (equipe do Dino Desk, só leitura). Com `age`, só quem pode mudar algo. */
+function SoTecnico({ children, age }: { children: ReactNode; age?: boolean }) {
   const { usuario } = useAuth();
-  return ehTecnico(usuario) ? children : <Navigate to="/" replace />;
+  if (age && ehObservador(usuario)) return <Navigate to="/ti" replace />;
+  return veComoTI(usuario) ? children : <Navigate to="/" replace />;
+}
+
+/** Abrir chamado: a conta só de leitura (observador) não abre. */
+function SemObservador({ children }: { children: ReactNode }) {
+  const { usuario } = useAuth();
+  return ehObservador(usuario) ? <Navigate to="/ti" replace /> : children;
 }
 
 /** Área da equipe do projeto (extensão): contas marcadas com equipe_projeto. */
@@ -45,7 +53,7 @@ function SoEquipe({ children }: { children: ReactNode }) {
 
 function Inicio() {
   const { usuario } = useAuth();
-  return ehTecnico(usuario) ? <Navigate to="/ti" replace /> : <MeusChamados />;
+  return veComoTI(usuario) ? <Navigate to="/ti" replace /> : <MeusChamados />;
 }
 
 function SoVisitante({ children }: { children: ReactNode }) {
@@ -64,12 +72,12 @@ export function App() {
           <Route path="/cadastro" element={<Navigate to="/entrar" replace />} />
           <Route element={<Protegida><Layout /></Protegida>}>
             <Route index element={<Inicio />} />
-            <Route path="novo" element={<NovoChamado />} />
+            <Route path="novo" element={<SemObservador><NovoChamado /></SemObservador>} />
             <Route path="chamado/:id" element={<Chamado />} />
             <Route path="perfil" element={<Perfil />} />
             <Route path="configuracoes" element={<Configuracoes />} />
             <Route path="ti" element={<SoTecnico><Fila /></SoTecnico>} />
-            <Route path="ti/registrar" element={<SoTecnico><Registrar /></SoTecnico>} />
+            <Route path="ti/registrar" element={<SoTecnico age><Registrar /></SoTecnico>} />
             <Route path="ti/historico" element={<SoTecnico><Historico /></SoTecnico>} />
             <Route path="ti/painel" element={<SoTecnico><Painel /></SoTecnico>} />
             <Route path="ti/chamados" element={<SoTecnico><TodosChamados /></SoTecnico>} />

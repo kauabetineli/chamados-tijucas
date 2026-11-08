@@ -5,7 +5,8 @@ import PocketBase, { type RecordModel } from "pocketbase";
 export const pb = new PocketBase(window.location.origin);
 pb.autoCancellation(false);
 
-export type Papel = "solicitante" | "tecnico";
+/** observador: equipe do Dino Desk (extensão), vê tudo o que o TI vê e não muda nada. Só o superusuário cria. */
+export type Papel = "solicitante" | "tecnico" | "observador";
 export type Status = "aberto" | "em_andamento" | "aguardando" | "resolvido";
 export type MotivoAguardando = "peca" | "solicitante" | "terceiro";
 export type Prioridade = "baixa" | "normal" | "alta" | "urgente";
@@ -154,6 +155,15 @@ export function ehTecnico(u: Usuario | null) {
 }
 
 /** Administrador do TI (cria setores e contas). */
+export function ehObservador(u: Usuario | null) {
+  return u?.papel === "observador";
+}
+
+/** vê as telas do TI (técnico ou observador). Para AGIR (mudar algo), use ehTecnico. */
+export function veComoTI(u: Usuario | null) {
+  return ehTecnico(u) || ehObservador(u);
+}
+
 export function ehAdmin(u: Usuario | null) {
   return ehTecnico(u) && !!u?.admin;
 }

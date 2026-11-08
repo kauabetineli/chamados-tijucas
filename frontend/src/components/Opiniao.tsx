@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router";
 import { avisar } from "../lib/avisos";
 import { useAuth } from "../lib/auth";
 import { aoAbrirOpiniao, nomeDaTela } from "../lib/opiniao";
-import { ehTecnico, mensagemErro, pb } from "../lib/pb";
+import { mensagemErro, pb, veComoTI } from "../lib/pb";
 import { prepararArquivo } from "../lib/imagem";
 import { Dica } from "./Dica";
 import { useMediaQuery } from "../lib/useMediaQuery";
@@ -52,7 +52,7 @@ export function Opiniao() {
           </span>
         </button>
       )}
-      {aberta && <JanelaOpiniao soNota={!!aberta.nota} tecnico={ehTecnico(usuario)} tela={nomeDaTela(caminho)} aoFechar={() => setAberta(null)} />}
+      {aberta && <JanelaOpiniao soNota={!!aberta.nota} tecnico={veComoTI(usuario)} tela={nomeDaTela(caminho)} aoFechar={() => setAberta(null)} />}
     </>
   );
 }

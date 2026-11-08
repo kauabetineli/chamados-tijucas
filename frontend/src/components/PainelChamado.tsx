@@ -2,7 +2,7 @@ import { ChevronDown, ChevronUp, Maximize2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as KE, type PointerEvent as PE } from "react";
 import { Link, useLocation } from "react-router";
 import { useAuth } from "../lib/auth";
-import { ehTecnico } from "../lib/pb";
+import { veComoTI } from "../lib/pb";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import { chamadosNaTela, useVerChamado } from "../lib/verChamado";
 import { moldeDaRota, usePadraoDoPainel, useTelaLarga } from "../lib/moldes";
@@ -36,7 +36,7 @@ export function PainelChamado() {
   // (Fila: o seu próximo; Soluções: a mais recente). Fora disso, só abre quando alguém clica.
   const larga = useTelaLarga();
   const local = useLocation();
-  const listaFixa = pc && larga && moldeDaRota(local.pathname, new URLSearchParams(local.search), ehTecnico(usuario)).molde === "lista";
+  const listaFixa = pc && larga && moldeDaRota(local.pathname, new URLSearchParams(local.search), veComoTI(usuario)).molde === "lista";
   const padrao = usePadraoDoPainel();
   const atual = aberto || (listaFixa ? padrao?.id ?? null : null) || null;
   const mostrandoPadrao = !aberto && !!atual;
@@ -101,7 +101,7 @@ export function PainelChamado() {
   }, [aberto, pc]);
 
   if (!atual) return null;
-  const pagina = ehTecnico(usuario) ? `/ti/chamado/${atual}` : `/chamado/${atual}`;
+  const pagina = veComoTI(usuario) ? `/ti/chamado/${atual}` : `/chamado/${atual}`;
 
   const botao = "grid size-10 place-items-center rounded-lg text-tinta-2 hover:bg-fundo hover:text-tinta disabled:opacity-30 disabled:hover:bg-transparent";
   const controles = (

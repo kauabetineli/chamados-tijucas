@@ -7,7 +7,7 @@
 routerAdd("GET", "/api/ti/automacao", (e) => {
   const R = require(`${__hooks}/lib/regras.js`);
   const A = require(`${__hooks}/lib/automacao.js`);
-  if (!e.hasSuperuserAuth() && !R.ehTecnico(e.auth)) throw new ForbiddenError("Somente o TI.");
+  if (!e.hasSuperuserAuth() && !R.veComoTI(e.auth)) throw new ForbiddenError("Somente o TI.");
   const versoes = e.app.findRecordsByFilter("automacao_versoes", "", "-created", 15, 0);
   const historico = versoes.filter(Boolean).map((v) => {
     let autor = "";
@@ -80,7 +80,7 @@ routerAdd("POST", "/api/ti/automacao/testar", (e) => {
 routerAdd("GET", "/api/ti/equipe", (e) => {
   const R = require(`${__hooks}/lib/regras.js`);
   const A = require(`${__hooks}/lib/automacao.js`);
-  if (!e.hasSuperuserAuth() && !R.ehTecnico(e.auth)) throw new ForbiddenError("Somente o TI.");
+  if (!e.hasSuperuserAuth() && !R.veComoTI(e.auth)) throw new ForbiddenError("Somente o TI.");
   const ctx = A.contexto(e.app);
   const lista = Object.keys(ctx.tecnicos).map((id) => {
     const u = ctx.tecnicos[id];

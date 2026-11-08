@@ -70,30 +70,31 @@ Qualquer outro status limpa o motivo. De `aguardando` dá para retomar (`em_anda
 
 | Método | Rota | Quem | Faz |
 |---|---|---|---|
+| — | (conta observador) | — | `users.papel = "observador"`: equipe do Dino Desk. Lê o que o TI lê (rotas marcadas "técnico ou observador" e as coleções `chamados`, `interacoes`, `users`, `respostas_prontas`, `automacao_versoes`); toda escrita é recusada. `POST /api/ti/usuarios` com `papel: "observador"` só pelo superusuário; o admin do TI só muda `bloqueado` dessas contas |
 | GET | `/api/fila/minhas-posicoes` | usuário | posição na fila de cada chamado aberto do usuário (pela `ordem_fila`) |
 | POST | `/api/chamados/{id}/confirmar` | solicitante do chamado | confirma que o problema foi resolvido; opcional `{ avaliacao: "bom"\|"ruim", comentario }` (avaliação do atendimento, vai para a linha do tempo) |
 | POST | `/api/chamados/{id}/reabrir` | solicitante do chamado | `{ motivo }` volta o chamado para a fila e roda os fluxos "Chamado reaberto" da automação |
 | GET | `/api/chamados/semelhantes?categoria=ID` | usuário | chamados em aberto da mesma categoria no setor (evita duplicado) |
-| GET | `/api/painel/resumo?dias=30` | técnico | indicadores do painel: totais, tempos, por origem/categoria/setor/dia/técnico, `agora` (aberto, em_andamento, aguardando) e `avaliacao` (bom, ruim, confirmados) |
-| GET | `/api/painel/tecnico?ano=2026&tecnico=ID` | técnico (outro técnico: só **admin do TI**) | "Meus números": `hoje`, `semana` (7 dias), `mes` (cada um `{ resolvidos, horas_media, iniciados, bom, ruim }`), `agora`, `anos` e `por_mes` com os 12 meses (zerados inclusive). Datas no fuso de Brasília |
-| GET | `/api/chamados/{id}/solucoes-parecidas` | técnico | até 5 resolvidos da mesma categoria com solução, os de descrição mais parecida primeiro → `{ total, itens: [{ id, protocolo, descricao, diagnostico, solucao, resolvido_em }] }` |
+| GET | `/api/painel/resumo?dias=30` | técnico ou observador | indicadores do painel: totais, tempos, por origem/categoria/setor/dia/técnico, `agora` (aberto, em_andamento, aguardando) e `avaliacao` (bom, ruim, confirmados) |
+| GET | `/api/painel/tecnico?ano=2026&tecnico=ID` | técnico ou observador (outro técnico: só **admin do TI** ou observador) | "Meus números": `hoje`, `semana` (7 dias), `mes` (cada um `{ resolvidos, horas_media, iniciados, bom, ruim }`), `agora`, `anos` e `por_mes` com os 12 meses (zerados inclusive). Datas no fuso de Brasília |
+| GET | `/api/chamados/{id}/solucoes-parecidas` | técnico ou observador | até 5 resolvidos da mesma categoria com solução, os de descrição mais parecida primeiro → `{ total, itens: [{ id, protocolo, descricao, diagnostico, solucao, resolvido_em }] }` |
 | POST | `/api/feedback` | usuário | "Sua opinião" sobre o SISTEMA (não é chamado): `{ tipo: "problema"\|"ideia"\|"elogio"\|"nota", texto, tela?, nota? (0–5) }` em JSON, ou multipart com `imagem` (um print, até 10 MB). O servidor grava quem, papel, setor e `ficticio`; até 30 por pessoa por dia. Só contas com `equipe_projeto` leem (coleção `feedbacks`) |
 | POST | `/api/avisos/{id}/tambem` | usuário | "Também estou com esse problema" num aviso do TI em vigor → `{ total, eu: true }` (tocar de novo não conta duas vezes) |
 | POST | `/api/avisos/{id}/encerrar` | técnico | encerra o aviso. Corpo `{ resolver?: bool, mensagem?: string }`: `resolver` resolve os chamados ligados ao aviso (`chamados.aviso`), com a mensagem como solução e retorno a quem pediu; `mensagem` publica um aviso `resolvido` por 4 h → `{ resolvidos, aviso_resolvido, pessoas }` |
 | DELETE | `/api/avisos/{id}/tambem` | usuário | desfaz → `{ total, eu: false }`. Nos avisos, todos recebem `tambem_total` e `tambem_eu`; a lista `tambem` (quem tocou) só o TI recebe |
 | GET | `/api/sistema/info` | qualquer logado | `ambiente` (teste/producao), ntfy/SMTP ligados e totais, inclusive fictícios |
-| GET | `/api/ti/usuarios?q=&papel=&setor=&ocultar_teste=1&pagina=1&por_pagina=25` | técnico | lista pessoas (matrícula, e-mail, setor e ramal do setor), paginada no banco (`por_pagina=0` = todos) → `{ itens, total, pagina, por_pagina }` |
+| GET | `/api/ti/usuarios?q=&papel=&setor=&ocultar_teste=1&pagina=1&por_pagina=25` | técnico ou observador | lista pessoas (matrícula, e-mail, setor e ramal do setor), paginada no banco (`por_pagina=0` = todos) → `{ itens, total, pagina, por_pagina }` |
 | POST | `/api/ti/usuarios` | **admin do TI** | `{ nome, matricula, setor?, papel?, admin?, email?, ramal? }` → `{ usuario, senha_provisoria }` (a pessoa troca no 1º acesso) |
 | PATCH | `/api/ti/usuarios/{id}` | **admin do TI** | `{ nome?, matricula?, email?, setor?, ramal?, papel?, admin?, bloqueado? }` → `{ usuario }`. Sempre sobra 1 admin ativo; ninguém tira o próprio admin |
 | POST | `/api/ti/usuarios/{id}/senha` | **admin do TI** | gera nova senha provisória e marca `trocar_senha` → `{ usuario, senha_provisoria }` |
-| GET | `/api/ti/setores` | técnico | todos os setores com `pessoas` (quantas contas) → `{ itens }` |
+| GET | `/api/ti/setores` | técnico ou observador | todos os setores com `pessoas` (quantas contas) → `{ itens }` |
 | POST | `/api/ti/setores` | **admin do TI** | `{ nome, predio?, ramal? }`; se o nome já existe, devolve o existente (`criado: false`) |
 | PATCH | `/api/ti/setores/{id}` | **admin do TI** | `{ nome?, predio?, ramal?, ativo? }` (setor inativo some da escolha; não se apaga) |
-| GET | `/api/ti/automacao` | técnico | fluxos em vigor → `{ versao, dados: { fluxos, senao }, historico: [{ id, quando, autor, resumo }] }` (15 últimas). Formato de um fluxo: topo de `backend/pb_hooks/lib/automacao.js` |
+| GET | `/api/ti/automacao` | técnico ou observador | fluxos em vigor → `{ versao, dados: { fluxos, senao }, historico: [{ id, quando, autor, resumo }] }` (15 últimas). Formato de um fluxo: topo de `backend/pb_hooks/lib/automacao.js` |
 | POST | `/api/ti/automacao` | **admin do TI** | `{ dados, resumo, base }` cria uma versão nova (o servidor limpa os fluxos e recusa ciclos ou ação que não vale para o gatilho, 400). `base` = versão aberta na tela; se outra pessoa salvou depois, 400 |
 | POST | `/api/ti/automacao/testar` | técnico | `{ dados, gatilho, chamado: { categoria, setor, impacto, prioridade, origem, texto, anexo, horario, responsavel }, giro }` → `{ gatilho, prioridade, prioridade_antes, prazo_min, pessoa, pessoa_nome, regra, giro_regra, devolver, efeitos, fluxos: { [id]: { status: { [bloco]: sim/nao/ignorada }, ativas: [ligação] } }, traco, conflitos, erros }` (roda todos os fluxos ligados do gatilho; nada é salvo) |
 | POST | `/api/ti/automacao/rodar-tempo` | superusuário | roda os fluxos de tempo agora (o cron `automacao-tempo` roda a cada 5 min) e confirma sozinho os resolvidos sem resposta há `dias_confirmar` dias úteis → `{ aplicadas, confirmados }` |
-| GET | `/api/ti/equipe` | técnico | técnicos com `carga`, ausência (`ausente_de`, `ausente_ate`, `ausencia_motivo`, `ausente_hoje`), `sem_automatico`, `disponivel` → `{ equipe, destino_ausencia }` |
+| GET | `/api/ti/equipe` | técnico ou observador | técnicos com `carga`, ausência (`ausente_de`, `ausente_ate`, `ausencia_motivo`, `ausente_hoje`), `sem_automatico`, `disponivel` → `{ equipe, destino_ausencia }` |
 | PATCH | `/api/ti/equipe/{id}` | **admin do TI**, ou o próprio técnico (menos `sem_automatico`) | `{ ausente_de?, ausente_ate? ("AAAA-MM-DD" ou ""), ausencia_motivo?, sem_automatico? }` → `{ ok, devolvidos, ausente_hoje }`. Com `destino_ausencia = "fila"`, ficar ausente hoje devolve os chamados abertos da pessoa para a fila |
 
 Somente o **superusuário** pode mandar `ficticio: true` ou `senha` fixa em `/api/ti/usuarios`; em produção o servidor recusa fictício.

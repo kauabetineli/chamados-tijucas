@@ -81,7 +81,7 @@ routerAdd("GET", "/api/sistema/info", (e) => {
 routerAdd("GET", "/api/ti/usuarios", (e) => {
   const R = require(`${__hooks}/lib/regras.js`);
   const U = require(`${__hooks}/lib/usuarios.js`);
-  if (!e.hasSuperuserAuth() && !R.ehTecnico(e.auth)) throw new ForbiddenError("Somente o TI.");
+  if (!e.hasSuperuserAuth() && !R.veComoTI(e.auth)) throw new ForbiddenError("Somente o TI.");
   const query = e.request.url.query();
   const q = query.get("q"), papel = query.get("papel"), setor = query.get("setor"), ocultar = query.get("ocultar_teste") === "1";
 
@@ -112,7 +112,7 @@ routerAdd("GET", "/api/ti/usuarios", (e) => {
 }, $apis.requireAuth());
 
 // ---------- criar pessoa (admin) ----------
-// Corpo: { nome, matricula, setor?: id, papel?: "solicitante"|"tecnico", admin?, email?, ramal?, senha?, ficticio? }
+// Corpo: { nome, matricula, setor?: id, papel?: "solicitante"|"tecnico"|"observador" (só superusuário), admin?, email?, ramal?, senha?, ficticio? }
 // Sem "senha", gera uma senha provisória aleatória (devolvida uma única vez em "senha_provisoria")
 // e marca trocar_senha: a pessoa escolhe a própria senha no primeiro acesso.
 // "senha" e "ficticio" só valem para o superusuário (ferramentas de teste).
@@ -126,7 +126,9 @@ routerAdd("POST", "/api/ti/usuarios", (e) => {
   const nome = String(b.nome || "").trim();
   const matricula = String(b.matricula || "").trim();
   const email = String(b.email || "").trim().toLowerCase();
-  const papel = b.papel === "tecnico" ? "tecnico" : "solicitante";
+  // observador (equipe do Dino Desk, só leitura): só o superusuário cria
+  if (b.papel === "observador" && !superuser) throw new ForbiddenError("Só o superusuário cria contas da equipe do Dino Desk.");
+  const papel = b.papel === "tecnico" ? "tecnico" : b.papel === "observador" && superuser ? "observador" : "solicitante";
   const ficticio = superuser && b.ficticio === true;
 
   if (!nome) throw new BadRequestError("Informe o nome.");
@@ -172,6 +174,11 @@ routerAdd("PATCH", "/api/ti/usuarios/{id}", (e) => {
   try { rec = e.app.findRecordById("users", e.request.pathValue("id")); } catch (_) { throw new NotFoundError("Pessoa não encontrada."); }
   const eu = !superuser && e.auth.id === rec.id;
   const b = e.requestInfo().body || {};
+  // conta da equipe do Dino Desk (observador): o admin do TI vê e pode bloquear ou desbloquear, nada além
+  if (!superuser && rec.getString("papel") === "observador") {
+    const outros = Object.keys(b).filter((k) => k !== "bloqueado");
+    if (outros.length) throw new ForbiddenError("Esta conta é da equipe do Dino Desk: o TI só pode bloquear ou desbloquear.");
+  }
 
   if (b.nome !== undefined) {
     const nome = String(b.nome).trim();
@@ -197,7 +204,10 @@ routerAdd("PATCH", "/api/ti/usuarios/{id}", (e) => {
   if (b.ramal !== undefined) rec.set("ramal", String(b.ramal || "").trim().slice(0, 20));
 
   const eraAdminAtivo = rec.getBool("admin") && !rec.getBool("bloqueado") && rec.getString("papel") === "tecnico";
-  if (b.papel !== undefined) rec.set("papel", b.papel === "tecnico" ? "tecnico" : "solicitante");
+  if (b.papel !== undefined) {
+    if (b.papel === "observador" && !superuser) throw new ForbiddenError("Só o superusuário cria contas da equipe do Dino Desk.");
+    rec.set("papel", b.papel === "tecnico" || b.papel === "observador" ? b.papel : "solicitante");
+  }
   if (b.admin !== undefined) rec.set("admin", b.admin === true);
   if (rec.getString("papel") !== "tecnico") rec.set("admin", false);
   if (b.bloqueado !== undefined) rec.set("bloqueado", b.bloqueado === true);
@@ -224,6 +234,9 @@ routerAdd("POST", "/api/ti/usuarios/{id}/senha", (e) => {
   if (!e.hasSuperuserAuth() && !R.ehAdmin(e.auth)) throw new ForbiddenError("Somente o administrador do TI troca senhas.");
   let rec;
   try { rec = e.app.findRecordById("users", e.request.pathValue("id")); } catch (_) { throw new NotFoundError("Pessoa não encontrada."); }
+  if (!e.hasSuperuserAuth() && rec.getString("papel") === "observador") {
+    throw new ForbiddenError("A senha das contas da equipe do Dino Desk é trocada pelo superusuário.");
+  }
   const senha = U.senhaProvisoria();
   rec.setPassword(senha);
   rec.set("trocar_senha", true);
@@ -236,7 +249,7 @@ routerAdd("POST", "/api/ti/usuarios/{id}/senha", (e) => {
 routerAdd("GET", "/api/ti/setores", (e) => {
   const R = require(`${__hooks}/lib/regras.js`);
   const U = require(`${__hooks}/lib/usuarios.js`);
-  if (!e.hasSuperuserAuth() && !R.ehTecnico(e.auth)) throw new ForbiddenError("Somente o TI.");
+  if (!e.hasSuperuserAuth() && !R.veComoTI(e.auth)) throw new ForbiddenError("Somente o TI.");
   const lista = e.app.findRecordsByFilter("setores", "id != ''", "nome", 0, 0);
   return e.json(200, { itens: lista.filter((s) => !!s).map((s) => U.setorPublico(e.app, s)) });
 }, $apis.requireAuth());
@@ -288,7 +301,8 @@ routerAdd("PATCH", "/api/ti/setores/{id}", (e) => {
 // Matrícula (é o login), ramal próprio, telefone e marcas internas ficam só para o TI e para o dono da conta.
 onRecordEnrich((e) => {
   const quem = e.requestInfo ? e.requestInfo.auth : null;
-  const doTI = quem && quem.collection().name === "users" && quem.getString("papel") === "tecnico";
+  // o TI e o observador (equipe do Dino Desk, só leitura) veem os campos internos
+  const doTI = quem && quem.collection().name === "users" && ["tecnico", "observador"].indexOf(quem.getString("papel")) >= 0;
   const superusuario = quem && quem.collection().name === "_superusers";
   if (!superusuario && !doTI && (!quem || quem.id !== e.record.id)) {
     e.record.hide("matricula", "ramal", "telefone", "admin", "trocar_senha", "bloqueado", "ficticio", "ausente_de", "ausente_ate", "ausencia_motivo", "sem_automatico", "equipe_projeto");
@@ -299,7 +313,7 @@ onRecordEnrich((e) => {
 // ...e também não dá para "adivinhar" esses campos filtrando a lista (ex.: filter=matricula="12345").
 onRecordsListRequest((e) => {
   const quem = e.auth;
-  const doTI = quem && quem.getString("papel") === "tecnico";
+  const doTI = quem && ["tecnico", "observador"].indexOf(quem.getString("papel")) >= 0;
   if (!e.hasSuperuserAuth() && !doTI) {
     const q = e.requestInfo().query || {};
     const texto = `${q.filter || ""} ${q.sort || ""}`;

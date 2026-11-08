@@ -22,6 +22,17 @@ function ehAdmin(auth) {
   return ehTecnico(auth) && auth.getBool("admin");
 }
 
+// observador: conta da EQUIPE DO DINO DESK (extensão) que vê tudo o que o TI vê, sem poder mudar nada.
+// Só o superusuário cria (painel /_/ ou ferramentas). Não entra na Equipe, na divisão nem nos avisos.
+function ehObservador(auth) {
+  return !!auth && auth.collection().name === "users" && auth.getString("papel") === "observador";
+}
+
+// pode LER o que é do TI (rotas GET): técnico ou observador
+function veComoTI(auth) {
+  return ehTecnico(auth) || ehObservador(auth);
+}
+
 function ehUsuario(auth) {
   return !!auth && auth.collection().name === "users";
 }
@@ -119,6 +130,8 @@ module.exports = {
   ROTULO_AGUARDANDO,
   ROTULO_PRIORIDADE,
   ehTecnico,
+  ehObservador,
+  veComoTI,
   ehAdmin,
   ehUsuario,
   pesoDe,

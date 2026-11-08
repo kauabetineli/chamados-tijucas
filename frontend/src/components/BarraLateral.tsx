@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type KeyboardEvent as KE, type PointerEven
 import { Link, NavLink, useLocation, useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
 import { VISOES, type Numeros } from "../lib/numeros";
-import { ehAdmin, ehTecnico } from "../lib/pb";
+import { ehAdmin, ehObservador, veComoTI } from "../lib/pb";
 import { Avatar } from "./Avatar";
 import { BotaoTema } from "./BotaoTema";
 import { LinhaAvisos } from "./MuralAvisos";
@@ -31,7 +31,8 @@ type Item = { para: string; rotulo: string; Icone: typeof Plus; ativo: boolean; 
  */
 export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
   const { usuario } = useAuth();
-  const tecnico = ehTecnico(usuario);
+  const tecnico = veComoTI(usuario);
+  const soLeitura = ehObservador(usuario);
   const caminho = useLocation().pathname;
   const [params] = useSearchParams();
 
@@ -99,7 +100,8 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
   const aba = params.get("aba");
   const visao = params.get("visao");
   const filtroUrl = params.get("filtro");
-  const admin = ehAdmin(usuario);
+  // o observador vê também a Administração (só olhar; o servidor recusa qualquer mudança)
+  const admin = ehAdmin(usuario) || soLeitura;
   // técnico: três grupos (Atendimento = o dia a dia, Consulta = olhar para trás, Administração = só o admin)
   const grupos: { titulo?: string; itens: Item[] }[] = tecnico
     ? [
@@ -124,7 +126,8 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
 
   // subitens da Fila: as visões e o filtro "Fora do prazo" (o vermelho só aparece aqui, e só quando há atraso)
   const subFila = [
-    ...VISOES.map((v) => ({
+    // observador não atende: sem "Comigo" e "Em espera"
+    ...VISOES.filter((v) => !soLeitura || v.id === "livres").map((v) => ({
       id: v.id, para: `/ti?visao=${v.id}`, rotulo: v.rotulo, Icone: v.Icone, ativa: caminho === "/ti" && visao === v.id,
       total: numeros?.[v.id === "atendendo" ? "atendendo" : v.id === "livres" ? "livres" : "espera"],
       ponto: v.id === "espera" ? numeros?.esperaResposta : 0,
@@ -151,6 +154,11 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
       </Link>
 
       {/* a ação principal é um botão, não um lugar: Registrar pedido (TI) ou Novo chamado (servidor) */}
+      {soLeitura ? (
+        <p className={`mx-3 mb-3 shrink-0 rounded-xl bg-sol-50 px-3 py-2 text-sm font-semibold ${recolhida ? "text-center" : ""}`} title="Conta da equipe do Dino Desk: vê tudo, não muda nada">
+          {recolhida ? "Leitura" : "Só leitura"}
+        </p>
+      ) : (
       <div className={`shrink-0 pb-3 ${recolhida ? "flex justify-center" : "px-3"}`}>
         <Link
           to={botaoTopo.para}
@@ -162,6 +170,7 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
           <Plus className="size-5" aria-hidden="true" /> {!recolhida && botaoTopo.rotulo}
         </Link>
       </div>
+      )}
 
       {/* navegação */}
       <nav aria-label="Principal" className={`min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3 ${recolhida ? "px-2" : "px-3"}`}>
@@ -262,7 +271,7 @@ export function BarraLateral({ numeros }: { numeros: Numeros | null }) {
           {!recolhida && (
             <span className="min-w-0">
               <span className="block truncate text-sm font-semibold">{usuario?.name}</span>
-              <span className="block truncate text-xs text-tinta-2">{ehAdmin(usuario) ? "Admin do TI" : tecnico ? "Técnico do TI" : (usuario?.expand?.setor?.nome ?? "Meu perfil")}</span>
+              <span className="block truncate text-xs text-tinta-2">{ehAdmin(usuario) ? "Admin do TI" : soLeitura ? "Equipe do Dino Desk" : tecnico ? "Técnico do TI" : (usuario?.expand?.setor?.nome ?? "Meu perfil")}</span>
             </span>
           )}
         </NavLink>

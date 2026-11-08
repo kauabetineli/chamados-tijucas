@@ -2,7 +2,7 @@ import { Hourglass, Inbox, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "./auth";
 import { atrasado } from "./fila";
-import { ehTecnico, pb, type Chamado } from "./pb";
+import { pb, veComoTI, type Chamado } from "./pb";
 import { useRealtime } from "./useRealtime";
 
 /**
@@ -37,7 +37,7 @@ export interface Numeros {
  */
 export function useNumeros(): Numeros | null {
   const { usuario } = useAuth();
-  const tecnico = ehTecnico(usuario);
+  const tecnico = veComoTI(usuario);
   const [n, setN] = useState<Numeros | null>(null);
   const carregar = useCallback(async () => {
     if (!usuario) return;

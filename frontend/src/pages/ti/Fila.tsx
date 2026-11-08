@@ -18,7 +18,7 @@ import { atribuir, useTecnicos } from "../../lib/equipe";
 import { textoMinutos, useConfigTI } from "../../lib/configTI";
 import { atrasado, cargaDaEquipe, organizarFila } from "../../lib/fila";
 import { resumo, ROTULO_AGUARDANDO, ROTULO_ORIGEM, ROTULO_PRIORIDADE } from "../../lib/formato";
-import { EXPAND_CHAMADO, mensagemErro, nomeSolicitante, pb, type Chamado, type Usuario } from "../../lib/pb";
+import { EXPAND_CHAMADO, ehObservador, mensagemErro, nomeSolicitante, pb, type Chamado, type Usuario } from "../../lib/pb";
 import { useRealtime } from "../../lib/useRealtime";
 import { ultimaVisita } from "../../lib/visto";
 import { ehVisao, VISOES, type Visao } from "../../lib/numeros";
@@ -217,8 +217,10 @@ function FaixaEquipe({ tecnicos, eu, carga, livres, filtro, aoFiltrar, arrastand
  * tipo (ícone) · problema (título, com a etiqueta só se for Urgente/Alta) e onde/quem embaixo · espera · com quem.
  * No PC as três últimas viram colunas alinhadas e dá para arrastar a linha (alça à esquerda) até alguém da Equipe.
  */
-function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir, aoAcoes, arrastavel, aoArrastar, semDono }: {
+function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir, aoAcoes, arrastavel, aoArrastar, semDono, soLeitura }: {
   c: Chamado;
+  /** conta só de leitura (observador): o dono aparece, mas não abre o menu; sem o "⋮" */
+  soLeitura?: boolean;
   /** bloco onde o dono é óbvio (Comigo = você, Livres = ninguém): só o ícone, sem o nome, para sobrar espaço */
   semDono?: boolean;
   /** quem pediu respondeu e você ainda não viu */
@@ -261,12 +263,12 @@ function Linha({ c, eu, posicao, realcado, selecionado, novaMensagem, aoAtribuir
       <span className="hidden w-32 shrink-0 truncate text-sm @5xl:block" title={nomeSolicitante(c)}>{nomeSolicitante(c)}</span>
       <span className="hidden w-32 shrink-0 truncate text-sm text-tinta-2 @3xl:block">{c.expand?.setor?.nome ?? "—"}</span>
       <span className="hidden w-24 shrink-0 text-sm text-tinta-2 @2xl:block"><Espera c={c} /></span>
-      <span className="hidden @2xl:block"><BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} comNome={!semDono} /></span>
-      <span className="hidden @2xl:block"><BotaoMais c={c} aoAbrir={aoAcoes} /></span>
+      <span className="hidden @2xl:block" inert={soLeitura}><BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} comNome={!semDono} /></span>
+      <span className={soLeitura ? "hidden w-11 @2xl:block" : "hidden @2xl:block"}>{!soLeitura && <BotaoMais c={c} aoAbrir={aoAcoes} />}</span>
       {/* lista estreita (celular ou com o chamado aberto ao lado): espera em cima, com quem embaixo */}
       <span className="flex shrink-0 flex-col items-end text-xs text-tinta-2 @2xl:hidden">
         <Espera c={c} />
-        <BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} />
+        <span inert={soLeitura}><BotaoDono c={c} eu={eu} aoAbrir={aoAtribuir} /></span>
       </span>
     </li>
   );
@@ -369,6 +371,8 @@ export function Fila() {
   const { config } = useConfigTI();
   const { usuario } = useAuth();
   const eu = usuario?.id ?? "";
+  // observador (equipe do Dino Desk): vê a fila inteira, sem pegar, passar nem reordenar
+  const soLeitura = ehObservador(usuario);
   const navegar = useNavigate();
   const tecnicos = useTecnicos();
   const [chamados, setChamados] = useState<Chamado[] | null>(null);
@@ -511,6 +515,7 @@ export function Fila() {
   const cartao = (c: Chamado, semDono?: boolean) => (
     <Linha
       semDono={semDono}
+      soLeitura={soLeitura}
       key={c.id}
       c={c}
       eu={eu}
@@ -518,9 +523,9 @@ export function Fila() {
       novaMensagem={novaMensagem(c)}
       realcado={realce === c.id}
       selecionado={verId === c.id}
-      aoAtribuir={() => setMenu(c)}
-      aoAcoes={() => setAcoes(c)}
-      arrastavel={podeArrastar}
+      aoAtribuir={() => { if (!soLeitura) setMenu(c); }}
+      aoAcoes={() => { if (!soLeitura) setAcoes(c); }}
+      arrastavel={podeArrastar && !soLeitura}
       aoArrastar={setArrastando}
     />
   );
@@ -640,7 +645,7 @@ export function Fila() {
       {/* celular: abas das visões (no PC elas ficam na barra lateral), a Equipe e o atalho para Todos os chamados */}
       <div className="sem-barra -mx-4 flex gap-2 overflow-x-auto px-4 md:hidden">
         <div role="tablist" aria-label="Visões da fila" className="flex gap-2">
-          {[{ id: null, rotulo: "Tudo", Icone: null }, ...VISOES].map((v) => {
+          {[{ id: null, rotulo: "Tudo", Icone: null }, ...VISOES.filter((v) => !soLeitura || v.id === "livres")].map((v) => {
             const ativa = visao === v.id && !filtro;
             return (
               <button
@@ -722,12 +727,12 @@ export function Fila() {
         </>
       ) : (
         <>
-          {(comigo.length > 0 || esperando.length > 0) && secao("Comigo", comigo, {
+          {!soLeitura && (comigo.length > 0 || esperando.length > 0) && secao("Comigo", comigo, {
             // o número é o mesmo de "Comigo" na barra lateral (sem os em espera, que têm o deles)
             tom: "meu", semDono: true, depois: blocoEspera, id: "raia-comigo",
           })}
 
-          {proximo ? (
+          {soLeitura ? null : proximo ? (
             <Proximo c={proximo} eu={eu} posicao={fila.indexOf(proximo) + 1} aoComecar={() => comecar(proximo)} aoAtribuir={() => setMenu(proximo)} aoAcoes={() => setAcoes(proximo)} ocupado={pegando === proximo.id} realcado={realce === proximo.id} novaMensagem={novaMensagem(proximo)} />
           ) : (
             <div className="rounded-2xl bg-superficie p-8 text-center ring-1 ring-linha">
@@ -747,7 +752,7 @@ export function Fila() {
           {livresDepois.length > 10 && rodapeDe(livresDepois)}
 
           {daEquipe.length > 0 && (
-            <details className="group/equipe">
+            <details className="group/equipe" open={soLeitura || undefined}>
               <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-1 text-lg font-bold text-tinta-2 hover:text-tinta [&::-webkit-details-marker]:hidden">
                 <ChevronRight className="size-5 transition-transform group-open/equipe:rotate-90" aria-hidden="true" />
                 Com a equipe <span className="font-display text-base">{daEquipe.length}</span>

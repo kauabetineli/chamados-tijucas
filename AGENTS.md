@@ -128,7 +128,7 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 ## Modelo de dados (resumo)
 
 - `users` (auth): name, **matricula** (login, até 8 dígitos, única), email (opcional), setor → setores,
-  papel (`solicitante` | `tecnico`), admin (admin do TI), ramal (próprio, opcional), trocar_senha, bloqueado, ficticio,
+  papel (`solicitante` | `tecnico` | `observador` = equipe do Dino Desk, vê tudo o que o TI vê e não muda nada; só o superusuário cria), admin (admin do TI), ramal (próprio, opcional), trocar_senha, bloqueado, ficticio,
   ausente_de/ausente_ate/ausencia_motivo e sem_automatico (técnicos; só o TI vê), equipe_projeto (vê o Feedback do sistema; só o superusuário marca).
   **Não há cadastro público**: só o admin do TI cria contas (`POST /api/ti/usuarios`); a pessoa só troca a própria senha.
   O PocketBase ESCONDE o e-mail de outros usuários; o TI usa `GET /api/ti/usuarios`. O servidor vê as contas de técnicos

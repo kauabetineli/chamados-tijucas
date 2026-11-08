@@ -70,7 +70,7 @@ routerAdd("POST", "/api/chamados/{id}/reabrir", (e) => {
 // ?dias=30 (padrão) define o período.
 routerAdd("GET", "/api/painel/resumo", (e) => {
   const R = require(`${__hooks}/lib/regras.js`);
-  if (!e.hasSuperuserAuth() && !R.ehTecnico(e.auth)) throw new ForbiddenError("Somente o TI.");
+  if (!e.hasSuperuserAuth() && !R.veComoTI(e.auth)) throw new ForbiddenError("Somente o TI.");
 
   let dias = parseInt(e.request.url.query().get("dias"), 10);
   if (!(dias > 0 && dias <= 366)) dias = 30;
@@ -166,10 +166,10 @@ routerAdd("GET", "/api/chamados/semelhantes", (e) => {
 // ?ano=2026  &tecnico=id (só o admin do TI vê os de outro técnico; padrão = quem está logado)
 routerAdd("GET", "/api/painel/tecnico", (e) => {
   const R = require(`${__hooks}/lib/regras.js`);
-  if (!e.hasSuperuserAuth() && !R.ehTecnico(e.auth)) throw new ForbiddenError("Somente o TI.");
+  if (!e.hasSuperuserAuth() && !R.veComoTI(e.auth)) throw new ForbiddenError("Somente o TI.");
   const q = e.request.url.query();
   let tecnico = q.get("tecnico") || (e.auth ? e.auth.id : "");
-  if (tecnico !== (e.auth && e.auth.id) && !e.hasSuperuserAuth() && !R.ehAdmin(e.auth)) {
+  if (tecnico !== (e.auth && e.auth.id) && !e.hasSuperuserAuth() && !R.ehAdmin(e.auth) && !R.ehObservador(e.auth)) {
     throw new ForbiddenError("Só o administrador do TI vê os números de outro técnico.");
   }
   const agoraAno = new Date().getFullYear();
@@ -251,7 +251,7 @@ routerAdd("GET", "/api/painel/tecnico", (e) => {
 // (palavras em comum na descrição) e, empatando, os mais recentes. Só para o TI.
 routerAdd("GET", "/api/chamados/{id}/solucoes-parecidas", (e) => {
   const R = require(`${__hooks}/lib/regras.js`);
-  if (!e.hasSuperuserAuth() && !R.ehTecnico(e.auth)) throw new ForbiddenError("Somente o TI.");
+  if (!e.hasSuperuserAuth() && !R.veComoTI(e.auth)) throw new ForbiddenError("Somente o TI.");
   const c = e.app.findRecordById("chamados", e.request.pathValue("id"));
   const candidatos = e.app.findRecordsByFilter(
     "chamados", "status = 'resolvido' && categoria = {:cat} && id != {:id} && solucao != ''", "-resolvido_em", 60, 0,

@@ -18,7 +18,8 @@ Consultas
 
 Criação
   setor:criar    --nome "Tributos" [--predio "Paço Municipal"] [--ramal 2045]
-  usuario:criar  [--nome "Maria"] [--matricula 12345] [--email maria@x] [--setor Engenharia] [--ramal 2134] [--papel tecnico] [--admin]
+  usuario:criar  [--nome "Maria"] [--matricula 12345] [--email maria@x] [--setor Engenharia] [--ramal 2134] [--papel tecnico|observador] [--admin]
+                 observador = equipe do Dino Desk, vê tudo e não muda nada
                  [--senha ...] [--real]        (sem --real a conta é FICTÍCIA)
   usuarios:ficticios --quantidade 10 [--tecnicos 2] [--senha Teste@1234]
   chamado:abrir  [--solicitante email] [--categoria Impressora] [--impacto so_eu|setor|publico]

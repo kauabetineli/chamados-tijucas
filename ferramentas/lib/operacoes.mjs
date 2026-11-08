@@ -122,6 +122,10 @@ export async function criarUsuario(dino, { nome, matricula, email, setor, papel 
   const r = await dino.req("POST", "/api/ti/usuarios", {
     corpo: { nome, matricula: String(matricula), email: email || "", setor: s?.id || "", papel, admin, ramal, senha, ficticio },
   });
+  // observador = equipe do Dino Desk (só leitura): já entra com acesso à área Feedback
+  if (papel === "observador") {
+    await dino.req("PATCH", `/api/collections/users/records/${r.usuario.id}`, { corpo: { equipe_projeto: true } });
+  }
   log(`+ ${ficticio ? "usuário fictício" : "usuário"}: ${r.usuario.nome} (mat. ${r.usuario.matricula}) (${r.usuario.papel}${r.usuario.admin ? ", admin" : ""}${r.usuario.setor_nome ? ", " + r.usuario.setor_nome : ""})`);
   return r;
 }

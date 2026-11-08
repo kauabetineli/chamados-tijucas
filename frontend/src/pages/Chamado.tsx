@@ -17,7 +17,7 @@ import { Espera } from "../components/Espera";
 import { useAuth } from "../lib/auth";
 import { dentroDoHorario, diasParaConfirmar, mensagemForaDoHorario, useConfigTI } from "../lib/configTI";
 import { dataHora, ROTULO_AGUARDANDO, ROTULO_IMPACTO, ROTULO_ORIGEM, ROTULO_STATUS } from "../lib/formato";
-import { EXPAND_CHAMADO, ehTecnico, mensagemErro, nomeSolicitante, pb, type Chamado as TChamado, type Status, ramalDe } from "../lib/pb";
+import { EXPAND_CHAMADO, ehObservador, veComoTI, mensagemErro, nomeSolicitante, pb, type Chamado as TChamado, type Status, ramalDe } from "../lib/pb";
 import { convidarOpiniao } from "../lib/opiniao";
 import { useRealtime } from "../lib/useRealtime";
 import { useMediaQuery } from "../lib/useMediaQuery";
@@ -45,7 +45,9 @@ export function DetalheChamado({ id, embutido, gaveta, controles, etiqueta }: {
   etiqueta?: string;
 }) {
   const { usuario } = useAuth();
-  const tecnico = ehTecnico(usuario);
+  const tecnico = veComoTI(usuario);
+  // observador (equipe do Dino Desk): vê como o TI, mas os controles ficam travados
+  const soLeitura = ehObservador(usuario);
   // celular (coluna única): soluções parecidas vão para depois das ações do técnico
   const pc = useMediaQuery("(min-width: 768px)");
   const estado = useLocation().state as { novo?: boolean } | null;
@@ -119,7 +121,7 @@ export function DetalheChamado({ id, embutido, gaveta, controles, etiqueta }: {
   }
 
   if (gaveta) {
-    return <Gaveta c={c} etiqueta={etiqueta} tecnico={tecnico} controles={controles} aoMudar={carregar} paraOServidor={paraOServidor} oQueOTIFez={oQueOTIFez} conversa={conversa} />;
+    return <Gaveta c={c} etiqueta={etiqueta} tecnico={tecnico} soLeitura={soLeitura} controles={controles} aoMudar={carregar} paraOServidor={paraOServidor} oQueOTIFez={oQueOTIFez} conversa={conversa} />;
   }
 
   return (
@@ -193,7 +195,7 @@ export function DetalheChamado({ id, embutido, gaveta, controles, etiqueta }: {
         {tecnico && (
           <aside className="md:col-start-2 md:row-span-2 md:row-start-1">
             <div className={embutido ? "" : "md:sticky md:top-6"}>
-              <PainelTecnico chamado={c} aoMudar={carregar} />
+              <fieldset disabled={soLeitura} className="min-w-0"><PainelTecnico chamado={c} aoMudar={carregar} /></fieldset>
             </div>
           </aside>
         )}
@@ -302,8 +304,8 @@ type Aba = "conversa" | "fotos" | "parecidas";
  * Chamado na gaveta da direita (PC): cabeçalho fixo com protocolo, situação e os botões do painel; o problema e os dados
  * em duas colunas; as ações do técnico numa linha; e abas Conversa / Fotos / Soluções parecidas.
  */
-function Gaveta({ c, etiqueta, tecnico, controles, aoMudar, paraOServidor, oQueOTIFez, conversa }: {
-  c: TChamado; etiqueta?: string; tecnico: boolean; controles?: ReactNode; aoMudar: () => void;
+function Gaveta({ c, etiqueta, tecnico, soLeitura, controles, aoMudar, paraOServidor, oQueOTIFez, conversa }: {
+  c: TChamado; etiqueta?: string; tecnico: boolean; soLeitura: boolean; controles?: ReactNode; aoMudar: () => void;
   paraOServidor: ReactNode; oQueOTIFez: ReactNode; conversa: ReactNode;
 }) {
   const [aba, setAba] = useState<Aba>("conversa");
@@ -372,8 +374,8 @@ function Gaveta({ c, etiqueta, tecnico, controles, aoMudar, paraOServidor, oQueO
 
       {tecnico && c.solicitante && <HistoricoDaPessoa c={c} />}
       {paraOServidor}
-      {tecnico && c.status !== "resolvido" && <LigarAoAviso chamadoId={c.id} aviso={c.aviso} aoMudar={aoMudar} />}
-      {tecnico && <PainelTecnico chamado={c} aoMudar={aoMudar} linha />}
+      {tecnico && !soLeitura && c.status !== "resolvido" && <LigarAoAviso chamadoId={c.id} aviso={c.aviso} aoMudar={aoMudar} />}
+      {tecnico && <fieldset disabled={soLeitura} className="min-w-0"><PainelTecnico chamado={c} aoMudar={aoMudar} linha /></fieldset>}
       {oQueOTIFez}
 
       <div>

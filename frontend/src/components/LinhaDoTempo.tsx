@@ -9,7 +9,7 @@ import { useAuth } from "../lib/auth";
 import { avisar } from "../lib/avisos";
 import { dataHora } from "../lib/formato";
 import { prepararArquivo } from "../lib/imagem";
-import { ehTecnico, mensagemErro, pb, type Interacao, type Status } from "../lib/pb";
+import { ehObservador, mensagemErro, pb, veComoTI, type Interacao, type Status } from "../lib/pb";
 import { useRealtime } from "../lib/useRealtime";
 import { marcarVisto } from "../lib/visto";
 import { RespostasProntas } from "./RespostasProntas";
@@ -59,7 +59,9 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
   aoMudarChamado?: () => void;
 }) {
   const { usuario } = useAuth();
-  const tecnico = ehTecnico(usuario);
+  // observador (equipe do Dino Desk): lê a conversa inteira, como o TI, mas não escreve
+  const tecnico = veComoTI(usuario);
+  const soLeitura = ehObservador(usuario);
   const [params, setParams] = useSearchParams();
   const [itens, setItens] = useState<Interacao[]>([]);
   const [carregou, setCarregou] = useState(false);
@@ -268,6 +270,9 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
         })}
       </ol>
 
+      {soLeitura ? (
+        <p className="mt-4 rounded-xl bg-fundo px-3 py-2 text-sm text-tinta-2 ring-1 ring-linha">Conta só de leitura: você acompanha a conversa, sem responder.</p>
+      ) : (
       <form
         onSubmit={enviar}
         className="mt-4 space-y-2"
@@ -354,6 +359,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
         </div>
         {erro && <p className="text-sm font-semibold text-alerta">{erro}</p>}
       </form>
+      )}
 
       {aberta && itensAbertos.length > 0 && (
         <Visualizador

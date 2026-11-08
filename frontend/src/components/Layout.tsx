@@ -10,7 +10,7 @@ import { BarraLateral } from "./BarraLateral";
 import { BarraTopo } from "./BarraTopo";
 import { Opiniao } from "./Opiniao";
 import { PainelChamado } from "./PainelChamado";
-import { ehTecnico } from "../lib/pb";
+import { ehObservador, veComoTI } from "../lib/pb";
 import { useNumeros, VISOES, type Numeros } from "../lib/numeros";
 import { useTecladoAberto } from "../lib/teclado";
 
@@ -34,7 +34,8 @@ const DENTRO_DE_VOCE = ["/configuracoes", "/ti/painel", "/ti/usuarios", "/ti/con
 
 export function Layout() {
   const { usuario } = useAuth();
-  const itens = ehTecnico(usuario) ? TECNICO : SOLICITANTE;
+  // observador (equipe do Dino Desk, só leitura): as telas do TI, sem "Registrar"
+  const itens = veComoTI(usuario) ? TECNICO.filter((i) => !(ehObservador(usuario) && i.para === "/ti/registrar")) : SOLICITANTE;
   // no passo a passo de novo chamado a barra de baixo some: o único botão no rodapé é o da etapa
   const caminho = useLocation().pathname;
   const focado = caminho === "/novo";
@@ -45,7 +46,7 @@ export function Layout() {
   const ativo = (i: Item, isActive: boolean) =>
     isActive || (i.para === "/ti" && caminho === "/ti/chamados") || (i.para === "/perfil" && DENTRO_DE_VOCE.includes(caminho));
   const numeros = useNumeros();
-  const tecnico = ehTecnico(usuario);
+  const tecnico = veComoTI(usuario);
   const [params] = useSearchParams();
   const navegar = useNavigate();
   // celular, técnico: tocar de novo em "Fila" (já estando nela) abre o menu das visões
@@ -160,6 +161,8 @@ function MenuVisoes({ numeros, atual, aoEscolher, aoFechar }: {
   aoEscolher: (v: string) => void;
   aoFechar: () => void;
 }) {
+  const { usuario } = useAuth();
+  const soLeitura = ehObservador(usuario);
   const caixa = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const fora = (e: PointerEvent) => { if (!caixa.current?.parentElement?.contains(e.target as Node)) aoFechar(); };
@@ -168,7 +171,7 @@ function MenuVisoes({ numeros, atual, aoEscolher, aoFechar }: {
     window.addEventListener("keydown", tecla);
     return () => { document.removeEventListener("pointerdown", fora); window.removeEventListener("keydown", tecla); };
   }, [aoFechar]);
-  const opcoes = [{ id: "", rotulo: "Fila completa", Icone: ListOrdered, total: numeros?.fila }, ...VISOES.map((v) => ({ id: v.id as string, rotulo: v.rotulo as string, Icone: v.Icone, total: numeros?.[v.id] }))];
+  const opcoes = [{ id: "", rotulo: "Fila completa", Icone: ListOrdered, total: numeros?.fila }, ...VISOES.filter((v) => !soLeitura || v.id === "livres").map((v) => ({ id: v.id as string, rotulo: v.rotulo as string, Icone: v.Icone, total: numeros?.[v.id] }))];
   return (
     <div
       ref={caixa}

@@ -36,6 +36,15 @@ Guia para o Departamento de TI. Tempo estimado: 30 minutos.
 Não existe cadastro público: só o administrador do TI cria contas (login pela matrícula; e-mail é opcional).
 Pela CLI: `node ferramentas/dino.mjs usuario:criar --real --nome "..." --matricula 12345 --papel tecnico --admin`.
 
+### Conta da equipe do Dino Desk (só leitura)
+
+Para os estudantes acompanharem o piloto sem mexer em nada: no painel `/_/`, coleção `users`, crie a conta com
+`papel = observador` e marque `equipe_projeto` (ou, pelas ferramentas:
+`node ferramentas/dino.mjs usuario:criar --real --papel observador --nome "..." --matricula 12345`).
+Ela vê tudo o que o TI vê (fila, chamados com conversa e notas internas, painel, pessoas, configurações),
+não abre, não responde, não atribui e não salva nada. Aparece para o TI em **Pessoas e setores** com o selo
+"Equipe do Dino Desk · só leitura", e o admin do TI pode bloquear a qualquer momento.
+
 ## 4. Avisos no celular dos técnicos (ntfy)
 
 1. Cada técnico instala o app **ntfy** (Android ou iPhone) e assina o tópico do TI (nome longo e aleatório,
