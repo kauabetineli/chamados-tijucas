@@ -101,7 +101,7 @@ export function TodosChamados() {
   const pag = usePaginacao("todos-chamados", 25);
   const [busca, setBusca] = useState(params.get("q") ?? "");
   const [baixando, setBaixando] = useState(false);
-  const [verFiltros, setVerFiltros] = useState(false); // celular: filtros recolhidos
+  const [verFiltros, setVerFiltros] = useState(false); // o painel de filtros começa fechado
   const [, setTique] = useState(0);
   const col = useColunas("todos-chamados", COLUNAS);
   const tabela = useRef<HTMLTableElement>(null);
@@ -117,6 +117,14 @@ export function TodosChamados() {
     ordem: params.get("ordem") ?? "-aberto",
   };
   const algumFiltro = f.prioridade || f.categoria || f.setor || f.responsavel || f.periodo || f.q || f.situacao;
+  // filtros do painel que estão ligados, como chips com X
+  const ativos = [
+    f.prioridade && { chave: "prioridade", texto: ROTULO_PRIORIDADE[f.prioridade as Prioridade] ?? f.prioridade },
+    f.categoria && { chave: "categoria", texto: categorias.find((c) => c.id === f.categoria)?.nome ?? "Categoria" },
+    f.setor && { chave: "setor", texto: setores.find((x) => x.id === f.setor)?.nome ?? "Setor" },
+    f.responsavel && { chave: "responsavel", texto: f.responsavel === "ninguem" ? "Sem responsável" : `Com ${tecnicos.find((t) => t.id === f.responsavel)?.name.split(" ")[0] ?? "técnico"}` },
+    f.periodo && { chave: "periodo", texto: PERIODOS.find((p) => p.valor === f.periodo)?.rotulo ?? "Período" },
+  ].filter(Boolean) as { chave: string; texto: string }[];
 
   function mudar(chave: string, valor: string) {
     const p = new URLSearchParams(params);
@@ -272,32 +280,39 @@ export function TodosChamados() {
         acoes={<VisaoTI />}
       />
 
-      {/* filtros */}
+      {/* filtros: situação em pílulas; busca + "Filtros" (painel que abre); filtros ligados viram chips com X */}
       <div className="space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
-        {/* celular: uma linha que rola para o lado; PC: quebra linha */}
-        {/* py-1/-my-1: folga para o contorno arredondado não ser cortado pela rolagem */}
-        <div className="sem-barra -mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label="Situação">
-          {SITUACOES.map((s) => (
-            <button
-              key={s.valor}
-              type="button"
-              aria-pressed={f.situacao === s.valor}
-              onClick={() => mudar("situacao", s.valor)}
-              className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold ring-1 ${
-                f.situacao === s.valor ? "bg-mar-700 text-white ring-acento" : "ring-linha hover:ring-acento"
-              }`}
-            >
-              {s.rotulo}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* celular: uma linha que rola para o lado; py-1/-my-1: folga para o contorno não ser cortado */}
+          <div className="sem-barra -mx-4 flex min-w-0 flex-1 gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label="Situação">
+            {SITUACOES.map((s) => (
+              <button
+                key={s.valor}
+                type="button"
+                aria-pressed={f.situacao === s.valor}
+                onClick={() => mudar("situacao", s.valor)}
+                className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold ring-1 ${
+                  f.situacao === s.valor ? "bg-mar-700 text-white ring-acento" : "ring-linha hover:ring-acento"
+                }`}
+              >
+                {s.rotulo}
+              </button>
+            ))}
+          </div>
+          <div className="hidden items-center gap-2 md:flex">
+            <MenuColunas col={col} />
+            <button type="button" className="btn-secundario min-h-10 px-3 text-sm" onClick={baixar} disabled={baixando || !total} title="Baixar planilha (CSV) com os chamados filtrados">
+              <Download className="size-4" aria-hidden="true" /> {baixando ? "Gerando..." : "CSV"}
             </button>
-          ))}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="relative min-w-0 flex-1 md:min-w-56">
+          <label className="relative min-w-0 flex-1">
             <span className="sr-only">Buscar</span>
             <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-tinta-2" aria-hidden="true" />
             <input
               type="search"
-            enterKeyHint="search"
+              enterKeyHint="search"
               className="campo min-h-11 py-2 pl-10 text-sm"
               placeholder="Protocolo, descrição, quem pediu ou solução"
               value={busca}
@@ -308,12 +323,14 @@ export function TodosChamados() {
             type="button"
             onClick={() => setVerFiltros((v) => !v)}
             aria-expanded={verFiltros}
-            className="btn-secundario min-h-11 px-3 text-sm md:hidden"
+            aria-controls="painel-filtros"
+            className={`btn-secundario min-h-11 px-3 text-sm ${verFiltros ? "ring-2 ring-acento" : ""}`}
           >
             <SlidersHorizontal className="size-4" aria-hidden="true" />
-            Filtros{[f.prioridade, f.categoria, f.setor, f.responsavel, f.periodo].filter(Boolean).length ? ` (${[f.prioridade, f.categoria, f.setor, f.responsavel, f.periodo].filter(Boolean).length})` : ""}
+            Filtros{ativos.length ? ` (${ativos.length})` : ""}
           </button>
-          <div className={`${verFiltros ? "grid" : "hidden"} w-full grid-cols-2 gap-2 md:contents`}>
+        </div>
+        <div id="painel-filtros" className={`${verFiltros ? "grid" : "hidden"} grid-cols-2 gap-2 md:grid-cols-5`}>
           <select aria-label="Prioridade" className={select} value={f.prioridade} onChange={(e) => mudar("prioridade", e.target.value)}>
             <option value="">Toda prioridade</option>
             {(["urgente", "alta", "normal", "baixa"] as Prioridade[]).map((p) => <option key={p} value={p}>{ROTULO_PRIORIDADE[p]}</option>)}
@@ -334,21 +351,26 @@ export function TodosChamados() {
           <select aria-label="Período" className={select} value={f.periodo} onChange={(e) => mudar("periodo", e.target.value)}>
             {PERIODOS.map((p) => <option key={p.valor} value={p.valor}>{p.rotulo}</option>)}
           </select>
-          </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {algumFiltro ? (
-            <button type="button" onClick={() => { setBusca(""); setParams(new URLSearchParams(), { replace: true }); }} className="inline-flex items-center gap-1 text-sm font-semibold text-acento">
-              <X className="size-4" aria-hidden="true" /> Limpar filtros
-            </button>
-          ) : <span />}
+        {(ativos.length > 0 || algumFiltro) && (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="hidden md:block"><MenuColunas col={col} /></span>
-            <button type="button" className="btn-secundario min-h-10 px-3 text-sm" onClick={baixar} disabled={baixando || !total}>
-              <Download className="size-4" aria-hidden="true" /> {baixando ? "Gerando..." : "Baixar planilha (CSV)"}
-            </button>
+            {ativos.map((a) => (
+              <button key={a.chave} type="button" onClick={() => mudar(a.chave, "")}
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-mar-50 px-3 text-sm font-semibold text-acento hover:ring-1 hover:ring-acento"
+                aria-label={`Tirar o filtro ${a.texto}`}>
+                {a.texto} <X className="size-3.5" aria-hidden="true" />
+              </button>
+            ))}
+            {algumFiltro && (
+              <button type="button" onClick={() => { setBusca(""); setParams(new URLSearchParams(), { replace: true }); }} className="min-h-9 px-2 text-sm font-semibold text-tinta-2 hover:text-tinta">
+                Limpar tudo
+              </button>
+            )}
           </div>
-        </div>
+        )}
+        <button type="button" className="btn-secundario min-h-10 w-full px-3 text-sm md:hidden" onClick={baixar} disabled={baixando || !total}>
+          <Download className="size-4" aria-hidden="true" /> {baixando ? "Gerando..." : "Baixar planilha (CSV)"}
+        </button>
       </div>
 
       {itens === null && (
