@@ -371,7 +371,7 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
             </button>
           )}
           <button
-            className={`grid size-11 shrink-0 place-items-center rounded-full text-white transition-colors ${podeEnviar ? "bg-mar-700 hover:bg-noite" : "bg-linha"}`}
+            className={`grid size-11 shrink-0 place-items-center rounded-full text-white transition-colors ${podeEnviar ? "bg-mar-700 hover:bg-mar" : "bg-linha"}`}
             disabled={!podeEnviar}
             aria-label={enviando ? "Enviando" : interno ? "Salvar nota interna" : "Enviar"}
             title={noPc ? "Enviar (Ctrl+Enter)" : "Enviar"}
