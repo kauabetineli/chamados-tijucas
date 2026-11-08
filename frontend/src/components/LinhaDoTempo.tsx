@@ -295,22 +295,11 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setSobre(false); }}
         onDrop={(e) => { if (!arrastando(e)) return; e.preventDefault(); setSobre(false); adicionar(e.dataTransfer.files); }}
       >
+        {/* respostas prontas sempre no lugar (trocar para nota interna não mexe na área); escolher uma volta para a mensagem */}
         {tecnico && (
-          <div role="group" aria-label="Quem vai ler" className="flex w-fit rounded-lg bg-fundo p-0.5 text-sm ring-1 ring-linha">
-            <button type="button" aria-pressed={!interno} onClick={() => setInterno(false)}
-              className={`min-h-9 rounded-md px-3 font-semibold ${!interno ? "bg-superficie text-tinta shadow-sm ring-1 ring-linha" : "text-tinta-2 hover:text-tinta"}`}>
-              Para {solicitanteNome ? primeiroNome(solicitanteNome) : "quem pediu"}
-            </button>
-            <button type="button" aria-pressed={interno} onClick={() => setInterno(true)}
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 font-semibold ${interno ? "bg-sol-50 text-tinta shadow-sm ring-1 ring-linha" : "text-tinta-2 hover:text-tinta"}`}>
-              <Lock className="size-4" aria-hidden="true" /> Nota interna
-            </button>
-          </div>
-        )}
-        {tecnico && !interno && (
           <RespostasProntas
-            selecionada={texto}
-            aoEscolher={(t, a) => { setTexto(t); setAcaoPronta(a ? { texto: t, acao: a } : null); }}
+            selecionada={interno ? "" : texto}
+            aoEscolher={(t, a) => { setInterno(false); setTexto(t); setAcaoPronta(a ? { texto: t, acao: a } : null); }}
           />
         )}
         {acaoValendo && (
@@ -391,6 +380,21 @@ export function LinhaDoTempo({ chamadoId, solicitanteId, solicitanteNome, status
             </div>
           )}
         </div>
+        {/* embaixo da caixa, pequeno: quem vai ler. Altura fixa, então ligar e desligar não mexe em nada */}
+        {tecnico && (
+          <div className="flex min-h-9 items-center gap-2 px-1 text-sm">
+            <button type="button" aria-pressed={interno} onClick={() => { setInterno(!interno); caixaTexto.current?.focus(); }}
+              title={interno ? "Voltar a escrever para quem pediu" : "Escrever uma nota que só o TI vê"}
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-semibold ring-1 ${
+                interno ? "bg-sol-50 text-tinta ring-ambar" : "text-tinta-2 ring-linha hover:text-tinta hover:ring-acento"}`}>
+              <Lock className="size-4" aria-hidden="true" /> Nota interna
+            </button>
+            <span className="truncate text-tinta-2">
+              {interno ? "Só o TI vê." : `Vai para ${solicitanteNome ? primeiroNome(solicitanteNome) : "quem pediu"}.`}
+            </span>
+            {noPc && <span className="ml-auto hidden shrink-0 text-xs text-tinta-2 sm:block">Ctrl+Enter envia</span>}
+          </div>
+        )}
         {erro && <p className="text-sm font-semibold text-alerta">{erro}</p>}
       </form>
       )}
