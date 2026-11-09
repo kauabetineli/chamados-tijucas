@@ -202,7 +202,6 @@ function JanelaOpiniao({ soNota, tecnico, tela, aoFechar }: { soNota: boolean; t
           </p>
         </fieldset>
 
-        <p className="text-xs text-tinta-2">Vai junto: seu nome, setor e a tela em que você estava ({tela}).</p>
         {erro && <p role="alert" className="font-bold text-alerta">{erro}</p>}
       </div>
     </PainelRapido>
