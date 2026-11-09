@@ -221,7 +221,7 @@ function ChamadoEnviado({ c, aFrente, comEmail, foraDoHorario, aoAcompanhar }: {
       <div>
         <h1 className="text-2xl font-bold md:text-3xl">Chamado enviado!</h1>
         <p className="mt-2 text-lg text-tinta-2">
-          O TI já recebeu. Você não precisa mandar WhatsApp: a resposta chega por aqui{comEmail ? " e por e-mail" : ""}.
+          Recebemos o seu chamado. Você não precisa mandar WhatsApp: vamos responder por aqui{comEmail ? " e por e-mail" : ""}.
         </p>
         {foraDoHorario && <p className="mt-2 text-tinta-2">{foraDoHorario}</p>}
       </div>
@@ -231,7 +231,7 @@ function ChamadoEnviado({ c, aFrente, comEmail, foraDoHorario, aoAcompanhar }: {
         </div>
       )}
       <ol className="space-y-3 rounded-2xl bg-superficie p-5 text-left ring-1 ring-linha">
-        {["Alguém do TI pega o seu chamado.", "Se precisar, ele pergunta por aqui.", "Quando resolver, você confirma se deu certo."].map((t, i) => (
+        {["Um de nós pega o seu chamado.", "Se precisarmos de algo, perguntamos por aqui.", "Quando resolvermos, você confirma se deu certo."].map((t, i) => (
           <li key={t} className="flex items-center gap-3">
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-mar-50 font-bold text-acento">{i + 1}</span>
             <span>{t}</span>
@@ -253,7 +253,7 @@ function AvisoEspera({ c }: { c: TChamado }) {
     <div role="status" className="flex items-start gap-3 rounded-2xl border-l-8 border-acento bg-mar-50 p-4">
       <MessageCircleQuestion className="mt-0.5 size-6 shrink-0 text-acento" aria-hidden="true" />
       <div>
-        <p className="font-bold">O TI precisa de uma resposta sua.</p>
+        <p className="font-bold">Precisamos de uma resposta sua.</p>
         <p className="text-tinta-2">Leia a última mensagem na conversa e responda por lá. O atendimento continua assim que você responder.</p>
         <a href="#mensagem" className="mt-2 inline-flex min-h-11 items-center font-semibold text-acento underline underline-offset-4">Ir para a conversa</a>
       </div>
@@ -262,8 +262,8 @@ function AvisoEspera({ c }: { c: TChamado }) {
     <div role="status" className="flex items-start gap-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
       <Hourglass className="mt-0.5 size-6 shrink-0 text-acento" aria-hidden="true" />
       <p>
-        <b>{c.expand?.responsavel?.name ?? "O TI"} está aguardando {ROTULO_AGUARDANDO[c.aguardando_motivo]}.</b>{" "}
-        <span className="text-tinta-2">O chamado continua com o TI; você não precisa abrir outro.</span>
+        <b>{c.expand?.responsavel?.name ? `${c.expand.responsavel.name} está` : "Estamos"} aguardando {ROTULO_AGUARDANDO[c.aguardando_motivo]}.</b>{" "}
+        <span className="text-tinta-2">O chamado continua em atendimento; você não precisa abrir outro.</span>
       </p>
     </div>
   );
@@ -272,7 +272,7 @@ function AvisoEspera({ c }: { c: TChamado }) {
 function OQueOTIFez({ c, doSolicitante }: { c: TChamado; doSolicitante: boolean }) {
   return (
     <section className="rounded-2xl border-l-8 border-campo bg-superficie p-5 ring-1 ring-linha">
-      <h2 className="text-xl font-bold">O que o TI fez</h2>
+      <h2 className="text-xl font-bold">O que fizemos</h2>
       {c.diagnostico && (
         <p className="texto-livre mt-2"><span className="font-semibold">Causa: </span>{c.diagnostico}</p>
       )}
@@ -513,7 +513,7 @@ function Confirmacao({ chamadoId, aoConcluir, resolvidoEm }: { chamadoId: string
     <section className="rounded-2xl bg-superficie p-5 ring-2 ring-campo">
       {etapa === "pergunta" && (
         <>
-          <h2 className="text-xl font-bold">O TI marcou como resolvido. Deu certo?</h2>
+          <h2 className="text-xl font-bold">Marcamos como resolvido. Deu certo?</h2>
           {faltam !== null && (
             <p className="mt-1 text-sm text-tinta-2">
               {faltam === 0 ? "Sem resposta, ele é considerado resolvido ainda hoje." : `Sem resposta, ele é considerado resolvido em ${faltam} ${faltam === 1 ? "dia útil" : "dias úteis"}.`}
@@ -530,7 +530,7 @@ function Confirmacao({ chamadoId, aoConcluir, resolvidoEm }: { chamadoId: string
         <div className="space-y-4">
           <div>
             <h2 className="text-xl font-bold">Que bom! Como foi o atendimento?</h2>
-            <p className="text-tinta-2">Sua resposta ajuda o TI a melhorar. É rápido e opcional.</p>
+            <p className="text-tinta-2">Sua resposta nos ajuda a melhorar. É rápido e opcional.</p>
           </div>
           <div role="radiogroup" aria-label="Como foi o atendimento" className="flex gap-2">
             {opcao("bom", ThumbsUp, "Bom")}

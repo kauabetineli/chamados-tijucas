@@ -417,7 +417,7 @@ export function AvisoNoNovoChamado({ className = "" }: { className?: string }) {
     setEnviando(a.id);
     try {
       const r = await tambemEstou(a.id, !a.tambem_eu);
-      avisar(r.eu ? "Pronto. O TI já sabe que você também está com esse problema." : "Tudo bem, tiramos o seu nome.");
+      avisar(r.eu ? "Pronto. Já sabemos que você também está com esse problema." : "Tudo bem, tiramos o seu nome.");
     } catch (err) {
       avisar(mensagemErro(err), { tipo: "erro" });
     } finally {
@@ -426,11 +426,11 @@ export function AvisoNoNovoChamado({ className = "" }: { className?: string }) {
   }
 
   return (
-    <section aria-label="O TI já sabe" className={`space-y-2 ${className}`}>
+    <section aria-label="Já estamos sabendo" className={`space-y-2 ${className}`}>
       {problemas.map((a) => (
         <div key={a.id} className="rounded-2xl bg-brasa-50 p-4 ring-1 ring-alerta/40">
           <p className="flex items-center gap-2 font-bold">
-            <AlertTriangle className="size-5 shrink-0 text-alerta" aria-hidden="true" /> O TI já sabe
+            <AlertTriangle className="size-5 shrink-0 text-alerta" aria-hidden="true" /> Já estamos sabendo
           </p>
           <p className="texto-livre mt-1">{a.texto}</p>
           {!/não precisa abrir chamado/i.test(a.texto) && <p className="mt-1 text-sm text-tinta-2">Se o seu problema é esse, não precisa abrir chamado.</p>}

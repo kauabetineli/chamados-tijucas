@@ -138,10 +138,10 @@ export function Painel({ f }: { f: FormularioChamado }) {
 
         <section className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
           <h2 className="flex items-center gap-2 font-display text-lg font-bold">
-            <Lightbulb className="size-5 text-acento" aria-hidden="true" /> O que ajuda o TI
+            <Lightbulb className="size-5 text-acento" aria-hidden="true" /> O que nos ajuda
           </h2>
           <p className="mt-1 text-sm text-tinta-2">
-            {nomeCategoria ? `Sobre ${nomeCategoria.toLowerCase()}, o TI costuma perguntar:` : "Responder isto no texto evita idas e vindas:"}
+            {nomeCategoria ? `Sobre ${nomeCategoria.toLowerCase()}, costumamos perguntar:` : "Responder isto no texto evita idas e vindas:"}
           </p>
           <ul className="mt-3 space-y-1.5">
             {dicas.map((d) => (
@@ -159,7 +159,7 @@ export function Painel({ f }: { f: FormularioChamado }) {
           <ol className="mt-3 space-y-3 text-sm">
             <li className="flex gap-3"><Ticket className="size-5 shrink-0 text-acento" aria-hidden="true" /><span>Você recebe uma <b>senha da fila</b> e vê quantos chamados estão antes do seu.</span></li>
             <li className="flex gap-3"><Clock className="size-5 shrink-0 text-acento" aria-hidden="true" /><span>{f.config.ordem_fila === "chegada" ? <>A fila segue a <b>ordem de chegada</b>.</> : f.config.ordem_fila === "prazo" ? <>A ordem segue o <b>prazo</b> de cada chamado: os mais urgentes têm prazo menor.</> : <>A ordem segue a <b>urgência</b> e, depois, quem pediu primeiro.</>}</span></li>
-            <li className="flex gap-3"><Info className="size-5 shrink-0 text-acento" aria-hidden="true" /><span>O TI responde <b>por aqui</b>: não precisa mandar WhatsApp.</span></li>
+            <li className="flex gap-3"><Info className="size-5 shrink-0 text-acento" aria-hidden="true" /><span>Respondemos <b>por aqui</b>: não precisa mandar WhatsApp.</span></li>
           </ol>
         </section>
       </aside>

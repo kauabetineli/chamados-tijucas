@@ -26,7 +26,7 @@ export function EscolhaPrioridade({ f, faltaMotivo }: { f: FormularioChamado; fa
       <p className="text-sm text-tinta-2">
         {f.prioridade === f.sugerida
           ? `Pela sua resposta, sugerimos ${ROTULO[f.sugerida]}. Se for mais grave, pode subir.`
-          : `Você escolheu ${ROTULO[f.prioridade]} (sugerida: ${ROTULO[f.sugerida]}). O TI vê que foi você quem escolheu.`}
+          : `Você escolheu ${ROTULO[f.prioridade]} (sugerida: ${ROTULO[f.sugerida]}). Vamos saber que foi você quem escolheu.`}
       </p>
       {f.precisaMotivo && (
         <label className="block space-y-1 font-semibold">

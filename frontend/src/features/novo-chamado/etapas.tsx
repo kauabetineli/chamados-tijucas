@@ -136,7 +136,7 @@ function EtapaDescricao({ f, modo, avancar }: PropsEtapa) {
         </div>
       </div>
       <div>
-        <p className="rotulo">Foto ou vídeo <span className="font-normal text-tinta-2">(opcional, ajuda o TI a resolver mais rápido)</span></p>
+        <p className="rotulo">Foto ou vídeo <span className="font-normal text-tinta-2">(opcional, nos ajuda a resolver mais rápido)</span></p>
         <SeletorAnexos
           arquivos={f.arquivos}
           onChange={f.setArquivos}

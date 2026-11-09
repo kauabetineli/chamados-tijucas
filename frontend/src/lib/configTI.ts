@@ -127,7 +127,7 @@ export function textoHorario(cfg: ConfigTI): string {
 
 /** Frase para quem abriu o chamado fora do horário (tela do chamado, logo depois de enviar). */
 export function mensagemForaDoHorario(cfg: ConfigTI): string {
-  return `O TI atende ${textoHorario(cfg)}: o seu chamado já está na fila e é visto quando a equipe voltar.`;
+  return `Atendemos ${textoHorario(cfg)}: o seu chamado já está na fila e vamos ver assim que voltarmos.`;
 }
 
 /* ---------- prioridade escolhida por quem abre ---------- */

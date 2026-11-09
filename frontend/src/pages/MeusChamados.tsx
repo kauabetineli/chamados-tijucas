@@ -128,7 +128,7 @@ export function MeusChamados() {
       <div className="mx-auto max-w-md py-12 text-center">
         <h1 className="text-2xl font-bold md:text-3xl">Precisa de ajuda do TI?</h1>
         <p className="mt-3 text-lg text-tinta-2">
-          Abra um chamado e acompanhe por aqui a sua vez na fila e as respostas do Departamento de TI.
+          Abra um chamado e acompanhe por aqui a sua vez na fila e as nossas respostas.
         </p>
         <Link to="/novo" className="btn-primario mt-6">
           <Plus className="size-5" aria-hidden="true" /> Novo chamado
@@ -147,7 +147,7 @@ export function MeusChamados() {
   // "O Hugo está cuidando de 1 chamado seu, 15 estão na fila e 1 precisa da sua resposta."
   const cuidando = [...new Set(emAtendimento.map((c) => c.expand?.responsavel?.name?.split(" ")[0]).filter(Boolean))];
   const resumoDoDia = emAberto === 0 ? "Nada em aberto agora." : [
-    emAtendimento.length ? `${cuidando.length === 1 ? `${cuidando[0]} está` : "O TI está"} cuidando de ${emAtendimento.length} ${emAtendimento.length === 1 ? "chamado seu" : "chamados seus"}` : "",
+    emAtendimento.length ? `${cuidando.length === 1 ? `${cuidando[0]} está` : "Estamos"} cuidando de ${emAtendimento.length} ${emAtendimento.length === 1 ? "chamado seu" : "chamados seus"}` : "",
     naFila.length ? `${naFila.length} ${naFila.length === 1 ? "está" : "estão"} na fila` : "",
     precisaDeVoce ? `${precisaDeVoce} ${precisaDeVoce === 1 ? "precisa" : "precisam"} de você` : "",
   ].filter(Boolean).join(", ").replace(/, ([^,]*)$/, " e $1") + ".";
@@ -206,7 +206,7 @@ export function MeusChamados() {
                   c={c}
                   selecionado={verId === c.id}
                   Icone={MessageCircleQuestion}
-                  titulo="O TI precisa de uma resposta sua."
+                  titulo="Precisamos de uma resposta sua."
                   acao="Responder"
                   novidade={novidade(c)}
                 />
@@ -216,7 +216,7 @@ export function MeusChamados() {
                   <LinkChamado id={c.id} para={`/chamado/${c.id}`} className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-acento" aria-hidden="true" />
                     <span className="min-w-0 flex-1">
-                      <span className="block font-bold">O TI resolveu: {resumo(c.descricao, 70).replace(/[.!?…]+$/, "")}. Deu certo?</span>
+                      <span className="block font-bold">Resolvemos: {resumo(c.descricao, 70).replace(/[.!?…]+$/, "")}. Deu certo?</span>
                       <span className="block text-sm text-tinta-2">
                         <span className="font-display font-bold text-tinta">{c.protocolo}</span>
                         {/* a solução pode ocupar várias linhas: vai na linha de baixo (sem o "·" de antes) */}
@@ -246,7 +246,7 @@ export function MeusChamados() {
 
           {emAtendimento.length > 0 && (
             <section aria-labelledby="t-atend" className="space-y-3">
-              <h2 id="t-atend" className="text-lg md:text-xl font-bold">Com o TI agora</h2>
+              <h2 id="t-atend" className="text-lg md:text-xl font-bold">Em atendimento</h2>
               {emAtendimento.map((c) => {
                 const quem = c.expand?.responsavel?.name?.split(" ")[0] ?? "Um técnico";
                 const msg = ultimaMensagem[c.id];
@@ -361,7 +361,7 @@ export function MeusChamados() {
         <section aria-labelledby="t-como" className="rounded-2xl bg-superficie p-5 ring-1 ring-linha">
           <h2 id="t-como" className="font-bold">Como funciona</h2>
           <ol className="mt-3 space-y-3 text-sm">
-            {["Você abre o chamado e recebe a sua posição na fila.", "O TI atende na ordem da fila; o que é urgente passa na frente.", "A conversa acontece aqui, sem precisar mandar WhatsApp."].map((t, i) => (
+            {["Você abre o chamado e recebe a sua posição na fila.", "Atendemos na ordem da fila; o que é urgente passa na frente.", "A conversa acontece aqui, sem precisar mandar WhatsApp."].map((t, i) => (
               <li key={t} className="flex gap-3">
                 <span className="grid size-6 shrink-0 place-items-center rounded-full bg-mar-50 text-xs font-bold text-acento">{i + 1}</span>
                 <span>{t}</span>

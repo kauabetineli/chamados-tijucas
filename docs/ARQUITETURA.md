@@ -182,7 +182,7 @@ vendo". Serve para o servidor não abrir 10 chamados do mesmo problema (problema
 linha só: **Avisar todos** abre modelos prontos (Internet fora do ar, Sistema parado, Impressoras, Manutenção programada
 ou escrever outro) que já trazem texto e tipo; o trecho `[entre colchetes]` vem selecionado para completar, e o prazo é
 um toque (1 h, 2 h, fim do dia, 3 dias, até encerrar). Com aviso no ar, a linha fica colorida com "some em…" e
-"Resolvido, encerrar". No **Novo chamado** o servidor vê os avisos de problema ("O TI já sabe") e pode tocar em
+"Resolvido, encerrar". No **Novo chamado** o servidor vê os avisos de problema ("Já estamos sabendo") e pode tocar em
 **Também estou com esse problema** (`POST /api/avisos/{id}/tambem`): o TI vê o número na hora, em vez de dez chamados
 repetidos. No celular o mural aparece no topo de Meus chamados e da Fila.
 
@@ -320,7 +320,7 @@ GOV.UK) trocou isso por **um sinal = um significado, sempre no mesmo lugar**:
 - **Em espera** (`status = "aguardando"`, migration 0009): o técnico não consegue avançar porque falta uma **peça**, uma
   **resposta de quem pediu** ou um **terceiro/fornecedor**. O chamado continua com ele (seção "Seus em espera" da Fila),
   mas sai da fila e da carga, para a equipe não achar que ele está ocupado. Para quem pediu, aparece como atendimento
-  ("aguardando peça..."); quando o motivo é a resposta dele, a tela destaca "O TI precisa de uma resposta sua" e, ao
+  ("aguardando peça..."); quando o motivo é a resposta dele, a tela destaca "Precisamos de uma resposta sua" e, ao
   responder, o chamado volta sozinho para "Em andamento". Evita o "fechar e abrir outro" que apagaria o histórico.
 - **Avaliação**: ao confirmar que deu certo, a pessoa marca "Bom" ou "Poderia ser melhor" e pode comentar (opcional;
   "Só confirmar" pula). Vira o indicador de satisfação do Painel.

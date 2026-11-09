@@ -192,14 +192,14 @@ onRecordUpdateRequest((e) => {
         "-created", 1, 0, { c: rec.id, s: rec.getString("solicitante"), d: umMinuto },
       ).filter((r) => !!r);
       if (!recente.length) {
-        R.notificarSolicitante(e.app, rec, "O TI precisa de uma resposta sua",
+        R.notificarSolicitante(e.app, rec, "Precisamos de uma resposta sua",
           "O atendimento do seu chamado está esperando uma resposta sua. Abra o chamado e responda por lá.");
       }
     } else if (para === "em_andamento" && de !== "aguardando") {
-      R.notificarSolicitante(e.app, rec, "Seu chamado está em atendimento", "Um técnico do TI começou a atender o seu chamado.");
+      R.notificarSolicitante(e.app, rec, "Seu chamado está em atendimento", "Começamos a atender o seu chamado.");
     } else if (para === "resolvido") {
       R.notificarSolicitante(e.app, rec, "Seu chamado foi resolvido",
-        "O TI marcou o seu chamado como resolvido. Abra o chamado para confirmar ou avisar se o problema continua.");
+        "Marcamos o seu chamado como resolvido. Abra o chamado para confirmar ou avisar se o problema continua.");
     }
   }
   if (antes.getString("aviso") !== rec.getString("aviso")) {
@@ -250,8 +250,8 @@ onRecordCreateRequest((e) => {
 
   if (tecnico && !rec.getBool("interno")) {
     const texto = rec.getString("texto").trim();
-    R.notificarSolicitante(e.app, chamado, "O TI respondeu seu chamado",
-      texto ? `Mensagem do TI: “${texto}”${temImagem ? " (com imagem)" : ""}` : "O TI mandou uma imagem no seu chamado.");
+    R.notificarSolicitante(e.app, chamado, "Respondemos o seu chamado",
+      texto ? `Mensagem do TI: “${texto}”${temImagem ? " (com imagem)" : ""}` : "Mandamos uma imagem no seu chamado.");
   }
   if (!tecnico) {
     // estava esperando a resposta dele: volta sozinho para atendimento

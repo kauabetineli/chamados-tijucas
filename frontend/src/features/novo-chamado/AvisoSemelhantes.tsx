@@ -44,7 +44,7 @@ export function AvisoSemelhantes({ categoria }: { categoria: string }) {
         ) : (
           <p>
             O seu setor já tem o chamado <span className="font-bold">{primeiro.protocolo}</span> aberto sobre isso
-            ({tempoRelativo(primeiro.created)}). O TI já está sabendo: se for o mesmo problema, não precisa abrir outro.
+            ({tempoRelativo(primeiro.created)}). Já estamos sabendo: se for o mesmo problema, não precisa abrir outro.
           </p>
         )}
         <p className="mt-1 text-tinta-2">Se for outro problema, pode continuar.</p>

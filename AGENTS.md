@@ -98,6 +98,9 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
 5. No Windows o PocketBase **não recarrega** `pb_hooks` sozinho: depois de editar, `reiniciar.bat backend`.
 6. Tailwind v4: depois de criar arquivos novos com classes novas, o `npm run dev` aberto pode não gerar as classes: `reiniciar.bat front`.
 7. Interface: frases curtas, voz ativa, sem jargão ("chamado", não "ticket"). Mobile first; alvo de toque >= 48 px.
+   **Voz com o servidor**: o sistema fala como o Setor de TI, na 1ª pessoa do plural ("Recebemos o seu chamado",
+   "Precisamos de uma resposta sua", "Atendemos na ordem da fila"), também nos e-mails. Rótulos que só dizem quem é
+   quem continuam com "TI" ("Avisos do TI", "Escreva para o TI", "Mensagem do TI"). Nas telas do TI não se usa "nós".
 8. Sem HTTPS (o servidor é um PC na rede, acessado por IP): nada de PWA, push, câmera via getUserMedia ou clipboard garantido.
    Foto/vídeo pelo celular usam `<input type="file" capture>`.
 9. Segredos fora do Git: `backend/config.json`, `ferramentas/.env`, `backend/pb_data/`. O tópico do ntfy é segredo.

@@ -65,7 +65,7 @@ function encerrarAviso(app, aviso, autorId, opcoes) {
       R.registrar(app, c.id, autorId, "status", `Status: ${R.ROTULO_STATUS[de]} → ${R.ROTULO_STATUS.resolvido} (junto com o aviso do TI)`, false);
       if (mensagem) R.registrar(app, c.id, autorId, "comentario", mensagem, false);
       R.notificarSolicitante(app, c, "Seu chamado foi resolvido",
-        mensagem || "O TI resolveu o problema do aviso. Abra o chamado para confirmar ou avisar se continua.");
+        mensagem || "Resolvemos o problema do aviso. Abra o chamado para confirmar ou avisar se continua.");
       resolvidos++;
     }
   }

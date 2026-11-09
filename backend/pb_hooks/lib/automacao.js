@@ -562,7 +562,7 @@ function aplicarEfeitos(app, rec, efeitos) {
   for (const ef of efeitos) {
     if (ef.tipo === "resposta" && ef.valor) {
       R.registrar(app, rec.id, "", "comentario", ef.valor, false);
-      R.notificarSolicitante(app, rec, "O TI respondeu seu chamado", "Mensagem do TI: \u201c" + ef.valor + "\u201d");
+      R.notificarSolicitante(app, rec, "Respondemos o seu chamado", "Mensagem do TI: \u201c" + ef.valor + "\u201d");
     }
     if (ef.tipo === "nota" && ef.valor) R.registrar(app, rec.id, "", "comentario", ef.valor, true);
     if (ef.tipo === "avisar") {
