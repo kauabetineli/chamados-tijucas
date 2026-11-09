@@ -738,6 +738,7 @@ export function Usuarios() {
     <div className="space-y-5">
       <CabecalhoPagina
         titulo="Pessoas e setores"
+        voltar={{ para: "/perfil", rotulo: "Voltar para Você" }}
         subtitulo={admin ? undefined : "Consulta. Só o administrador do TI cria e edita contas e setores."}
         abas={<AbasPagina rotulo="O que ver" itens={[
           { rotulo: "Pessoas", ativo: aba === "pessoas", aoClicar: () => irPara("pessoas"), numero: setores ? totalPessoas : undefined },

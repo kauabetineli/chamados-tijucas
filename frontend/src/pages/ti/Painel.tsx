@@ -54,6 +54,7 @@ export function Painel() {
     <div className="space-y-6">
       <CabecalhoPagina
         titulo="Painel"
+        voltar={{ para: "/perfil", rotulo: "Voltar para Você" }}
         abas={<AbasPagina rotulo="Quais números" itens={[
           { rotulo: "Equipe", ativo: aba === "equipe", aoClicar: () => irPara("equipe") },
           { rotulo: "Meus números", ativo: aba === "meus", aoClicar: () => irPara("meus") },

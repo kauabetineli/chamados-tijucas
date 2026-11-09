@@ -1,7 +1,6 @@
-import { ArrowLeft, Building2, CheckCircle2, Circle, KeyRound, LogOut, Mail, Monitor, Moon, Phone, Sun } from "lucide-react";
+import { Building2, CheckCircle2, Circle, KeyRound, LogOut, Mail, Monitor, Moon, Phone, Sun } from "lucide-react";
 import { Dica } from "../components/Dica";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Link } from "react-router";
 import { irParaProximo } from "../lib/jeitoDeApp";
 import { useTamanhoTexto, type TamanhoTexto } from "../lib/tamanhoTexto";
 import { useTema, type Tema } from "../lib/tema";
@@ -9,6 +8,7 @@ import { useAuth } from "../lib/auth";
 import { avisar } from "../lib/avisos";
 import { ehAdmin, mensagemErro, pb, ramalDe, type Usuario } from "../lib/pb";
 import { CampoSenha } from "../components/CampoSenha";
+import { CabecalhoPagina } from "../components/CabecalhoPagina";
 
 function Linha({ Icone, rotulo, children }: { Icone: typeof Mail; rotulo: string; children: ReactNode }) {
   return (
@@ -111,12 +111,8 @@ export function Configuracoes() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 md:space-y-6">
-      <div className="flex items-center gap-1 md:min-h-[4.5rem] md:items-start md:gap-2">
-        <Link to="/perfil" className="-ml-2 grid size-11 place-items-center rounded-full text-acento hover:bg-mar-50" aria-label="Voltar para Você">
-          <ArrowLeft className="size-6" aria-hidden="true" />
-        </Link>
-        <h1 className="text-2xl font-bold md:text-3xl">Configurações</h1>
-      </div>
+      {/* no PC também só se chega aqui pelo perfil: seta sempre */}
+      <CabecalhoPagina titulo="Configurações" voltar={{ para: "/perfil", rotulo: "Voltar para Você", sempre: true }} />
 
       <section aria-labelledby="c-aparencia" className="space-y-2">
         <h2 id="c-aparencia" className="px-1 text-sm font-bold tracking-wide text-tinta-2 uppercase">Aparência</h2>

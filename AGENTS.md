@@ -119,6 +119,9 @@ Receita detalhada: `.claude/skills/dados-de-teste/SKILL.md`. Rotas HTTP: `docs/A
     em `lib/moldes.ts`: *lista* (lista + detalhe fixo ao lado em tela larga), *painel* (largura toda, grade que ganha
     colunas) ou *formulário* (largura de leitura, centralizado). A largura vem do Layout: não ponha `max-w`/`mx-auto`
     no contêiner da página. Tela larga = classe `larga:` (1600 px) e `useTelaLarga()`.
+    **Seta de voltar** (`voltar` no `CabecalhoPagina`) só em página que fica dentro de outra (Você → Painel, Painel →
+    QR code); nunca nas abas da barra de baixo nem em Todos os chamados. Por padrão só no celular; `sempre: true` quando
+    nem no PC há outro caminho de volta.
 14. **Ajuda que a maioria não precisa ler vai num "i"**, não em texto fixo embaixo do campo: `RotuloComDica` /
     `Dica` (`components/Dica.tsx`), com `aria-describedby={idDaDica(id)}` no campo. Erro e aviso continuam visíveis na tela.
 15. **Carregando = esqueleto**, nunca só o texto "Carregando...": use `components/Esqueleto.tsx` (`EsqueletoCartoes`,

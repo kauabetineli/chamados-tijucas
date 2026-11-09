@@ -44,6 +44,7 @@ export function ConfiguracoesTI() {
     <div className="space-y-5">
       <CabecalhoPagina
         titulo="Configurações"
+        voltar={{ para: "/perfil", rotulo: "Voltar para Você" }}
         subtitulo={soLeitura ? "Só leitura: você vê como está configurado, sem mudar." : undefined}
         abas={<AbasPagina rotulo="Configurações" itens={ABAS.map((a) => ({
           rotulo: <><a.I className="size-4" aria-hidden="true" /><span className="md:hidden">{a.curto}</span><span className="hidden md:inline">{a.rotulo}</span></>,

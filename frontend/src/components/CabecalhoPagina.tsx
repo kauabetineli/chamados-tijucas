@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router";
 
 /**
@@ -8,9 +9,15 @@ import { Link } from "react-router";
  *
  *   <CabecalhoPagina titulo="Fila" subtitulo="31 na fila" acoes={<button className="btn-primario">…</button>}
  *     abas={<AbasPagina rotulo="Visões" itens={[{ rotulo: "Fila", para: "/ti", ativo: true }]} />} />
+ *
+ * Seta de voltar (`voltar`): SÓ em página que fica dentro de outra (Você → Painel, Painel → QR code...).
+ * Nunca nas abas da barra de baixo (Fila, Registrar, Soluções, Você) nem em Todos os chamados (outra visão da Fila).
+ * Por padrão aparece só no celular: no PC essas páginas estão direto na barra lateral. `sempre: true` quando
+ * nem no PC há outro caminho de volta (ex.: QR code, aberto pelo Painel).
  */
-export function CabecalhoPagina({ titulo, subtitulo, acoes, abas, className = "" }: {
+export function CabecalhoPagina({ titulo, subtitulo, acoes, abas, voltar, className = "" }: {
   titulo: ReactNode;
+  voltar?: { para: string; rotulo: string; sempre?: boolean };
   subtitulo?: ReactNode;
   acoes?: ReactNode;
   abas?: ReactNode;
@@ -19,9 +26,17 @@ export function CabecalhoPagina({ titulo, subtitulo, acoes, abas, className = ""
   return (
     <header className={className}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 md:min-h-[4.5rem] md:gap-y-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-start gap-1">
+          {voltar && (
+            <Link to={voltar.para} aria-label={voltar.rotulo} title={voltar.rotulo}
+              className={`-my-1.5 -ml-2.5 grid size-11 shrink-0 place-items-center rounded-full text-acento hover:bg-mar-50 md:-my-1 ${voltar.sempre ? "" : "md:hidden"}`}>
+              <ArrowLeft className="size-6" aria-hidden="true" />
+            </Link>
+          )}
+          <div className="min-w-0">
           <h1 className="text-2xl leading-tight font-bold md:text-3xl break-words">{titulo}</h1>
           {subtitulo && <div className="mt-0.5 text-[15px] text-tinta-2 md:mt-1 md:text-base">{subtitulo}</div>}
+          </div>
         </div>
         {acoes && <div className="flex flex-wrap items-center gap-2">{acoes}</div>}
       </div>

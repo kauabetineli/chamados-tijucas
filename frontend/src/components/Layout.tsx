@@ -30,7 +30,7 @@ const TECNICO: Item[] = [
   { para: "/perfil", rotulo: "Você", Icone: UserRound, avatar: true },
 ];
 // telas que moram dentro de "Você" no celular (o item fica marcado nelas)
-const DENTRO_DE_VOCE = ["/configuracoes", "/ti/painel", "/ti/usuarios", "/ti/configuracoes", "/projeto/feedback"];
+const DENTRO_DE_VOCE = ["/configuracoes", "/ti/painel", "/ti/usuarios", "/ti/configuracoes", "/projeto/feedback", "/ti/qrcodes"];
 
 export function Layout() {
   const { usuario } = useAuth();
