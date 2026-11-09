@@ -116,7 +116,10 @@ export function Layout() {
                           ícone: sem pílula, do tamanho dos outros ícones, e marcada só com um anel em volta */}
                       <span className="relative flex h-8 w-16 items-center justify-center">
                         {/* fundo da pílula separado do ícone: só ele abre para os lados (animar-indicador) e recorta a onda do toque */}
-                        <span data-onda aria-hidden="true" className={`absolute inset-0 overflow-hidden rounded-full ${isActive && !i.avatar ? "animar-indicador bg-mar-50" : ""}`} />
+                        {/* no "Você" a foto é o ícone: o toque acende só um círculo do tamanho dela, sem pílula */}
+                        <span data-onda aria-hidden="true" className={`absolute overflow-hidden rounded-full ${
+                          i.avatar ? "top-1/2 left-1/2 size-10 -translate-1/2" : `inset-0 ${isActive ? "animar-indicador bg-mar-50" : ""}`
+                        }`} />
                         {i.avatar && usuario
                           ? <span className={`relative rounded-full ${isActive ? "ring-2 ring-acento ring-offset-2 ring-offset-superficie" : ""}`}><Avatar id={usuario.id} nome={usuario.name} tamanho="xs" /></span>
                           : <i.Icone className="relative size-6" aria-hidden="true" />}
