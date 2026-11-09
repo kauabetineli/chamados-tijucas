@@ -56,7 +56,7 @@ export function MeusNumeros() {
   const nome = eu ? "você" : (tecnicos.find((t) => t.id === tecnico)?.name ?? "").split(" ")[0];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 md:space-y-8">
       <div className="flex flex-wrap items-center gap-3">
         {admin && tecnicos.length > 1 && (
           <label className="flex items-center gap-2 text-sm font-semibold">

@@ -91,7 +91,7 @@ function PainelEquipe() {
   const pctBom = r && avaliados ? Math.round((r.avaliacao.bom / avaliados) * 100) : 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 md:space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <div role="tablist" aria-label="Período" className="flex rounded-xl bg-superficie p-1 ring-1 ring-linha">
@@ -128,7 +128,7 @@ function PainelEquipe() {
       ) : (
         <>
           {/* tela larga: os 4 números e o piloto lado a lado (molde "painel", lib/moldes.ts) */}
-          <div className="space-y-8 larga:grid larga:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] larga:items-start larga:gap-6 larga:space-y-0">
+          <div className="space-y-5 md:space-y-8 larga:grid larga:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] larga:items-start larga:gap-6 larga:space-y-0">
           <div className="space-y-3">
           <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-linha ring-1 ring-linha lg:grid-cols-5">
             {/* o que mais importa para quem pede: começou no prazo? (primeiro e ocupa a linha toda no celular) */}
@@ -187,7 +187,7 @@ function PainelEquipe() {
 
           </div>
 
-          <div className="grid gap-8 lg:grid-cols-2 larga:grid-cols-4">
+          <div className="grid gap-5 md:gap-8 lg:grid-cols-2 larga:grid-cols-4">
             <Barras
               titulo="Como os pedidos chegaram"
               nota={r.total ? `${pctSistema}% foram abertos pelo próprio servidor no sistema.` : undefined}
@@ -210,9 +210,9 @@ function Numero({ termo, valor, dica, delta, neutro, nota, className = "" }: {
   delta?: { texto: string; bom: boolean }; neutro?: boolean; nota?: string; className?: string;
 }) {
   return (
-    <div className={`bg-superficie p-5 ${className}`}>
+    <div className={`bg-superficie p-4 md:p-5 ${className}`}>
       <dt className="flex items-center gap-2 text-sm text-tinta-2">{termo}{dica && <Dica rotulo={`Como é calculado: ${termo.toLowerCase()}`}>{dica}</Dica>}</dt>
-      <dd className="mt-1 font-display text-3xl font-extrabold whitespace-nowrap sm:text-4xl">{valor}</dd>
+      <dd className="mt-1 font-display text-2xl leading-tight font-extrabold sm:text-4xl sm:whitespace-nowrap">{valor}</dd>
       {delta && <dd className={`mt-1 text-sm font-semibold ${neutro ? "text-tinta-2" : delta.bom ? "text-ok" : "text-alerta"}`}>{delta.texto}</dd>}
       {nota && <dd className="mt-1 text-sm text-tinta-2">{nota}</dd>}
     </div>

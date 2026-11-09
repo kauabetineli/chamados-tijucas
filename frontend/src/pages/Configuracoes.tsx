@@ -110,12 +110,12 @@ export function Configuracoes() {
   const ramal = ramalDe(u);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex min-h-[4.5rem] items-start gap-2">
+    <div className="mx-auto max-w-2xl space-y-4 md:space-y-6">
+      <div className="flex items-center gap-1 md:min-h-[4.5rem] md:items-start md:gap-2">
         <Link to="/perfil" className="-ml-2 grid size-11 place-items-center rounded-full text-acento hover:bg-mar-50" aria-label="Voltar para Você">
           <ArrowLeft className="size-6" aria-hidden="true" />
         </Link>
-        <h1 className="text-3xl font-bold">Configurações</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">Configurações</h1>
       </div>
 
       <section aria-labelledby="c-aparencia" className="space-y-2">
@@ -128,7 +128,7 @@ export function Configuracoes() {
 
       <section aria-labelledby="c-conta" className="space-y-2">
         <h2 id="c-conta" className="px-1 text-sm font-bold tracking-wide text-tinta-2 uppercase">Conta</h2>
-        <div className="rounded-2xl bg-superficie px-5 py-2 ring-1 ring-linha">
+        <div className="rounded-2xl bg-superficie px-4 py-1 ring-1 ring-linha md:px-5 md:py-2">
           <dl className="divide-y divide-linha">
             <Linha Icone={KeyRound} rotulo="Matrícula (o seu login)">{u.matricula || <span className="text-tinta-2">não cadastrada (entre com o e-mail)</span>}</Linha>
             <Linha Icone={Building2} rotulo="Setor">{u.expand?.setor?.nome || <span className="text-tinta-2">sem setor</span>}</Linha>

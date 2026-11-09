@@ -126,7 +126,7 @@ export function MeusChamados() {
   if (chamados.length === 0 && totalHistorico === 0 && historico !== null) {
     return (
       <div className="mx-auto max-w-md py-12 text-center">
-        <h1 className="text-3xl font-bold">Precisa de ajuda do TI?</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">Precisa de ajuda do TI?</h1>
         <p className="mt-3 text-lg text-tinta-2">
           Abra um chamado e acompanhe por aqui a sua vez na fila e as respostas do Departamento de TI.
         </p>
