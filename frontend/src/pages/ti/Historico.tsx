@@ -114,7 +114,7 @@ export function Historico() {
         // tela inicial: escolher o tipo de problema (como no "Novo chamado")
         <section aria-labelledby="titulo-tipos" className="space-y-3">
           <h2 id="titulo-tipos" className="font-display text-lg font-bold">Que tipo de problema?</h2>
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <ul className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-4">
             {categorias.map((c) => {
               const n = contagem?.[c.id];
               return (

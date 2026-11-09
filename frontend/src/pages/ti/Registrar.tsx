@@ -228,7 +228,7 @@ export function Registrar() {
 
           {/* 2 */}
           <Passo n={2} id="r-categoria" titulo="O que está com problema?" feito={!!categoria}>
-            <div role="radiogroup" aria-labelledby="r-categoria" className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-4">
+            <div role="radiogroup" aria-labelledby="r-categoria" className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-4">
               {categorias.map((c) => (
                 <label key={c.id} className="opcao min-h-12 gap-2.5 py-2 text-[15px]">
                   <input type="radio" name="categoria" className="sr-only" checked={categoria === c.id} onChange={() => setCategoria(c.id)} />

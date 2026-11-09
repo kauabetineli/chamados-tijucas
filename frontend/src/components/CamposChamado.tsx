@@ -35,15 +35,17 @@ export function EscolhaCategoria({
   return (
     <fieldset>
       <legend className={grande ? CLASSE_TITULO_GRANDE : "rotulo text-lg"}>{titulo}</legend>
-      <div className={`grid gap-2 ${classeGrade}`}>
+      {/* auto-rows-fr: todos os quadros com a mesma altura (um nome de 2 linhas não deixa a linha dele maior).
+          Celular: ícone ao lado do nome, quadros baixos; a partir de sm, ícone em cima */}
+      <div className={`grid auto-rows-fr gap-2 ${classeGrade}`}>
         {categorias.map((c) => (
-          <label key={c.id} className={horizontal ? "opcao min-h-13 gap-3 py-2.5" : "opcao flex-col items-start gap-2 sm:min-h-24"}>
+          <label key={c.id} className={horizontal ? "opcao min-h-13 gap-3 py-2.5" : "opcao gap-2.5 px-3 py-2 text-[15px] sm:min-h-24 sm:flex-col sm:items-start sm:gap-2 sm:px-4 sm:py-3 sm:text-base"}>
             <input
               type="radio" name="categoria" value={c.id} checked={valor === c.id} className="sr-only" required
               onChange={() => onChange(c.id)}
               onClick={() => aoTocar?.(c.id)}
             />
-            <IconeCategoria nome={c.icone} className={horizontal ? "size-8" : "size-10"} />
+            <IconeCategoria nome={c.icone} className={horizontal ? "size-8" : "size-8 shrink-0 sm:size-10"} />
             <span className="leading-tight">{c.nome}</span>
           </label>
         ))}
