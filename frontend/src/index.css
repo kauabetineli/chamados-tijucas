@@ -272,7 +272,17 @@ svg.lucide.size-8 { width: calc(32rem / 17); height: calc(32rem / 17); }
 .animar-folha { animation: folha-subir 220ms cubic-bezier(0.2, 0.9, 0.3, 1) both; }
 @media (min-width: 768px) { .animar-folha { animation: surgir 160ms cubic-bezier(0.2, 0.9, 0.3, 1) both; } }
 .animar-fundo { animation: fundo-surgir 180ms ease-out both; }
-@media (prefers-reduced-motion: reduce) { .animar-menu, .animar-opcao, .animar-folha, .animar-fundo { animation: none; } }
+/* barra de baixo do celular (Layout.tsx), como a do Android (Material 3): a pílula da aba marcada abre do centro
+   para os lados, e o toque solta uma "onda" de luz dentro dela */
+@keyframes indicador-abrir { from { transform: scaleX(0.35); opacity: 0.3; } to { transform: none; opacity: 1; } }
+.animar-indicador { animation: indicador-abrir 280ms cubic-bezier(0.2, 0, 0, 1) both; }
+@keyframes onda { from { transform: translate(-50%, -50%) scale(0); opacity: 0.6; } to { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+.onda {
+  position: absolute; left: var(--x, 50%); top: var(--y, 50%); width: 6rem; height: 6rem; border-radius: 9999px; pointer-events: none;
+  background: color-mix(in srgb, var(--color-acento) 40%, transparent);
+  animation: onda 500ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) { .animar-menu, .animar-opcao, .animar-folha, .animar-fundo, .animar-indicador { animation: none; } .onda { display: none; } }
 /* avisos rápidos (components/Avisos.tsx) */
 @keyframes aviso-entra { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes aviso-sai { to { opacity: 0; transform: translateY(-6px) scale(0.98); } }

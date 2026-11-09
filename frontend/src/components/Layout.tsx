@@ -84,6 +84,7 @@ export function Layout() {
               <NavLink
                 to={i.para}
                 end={i.fim}
+                onPointerDown={(e) => !i.destaque && ondular(e)}
                 onClick={(e) => {
                   if (tecnico && i.para === "/ti" && caminho === "/ti") { e.preventDefault(); setMenuFila((m) => !m); }
                 }}
@@ -113,10 +114,12 @@ export function Layout() {
                     <>
                       {/* aba marcada: "pílula" atrás do ícone, como a barra nativa do Android. No "Você" a foto já é o
                           ícone: sem pílula, do tamanho dos outros ícones, e marcada só com um anel em volta */}
-                      <span className={`relative flex h-8 w-16 items-center justify-center rounded-full transition-colors duration-200 ${isActive && !i.avatar ? "bg-mar-50" : ""}`}>
+                      <span className="relative flex h-8 w-16 items-center justify-center">
+                        {/* fundo da pílula separado do ícone: só ele abre para os lados (animar-indicador) e recorta a onda do toque */}
+                        <span data-onda aria-hidden="true" className={`absolute inset-0 overflow-hidden rounded-full ${isActive && !i.avatar ? "animar-indicador bg-mar-50" : ""}`} />
                         {i.avatar && usuario
-                          ? <span className={`rounded-full ${isActive ? "ring-2 ring-acento ring-offset-2 ring-offset-superficie" : ""}`}><Avatar id={usuario.id} nome={usuario.name} tamanho="xs" /></span>
-                          : <i.Icone className="size-6" aria-hidden="true" />}
+                          ? <span className={`relative rounded-full ${isActive ? "ring-2 ring-acento ring-offset-2 ring-offset-superficie" : ""}`}><Avatar id={usuario.id} nome={usuario.name} tamanho="xs" /></span>
+                          : <i.Icone className="relative size-6" aria-hidden="true" />}
                         <SeloMenu i={i} numeros={numeros} tecnico={tecnico} />
                       </span>
                       <span className="flex items-center gap-0.5">
@@ -138,6 +141,22 @@ export function Layout() {
     </div>
     </div>
   );
+}
+
+/** Toque na barra de baixo: uma onda de luz que sai do ponto tocado, dentro da pílula do ícone (como no Android). */
+function ondular(e: React.PointerEvent<HTMLElement>) {
+  const alvo = e.currentTarget.querySelector<HTMLElement>("[data-onda]");
+  if (!alvo) return;
+  const r = alvo.getBoundingClientRect();
+  const onda = document.createElement("span");
+  onda.className = "onda";
+  // fora da pílula (tocou no rótulo, por exemplo): a onda sai do centro dela
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  const dentro = x >= 0 && x <= r.width && y >= 0 && y <= r.height;
+  onda.style.setProperty("--x", dentro ? `${x}px` : "50%");
+  onda.style.setProperty("--y", dentro ? `${y}px` : "50%");
+  onda.addEventListener("animationend", () => onda.remove());
+  alvo.appendChild(onda);
 }
 
 /** Número no ícone da barra de baixo: servidor = quantos precisam dele (responder ou confirmar); TI = fila. */
