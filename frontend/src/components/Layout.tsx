@@ -76,7 +76,7 @@ export function Layout() {
       {/* barra inferior no celular */}
       {!semBarra && <nav
         aria-label="Principal"
-        className="fixed inset-x-0 bottom-0 z-20 print:hidden border-t border-linha bg-superficie pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 print:hidden border-t border-linha bg-superficie pb-[env(safe-area-inset-bottom)] md:hidden dark:border-transparent"
       >
         <ul className="flex">
           {itens.map((i) => (
@@ -93,8 +93,9 @@ export function Layout() {
                   i.destaque
                     // ação principal: botão redondo no meio, saltando um pouco para fora da barra, com o rótulo inteiro embaixo
                     ? "flex h-[76px] flex-col items-center justify-end gap-1 pb-2.5 text-sm font-bold text-tinta"
-                    : `flex h-[76px] flex-col items-center justify-center gap-1 text-sm font-semibold ${
-                        isActive ? "text-acento" : "text-tinta-2"
+                    // rótulo fino como a barra do app nativo (Android): peso normal, um pouco maior quando marcado
+                    : `flex h-[76px] flex-col items-center justify-center gap-1 text-[13px] tracking-wide ${
+                        isActive ? "font-medium text-acento" : "font-normal text-tinta-2"
                       }`
                 ); }}
               >
@@ -112,7 +113,7 @@ export function Layout() {
                     <>
                       {/* aba marcada: "pílula" atrás do ícone, como a barra nativa do Android. No "Você" a foto já é o
                           ícone: sem pílula, do tamanho dos outros ícones, e marcada só com um anel em volta */}
-                      <span className={`relative flex h-8 items-center justify-center rounded-full px-5 transition-colors ${isActive && !i.avatar ? "bg-mar-50" : ""}`}>
+                      <span className={`relative flex h-8 w-16 items-center justify-center rounded-full transition-colors duration-200 ${isActive && !i.avatar ? "bg-mar-50" : ""}`}>
                         {i.avatar && usuario
                           ? <span className={`rounded-full ${isActive ? "ring-2 ring-acento ring-offset-2 ring-offset-superficie" : ""}`}><Avatar id={usuario.id} nome={usuario.name} tamanho="xs" /></span>
                           : <i.Icone className="size-6" aria-hidden="true" />}
