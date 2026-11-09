@@ -18,14 +18,14 @@ export function CabecalhoPagina({ titulo, subtitulo, acoes, abas, className = ""
 }) {
   return (
     <header className={className}>
-      <div className="flex min-h-[4.5rem] flex-wrap items-start justify-between gap-x-4 gap-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 md:min-h-[4.5rem] md:gap-y-3">
         <div className="min-w-0">
-          <h1 className="text-3xl leading-tight font-bold break-words">{titulo}</h1>
-          {subtitulo && <div className="mt-1 text-tinta-2">{subtitulo}</div>}
+          <h1 className="text-2xl leading-tight font-bold md:text-3xl break-words">{titulo}</h1>
+          {subtitulo && <div className="mt-0.5 text-[15px] text-tinta-2 md:mt-1 md:text-base">{subtitulo}</div>}
         </div>
         {acoes && <div className="flex flex-wrap items-center gap-2">{acoes}</div>}
       </div>
-      {abas && <div className="mt-3">{abas}</div>}
+      {abas && <div className="mt-2 md:mt-3">{abas}</div>}
     </header>
   );
 }

@@ -273,7 +273,7 @@ export function TodosChamados() {
   const select = "campo min-h-11 w-full py-2 pr-9 text-sm md:w-auto";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 md:space-y-5">
       <CabecalhoPagina
         titulo="Todos os chamados"
         subtitulo={itens ? `${total} ${total === 1 ? "chamado" : "chamados"}` : <Bloco className="mt-1 h-6 w-32" />}
@@ -281,7 +281,7 @@ export function TodosChamados() {
       />
 
       {/* filtros: situação em pílulas; busca + "Filtros" (painel que abre); filtros ligados viram chips com X */}
-      <div className="space-y-3 rounded-2xl bg-superficie p-4 ring-1 ring-linha">
+      <div className="space-y-3 rounded-2xl bg-superficie p-3 ring-1 ring-linha md:p-4">
         <div className="flex flex-wrap items-center gap-2">
           {/* celular: uma linha que rola para o lado; py-1/-my-1: folga para o contorno não ser cortado */}
           <div className="sem-barra -mx-4 flex min-w-0 flex-1 gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label="Situação">

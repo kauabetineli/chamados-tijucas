@@ -56,7 +56,7 @@ export function Equipe({ equipe, recarregar }: { equipe: Tecnico[] | null; recar
 
   return (
     <div className="max-w-3xl space-y-4">
-      <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
+      <h2 className="flex items-center gap-2 font-display text-lg font-extrabold md:text-xl">
         Quem está atendendo
         <span className="font-sans text-base font-normal">
           <Dica rotulo="Como funciona a ausência">Quem está ausente não recebe chamados das regras nem da divisão. A ausência termina sozinha na data marcada. Cada técnico também pode marcar a própria ausência no Perfil.</Dica>
@@ -95,7 +95,7 @@ export function MinhaAusencia({ eu }: { eu: string }) {
   if (!t) return null;
   return (
     <section aria-labelledby="titulo-minha-ausencia" className="space-y-2">
-      <h2 id="titulo-minha-ausencia" className="text-xl font-bold">Minha situação</h2>
+      <h2 id="titulo-minha-ausencia" className="text-lg font-bold md:text-xl">Minha situação</h2>
       <CartaoPessoa t={t} proprio salvar={async (corpo, msg) => {
         try {
           await pb.send(`/api/ti/equipe/${t.id}`, { method: "PATCH", body: corpo });
@@ -140,28 +140,28 @@ function CartaoPessoa({ t, salvar, proprio }: { t: Tecnico; salvar: (corpo: Part
           // no Perfil o nome e o selo já estão no topo da página: aqui só a situação
           <span className={`rounded-full px-3 py-1 text-sm font-bold ${ok ? "bg-campo-50 text-ok" : "bg-sol-50 text-ambar-tinta"}`}>{selo}</span>
         ) : (
-          <div className="flex min-w-48 flex-1 items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:min-w-48">
             <Avatar id={t.id} nome={t.nome} tamanho="sm" />
             <div className="min-w-0">
-              <p className="flex items-center gap-2 font-bold">{t.nome} <SeloTeste ficticio={t.ficticio} compacto /></p>
-              <p className="text-sm text-tinta-2">
+              <p className="flex min-w-0 items-center gap-2 font-bold"><span className="truncate">{t.nome}</span> <span className="max-sm:hidden"><SeloTeste ficticio={t.ficticio} compacto /></span></p>
+              <p className="truncate text-sm text-tinta-2">
                 {t.carga} em atendimento{t.admin ? ", administrador" : ""}
                 {!ok && <>. <span className="font-semibold text-ambar-tinta">{selo}</span></>}
               </p>
             </div>
           </div>
         )}
-        <div role="radiogroup" aria-label={`Situação de ${t.nome}`} className={`flex rounded-lg bg-fundo p-0.5 text-sm ring-1 ring-linha ${proprio ? "ml-auto" : ""}`}>
+        <div role="radiogroup" aria-label={`Situação de ${t.nome}`} className={`flex rounded-lg bg-fundo p-0.5 text-sm ring-1 ring-linha max-sm:order-2 max-sm:w-full ${proprio ? "sm:ml-auto" : ""}`}>
           {([["disp", "Disponível"], ["hoje", "Fora hoje"], ["periodo", "Período"]] as const).map(([k, rot]) => (
             <button key={k} type="button" role="radio" aria-checked={marcada === k} onClick={() => escolher(k)}
               title={k === "periodo" ? "Ausente por um período" : undefined}
-              className={`min-h-10 rounded-md px-3 font-semibold ${marcada === k ? "bg-superficie text-tinta shadow-sm ring-1 ring-linha" : "text-tinta-2 hover:text-tinta"}`}>
+              className={`min-h-10 rounded-md px-3 font-semibold max-sm:flex-1 ${marcada === k ? "bg-superficie text-tinta shadow-sm ring-1 ring-linha" : "text-tinta-2 hover:text-tinta"}`}>
               {rot}
             </button>
           ))}
         </div>
         {!proprio && (
-          <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm font-semibold" title="Recebe chamados pelas regras de distribuição">
+          <label className="flex min-h-10 shrink-0 cursor-pointer items-center gap-2 text-sm font-semibold" title="Recebe chamados pelas regras de distribuição">
             <input type="checkbox" role="switch" className="size-5 accent-acento" checked={!t.sem_automatico}
               onChange={() => salvar({ sem_automatico: !t.sem_automatico }, t.sem_automatico ? `${primeiro} volta a receber chamados das regras.` : `${primeiro} não recebe mais chamados das regras.`)} />
             Automático

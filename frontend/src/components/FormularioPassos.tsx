@@ -23,9 +23,9 @@ export function Passo({ n, titulo, feito, children, id, extra, dica }: {
   dica?: ReactNode;
 }) {
   return (
-    <section aria-labelledby={id} className="space-y-4">
-      <h2 id={id} className="flex items-center gap-3 font-display text-xl font-bold">
-        <span className={`grid size-8 shrink-0 place-items-center rounded-full text-sm ${feito ? "bg-campo-700 text-white" : "bg-mar-50 text-acento"}`}>
+    <section aria-labelledby={id} className="space-y-3 md:space-y-4">
+      <h2 id={id} className="flex items-center gap-2.5 font-display text-lg font-bold md:gap-3 md:text-xl">
+        <span className={`grid size-7 shrink-0 place-items-center rounded-full text-sm md:size-8 ${feito ? "bg-campo-700 text-white" : "bg-mar-50 text-acento"}`}>
           {feito ? <CheckCircle2 className="size-5" aria-hidden="true" /> : n}
         </span>
         <span className="flex flex-1 items-center gap-2">{titulo}{dica && <span className="font-sans text-base font-normal"><Dica rotulo={`Ajuda: ${titulo}`}>{dica}</Dica></span>}</span>

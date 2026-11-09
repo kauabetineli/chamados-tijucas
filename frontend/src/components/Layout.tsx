@@ -66,7 +66,7 @@ export function Layout() {
       {/* com o chamado aberto na gaveta da direita (PC), a lista encolhe ao lado dela (--largura-painel) */}
       {/* celular: SEM barra no topo (a tela toda é do conteúdo, como no app). A pessoa fica na barra de baixo
           ("Você"); o nome "Dino Desk" fica na tela de entrar, na aba do navegador e na barra lateral do PC. */}
-      <main data-molde={molde} className={`conteudo w-full flex-1 px-4 pt-5 pb-8 md:px-8 md:pt-8 ${molde === "formulario" ? "mx-auto" : ""}`} style={{ "--max": max } as CSSProperties}>
+      <main data-molde={molde} className={`conteudo w-full flex-1 px-4 pt-3 pb-6 md:px-8 md:pt-8 md:pb-8 ${molde === "formulario" ? "mx-auto" : ""}`} style={{ "--max": max } as CSSProperties}>
         <Outlet />
         <Avisos />
         <PainelChamado />

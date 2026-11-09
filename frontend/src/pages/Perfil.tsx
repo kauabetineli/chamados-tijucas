@@ -21,8 +21,8 @@ function Numeros({ u }: { u: Usuario }) {
   }, [u.id, tecnico]);
 
   const cartao = (valor: number | undefined, rotulo: string, para: string) => (
-    <Link to={para} className="rounded-2xl bg-superficie p-4 ring-1 ring-linha hover:ring-acento">
-      <span className="block font-display text-3xl font-extrabold">{valor ?? "–"}</span>
+    <Link to={para} className="rounded-2xl bg-superficie px-4 py-3 ring-1 ring-linha hover:ring-acento md:p-4">
+      <span className="block font-display text-2xl font-extrabold md:text-3xl">{valor ?? "–"}</span>
       <span className="text-sm font-semibold text-tinta-2">{rotulo}</span>
     </Link>
   );
@@ -83,10 +83,10 @@ export function Perfil() {
   ];
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-4 md:space-y-6">
       <section className="flex flex-col items-center gap-2 text-center">
         <Avatar id={u.id} nome={u.name} tamanho="lg" />
-        <h1 className="text-3xl font-bold break-words">{u.name}</h1>
+        <h1 className="text-2xl font-bold break-words md:text-3xl">{u.name}</h1>
         <p className="inline-flex items-center gap-1.5 rounded-full bg-mar-50 px-3 py-1 text-sm font-bold text-acento">
           <TipoIcone className="size-4" aria-hidden="true" /> {tipo}
         </p>
@@ -100,7 +100,7 @@ export function Perfil() {
         <ul className="divide-y divide-linha">
           {itens.map(({ para, Icone, titulo, detalhe }) => (
             <li key={para}>
-              <Link to={para} className="flex min-h-16 items-center gap-4 px-4 py-3 hover:bg-fundo">
+              <Link to={para} className="flex min-h-14 items-center gap-3.5 px-4 py-2.5 hover:bg-fundo md:min-h-16 md:gap-4 md:py-3">
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-mar-50 text-acento"><Icone className="size-5" aria-hidden="true" /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold text-tinta">{titulo}</span>
@@ -114,7 +114,7 @@ export function Perfil() {
       </nav>
 
       {/* "Sua opinião": no PC também há o botão no canto; no celular este é o caminho */}
-      <button type="button" onClick={() => abrirOpiniao()} className="flex min-h-16 w-full items-center gap-4 rounded-2xl bg-campo-50 px-4 py-3 text-left ring-1 ring-linha hover:ring-acento">
+      <button type="button" onClick={() => abrirOpiniao()} className="flex min-h-14 w-full items-center gap-3.5 rounded-2xl bg-campo-50 px-4 py-2.5 md:min-h-16 md:gap-4 md:py-3 text-left ring-1 ring-linha hover:ring-acento">
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-campo text-white"><MessageSquare className="size-5" aria-hidden="true" /></span>
         <span className="min-w-0 flex-1">
           <span className="block font-bold text-tinta">Sua opinião sobre o sistema</span>

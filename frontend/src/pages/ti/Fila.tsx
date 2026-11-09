@@ -544,7 +544,7 @@ export function Fila() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 md:space-y-8">
       {/* cabeçalho curto: os números numa linha só; "fora do prazo" é um filtro, não um alarme em cada chamado */}
       <CabecalhoPagina
         titulo="Fila"

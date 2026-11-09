@@ -94,7 +94,7 @@ export function Historico() {
   const nomeCategoria = categorias.find((c) => c.id === categoria)?.nome;
 
   return (
-    <div className="max-w-3xl space-y-5 larga:max-w-none">
+    <div className="max-w-3xl space-y-4 md:space-y-5 larga:max-w-none">
       <CabecalhoPagina titulo="Soluções" />
 
       <label className="relative block">
@@ -122,9 +122,9 @@ export function Historico() {
                   <button
                     type="button"
                     onClick={() => escolher(c.id)}
-                    className="flex h-full min-h-24 w-full flex-col items-start justify-between gap-2 rounded-xl bg-superficie p-3 text-left ring-1 ring-linha hover:ring-acento"
+                    className="flex h-full min-h-20 w-full flex-col items-start justify-between gap-1.5 rounded-xl md:min-h-24 md:gap-2 bg-superficie p-3 text-left ring-1 ring-linha hover:ring-acento"
                   >
-                    <IconeCategoria nome={c.icone} className="size-9" />
+                    <IconeCategoria nome={c.icone} className="size-8 md:size-9" />
                     <span>
                       <span className="block font-semibold leading-tight">{c.nome}</span>
                       {/* número que ainda não chegou não aparece como 0 */}

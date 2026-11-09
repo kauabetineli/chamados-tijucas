@@ -137,11 +137,11 @@ export function Registrar() {
   const nomeSetor = (id: string) => setores.find((x) => x.id === id)?.nome;
 
   return (
-    <form onSubmit={registrar} className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
-      <div className="space-y-6">
+    <form onSubmit={registrar} className="grid items-start gap-4 md:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:gap-8">
+      <div className="space-y-4 md:space-y-6">
         <CabecalhoPagina titulo="Registrar pedido" />
 
-        <div className="space-y-8 rounded-2xl bg-superficie p-5 ring-1 ring-linha md:p-8">
+        <div className="space-y-7 md:space-y-8 md:rounded-2xl md:bg-superficie md:p-8 md:ring-1 md:ring-linha">
           {/* 1 */}
           <Passo n={1} id="r-quem" titulo="Quem pediu, e por onde?" feito={quemOk}>
             <div className="space-y-4">
