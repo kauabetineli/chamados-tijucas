@@ -60,7 +60,7 @@ export function Layout() {
     <div className="md:flex">
     {/* PC: o TI tem a barra lateral; o servidor, uma barra no topo (poucas telas) */}
     {tecnico && <BarraLateral numeros={numeros} />}
-    <div className={`flex min-h-dvh min-w-0 flex-1 flex-col md:pb-0 ${semBarra ? "" : "pb-[calc(88px+env(safe-area-inset-bottom))]"}`}>
+    <div className={`flex min-h-dvh min-w-0 flex-1 flex-col md:pb-0 ${semBarra ? "" : "pb-[calc(64px+env(safe-area-inset-bottom))]"}`}>
       {!tecnico && <BarraTopo numeros={numeros} />}
 
       {/* com o chamado aberto na gaveta da direita (PC), a lista encolhe ao lado dela (--largura-painel) */}
@@ -76,8 +76,7 @@ export function Layout() {
       {/* barra inferior no celular */}
       {!semBarra && <nav
         aria-label="Principal"
-        // pílula flutuante (como a barra do iOS/Android novos): cantos redondos, respiro nas laterais e embaixo, fundo translúcido
-        className="fixed inset-x-3 bottom-[calc(10px+env(safe-area-inset-bottom))] z-20 rounded-[2rem] bg-superficie/92 shadow-xl ring-1 ring-linha backdrop-blur-xl print:hidden md:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 print:hidden border-t border-linha bg-superficie pb-[env(safe-area-inset-bottom)] md:hidden dark:border-transparent"
       >
         <ul className="flex">
           {itens.map((i) => (

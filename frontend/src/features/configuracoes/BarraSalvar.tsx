@@ -8,7 +8,7 @@ export function BarraSalvar({ texto, salvando, rotulo = "Salvar", desabilitado, 
   texto: ReactNode; salvando: boolean; rotulo?: string; desabilitado?: boolean; aoSalvar: () => void; aoDescartar: () => void;
 }) {
   return (
-    <div role="status" className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-noite px-4 py-2.5 text-white shadow-2xl md:bottom-4">
+    <div role="status" className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-30 mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-noite px-4 py-2.5 text-white shadow-2xl md:bottom-4">
       <span className="min-w-0 flex-[1_1_16rem] font-semibold">{texto}</span>
       <button type="button" onClick={aoDescartar} disabled={salvando}
         className="btn min-h-11 border-2 border-white/80 px-4 text-white hover:opacity-80">Descartar</button>
