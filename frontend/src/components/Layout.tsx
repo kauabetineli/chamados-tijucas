@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { moldeDaRota } from "../lib/moldes";
-import { ChevronUp, ClipboardList, History, ListOrdered, Plus, SquarePen, UserRound } from "lucide-react";
+import { ChevronUp, CirclePlus, ClipboardList, History, ListOrdered, SquarePen, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../lib/auth";
@@ -15,11 +15,12 @@ import { useNumeros, VISOES, type Numeros } from "../lib/numeros";
 import { useTecladoAberto } from "../lib/teclado";
 
 // avatar: o item "Você" mostra a foto/iniciais da pessoa no lugar do ícone
-type Item = { para: string; rotulo: string; Icone: typeof Plus; fim?: boolean; destaque?: boolean; avatar?: boolean };
+type Item = { para: string; rotulo: string; Icone: typeof CirclePlus; fim?: boolean; avatar?: boolean };
 
 const SOLICITANTE: Item[] = [
   { para: "/", rotulo: "Início", Icone: ClipboardList, fim: true },
-  { para: "/novo", rotulo: "Novo chamado", Icone: Plus, destaque: true },
+  // aba igual às outras (como no app nativo): o botão redondo saltado cobria o fim das páginas (ex.: a caixa da conversa)
+  { para: "/novo", rotulo: "Novo chamado", Icone: CirclePlus },
   { para: "/perfil", rotulo: "Você", Icone: UserRound, avatar: true },
 ];
 const TECNICO: Item[] = [
@@ -84,32 +85,21 @@ export function Layout() {
               <NavLink
                 to={i.para}
                 end={i.fim}
-                onPointerDown={(e) => !i.destaque && ondular(e)}
+                onPointerDown={ondular}
                 onClick={(e) => {
                   if (tecnico && i.para === "/ti" && caminho === "/ti") { e.preventDefault(); setMenuFila((m) => !m); }
                 }}
                 aria-haspopup={tecnico && i.para === "/ti" ? "menu" : undefined}
                 aria-expanded={tecnico && i.para === "/ti" ? menuFila : undefined}
                 className={({ isActive: marcado }) => { const isActive = ativo(i, marcado); return (
-                  i.destaque
-                    // ação principal: botão redondo no meio, saltando um pouco para fora da barra, com o rótulo inteiro embaixo
-                    ? "flex h-16 flex-col items-center justify-end gap-0.5 pb-2 text-[13px] font-bold text-tinta"
-                    // rótulo fino como a barra do app nativo (Android): peso normal, um pouco maior quando marcado
-                    : `flex h-16 flex-col items-center justify-center gap-0.5 text-[12.5px] tracking-wide ${
-                        isActive ? "font-medium text-acento" : "font-normal text-tinta-2"
-                      }`
+                  // rótulo fino como a barra do app nativo (Android): peso normal, um pouco maior quando marcado
+                  `flex h-16 flex-col items-center justify-center gap-0.5 text-[12.5px] tracking-wide ${
+                    isActive ? "font-medium text-acento" : "font-normal text-tinta-2"
+                  }`
                 ); }}
               >
                 {({ isActive: marcado }) => {
                   const isActive = ativo(i, marcado);
-                  if (i.destaque) return (
-                    <>
-                      <span className="-mt-8 grid size-14 place-items-center rounded-full bg-mar-700 text-white shadow-lg ring-4 ring-fundo">
-                        <i.Icone className="size-7" strokeWidth={2.6} aria-hidden="true" />
-                      </span>
-                      {i.rotulo}
-                    </>
-                  );
                   return (
                     <>
                       {/* aba marcada: "pílula" atrás do ícone, como a barra nativa do Android. No "Você" a foto já é o

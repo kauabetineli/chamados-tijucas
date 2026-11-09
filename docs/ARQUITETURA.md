@@ -175,7 +175,7 @@ A pessoa **arrasta a borda direita** para mudar a largura (200–380 px, duplo c
 para só ícones. O **servidor** usa poucas telas: no PC tem uma **barra no topo** (`components/BarraTopo.tsx`) com Meus
 chamados, Histórico, Novo chamado e o avatar, e o conteúdo ganha a largura toda (com avisos e "Como funciona" à direita).
 No celular não há barra no topo, só a de baixo. Técnico: Fila, Registrar, Soluções e **Você**; servidor: Início,
-Novo chamado (botão redondo no meio) e Você.
+Novo chamado (aba igual às outras, com "+"; o botão redondo saltado cobria o fim das páginas) e Você.
 
 **Avisos do TI** (coleção `avisos`, migrations `1760000008` e `1760000016`): "Internet do Paço fora do ar, já estamos
 vendo". Serve para o servidor não abrir 10 chamados do mesmo problema (problema 1 do diagnóstico). Na lateral é uma
