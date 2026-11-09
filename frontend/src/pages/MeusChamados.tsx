@@ -197,7 +197,7 @@ export function MeusChamados() {
 
           {precisaDeVoce > 0 && (
             <section aria-labelledby="t-voce" className="space-y-3">
-              <h2 id="t-voce" className="flex items-center gap-2 text-xl font-bold">
+              <h2 id="t-voce" className="flex items-center gap-2 text-lg md:text-xl font-bold">
                 <span className="size-2.5 rounded-full bg-acento" aria-hidden="true" /> Precisa de você
               </h2>
               {responder.map((c) => (
@@ -246,7 +246,7 @@ export function MeusChamados() {
 
           {emAtendimento.length > 0 && (
             <section aria-labelledby="t-atend" className="space-y-3">
-              <h2 id="t-atend" className="text-xl font-bold">Com o TI agora</h2>
+              <h2 id="t-atend" className="text-lg md:text-xl font-bold">Com o TI agora</h2>
               {emAtendimento.map((c) => {
                 const quem = c.expand?.responsavel?.name?.split(" ")[0] ?? "Um técnico";
                 const msg = ultimaMensagem[c.id];
@@ -284,7 +284,7 @@ export function MeusChamados() {
 
           {naFila.length > 0 && (
             <section aria-labelledby="t-fila" className="space-y-4">
-              <h2 id="t-fila" className="text-xl font-bold">Na fila <span className="font-display text-base text-tinta-2">{naFila.length}</span></h2>
+              <h2 id="t-fila" className="text-lg md:text-xl font-bold">Na fila <span className="font-display text-base text-tinta-2">{naFila.length}</span></h2>
               {filaVisivel.map((c, i) => i === 0 ? (
                 <LinkChamado key={c.id} id={c.id} para={`/chamado/${c.id}`} className={`block rounded-[18px] focus-visible:outline-offset-4 ${verId === c.id ? "ring-4 ring-acento" : ""}`}>
                   <SenhaFila
